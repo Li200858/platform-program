@@ -4,6 +4,9 @@ const FeedbackSchema = new mongoose.Schema({
   category: { type: String, required: true }, // 教学、宿舍、食堂、校园环境
   content: { type: String, required: true },
   author: { type: String, required: true }, // 可以存邮箱或用户id
+  authorName: { type: String, default: '' },
+  authorAvatar: { type: String, default: '' },
+  authorClass: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -18,14 +18,14 @@ const path = require('path');
 const fs = require('fs');
 
 // Cloudinary 配置（可选）
-const cloudinary = require('cloudinary').v2;
-if (process.env.CLOUDINARY_CLOUD_NAME) {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-  });
-}
+// const cloudinary = require('cloudinary').v2;
+// if (process.env.CLOUDINARY_CLOUD_NAME) {
+//   cloudinary.config({
+//     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+//     api_key: process.env.CLOUDINARY_API_KEY,
+//     api_secret: process.env.CLOUDINARY_API_SECRET
+//   });
+// }
 
 // 认证中间件
 const auth = (req, res, next) => {
@@ -273,12 +273,21 @@ app.get('/api/search', async (req, res) => {
 });
 
 // 发布意见
-app.post('/api/feedback', async (req, res) => {
-  const { category, content, author } = req.body;
-  if (!category || !content || !author) {
+app.post('/api/feedback', auth, async (req, res) => {
+  const { category, content } = req.body;
+  const user = await User.findById(req.userId);
+  if (!category || !content || !user) {
     return res.status(400).json({ error: '信息不完整' });
   }
-  const feedback = await Feedback.create({ category, content, author });
+  const feedback = await Feedback.create({
+    category,
+    content,
+    author: user.email,
+    authorName: user.name,
+    authorAvatar: user.avatar,
+    authorClass: user.class,
+    createdAt: new Date()
+  });
   res.json(feedback);
 });
 
