@@ -17,6 +17,16 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Cloudinary 配置（可选）
+const cloudinary = require('cloudinary').v2;
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+}
+
 // 认证中间件
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
@@ -142,11 +152,34 @@ app.post('/api/me', auth, async (req, res) => {
 });
 
 // 文件上传接口（支持图片、视频、文档等）
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: '没有文件' });
   }
-  res.json({ url: `/uploads/${req.file.filename}` });
+  
+  try {
+    let fileUrl;
+    
+    // 如果配置了 Cloudinary，使用云存储
+    if (process.env.CLOUDINARY_CLOUD_NAME) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: 'auto',
+        folder: 'campus-platform'
+      });
+      fileUrl = result.secure_url;
+      
+      // 删除本地文件
+      fs.unlinkSync(req.file.path);
+    } else {
+      // 使用本地存储
+      fileUrl = `/uploads/${req.file.filename}`;
+    }
+    
+    res.json({ url: fileUrl });
+  } catch (error) {
+    console.error('文件上传错误:', error);
+    res.status(500).json({ error: '文件上传失败' });
+  }
 });
 
 // 获取活动列表（可选status，默认只展示已审核通过的）
