@@ -34,7 +34,7 @@ const auth = (req, res, next) => {
     return res.status(401).json({ error: '未提供认证令牌' });
   }
   try {
-    const decoded = jwt.verify(token, 'your_jwt_secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
     req.userId = decoded.userId;
     next();
   } catch (error) {
@@ -149,7 +149,7 @@ app.post('/api/login', async (req, res) => {
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) return res.status(400).json({ error: '密码错误' });
   // 生成token
-  const token = jwt.sign({ userId: user._id }, 'your_jwt_secret', { expiresIn: '7d' });
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
   res.json({ token, email: user.email, role: user.role });
 });
 
