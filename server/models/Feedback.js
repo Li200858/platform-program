@@ -7,6 +7,7 @@ const FeedbackSchema = new mongoose.Schema({
   authorName: { type: String, default: '' },
   authorAvatar: { type: String, default: '' },
   authorClass: { type: String, default: '' },
+  media: [String], // 媒体文件URL数组
   createdAt: { type: Date, default: Date.now }
 });
 

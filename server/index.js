@@ -60,6 +60,7 @@ const requireRole = (roles) => {
 
 app.use(cors());
 app.use(express.json());
+
 // 确保 uploads 目录存在
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
@@ -85,70 +86,6 @@ mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost:27017/campus-plat
 // 测试接口
 app.get('/', (req, res) => {
   res.send('后端服务已启动');
-});
-
-// 注册接口（邮箱唯一，名字唯一且只能设置一次）
-app.post('/api/register', async (req, res) => {
-  const { email, password, name, age, class: userClass, avatar } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: '邮箱和密码必填' });
-  }
-  try {
-    // 名字唯一性校验
-    if (name) {
-      const nameExist = await User.findOne({ name });
-      if (nameExist) {
-        return res.status(400).json({ error: '名字已被占用' });
-      }
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPassword, name, age, class: userClass, avatar });
-    res.json({ message: '注册成功' });
-  } catch (e) {
-    res.status(400).json({ error: '邮箱已被注册' });
-  }
-});
-
-// 登录接口
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ error: '用户不存在' });
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.status(400).json({ error: '密码错误' });
-  // 生成token
-  const token = jwt.sign({ userId: user._id }, 'your_jwt_secret', { expiresIn: '7d' });
-  res.json({ token, email: user.email });
-});
-
-// 获取当前用户信息
-app.get('/api/me', auth, async (req, res) => {
-  const user = await User.findById(req.userId).select('-password');
-  res.json(user);
-});
-
-// 更新用户信息（昵称、年级、班级、头像，名字只能设置一次且全站唯一）
-app.post('/api/me', auth, async (req, res) => {
-  const { name, age, class: userClass, avatar } = req.body;
-  const user = await User.findById(req.userId);
-
-  // 名字只能设置一次且全站唯一
-  if (name && (!user.name || user.name === '')) {
-    const nameExist = await User.findOne({ name });
-    if (nameExist) {
-      return res.status(400).json({ error: '名字已被占用' });
-    }
-    user.name = name;
-  } else if (name && user.name && user.name !== name) {
-    return res.status(400).json({ error: '名字只能设置一次，无法修改' });
-  }
-
-  if (age !== undefined) user.age = age;
-  if (userClass !== undefined) user.class = userClass;
-  if (avatar !== undefined) user.avatar = avatar;
-
-  await user.save();
-  res.json(user);
 });
 
 // 文件上传接口（支持图片、视频、文档等）
@@ -182,19 +119,175 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// 获取活动列表（可选status，默认只展示已审核通过的）
-app.get('/api/activity', async (req, res) => {
-  const { status } = req.query;
-  const filter = status ? { status } : { status: 'approved' };
-  const list = await Activity.find(filter).sort({ createdAt: -1 });
+// 注册接口（邮箱唯一，名字唯一且只能设置一次）
+app.post('/api/register', async (req, res) => {
+  const { email, password, name, age, class: userClass, avatar } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: '邮箱和密码必填' });
+  }
+  try {
+    // 名字唯一性校验
+    if (name) {
+      const nameExist = await User.findOne({ name });
+      if (nameExist) {
+        return res.status(400).json({ error: '名字已被占用' });
+      }
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ email, password: hashedPassword, name, age, class: userClass, avatar });
+    res.json({ message: '注册成功' });
+  } catch (e) {
+    res.status(400).json({ error: '邮箱已被注册' });
+  }
+});
+
+// 登录接口
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) return res.status(400).json({ error: '用户不存在' });
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) return res.status(400).json({ error: '密码错误' });
+  // 生成token
+  const token = jwt.sign({ userId: user._id }, 'your_jwt_secret', { expiresIn: '7d' });
+  res.json({ token, email: user.email, role: user.role });
+});
+
+// 获取当前用户信息
+app.get('/api/me', auth, async (req, res) => {
+  const user = await User.findById(req.userId).select('-password');
+  res.json(user);
+});
+
+// 更新用户信息（昵称、年级、班级、头像，名字只能设置一次且全站唯一）
+app.post('/api/me', auth, async (req, res) => {
+  const { name, age, class: userClass, avatar } = req.body;
+  const user = await User.findById(req.userId);
+
+  // 名字只能设置一次且全站唯一
+  if (name && (!user.name || user.name === '')) {
+    const nameExist = await User.findOne({ name });
+    if (nameExist) {
+      return res.status(400).json({ error: '名字已被占用' });
+    }
+    user.name = name;
+  } else if (name && user.name && user.name !== name) {
+    return res.status(400).json({ error: '名字只能设置一次，无法修改' });
+  }
+
+  if (age !== undefined) user.age = age;
+  if (userClass !== undefined) user.class = userClass;
+  if (avatar !== undefined) user.avatar = avatar;
+
+  await user.save();
+  res.json(user);
+});
+
+// 发布意见
+app.post('/api/feedback', auth, async (req, res) => {
+  const { category, content, media } = req.body;
+  const user = await User.findById(req.userId);
+  if (!category || !content || !user) {
+    return res.status(400).json({ error: '信息不完整' });
+  }
+  const feedback = await Feedback.create({
+    category,
+    content,
+    author: user.email,
+    authorName: user.name,
+    authorAvatar: user.avatar,
+    authorClass: user.class,
+    media: media || [],
+    createdAt: new Date()
+  });
+  res.json(feedback);
+});
+
+// 获取所有意见（按时间倒序）
+app.get('/api/feedback', async (req, res) => {
+  const list = await Feedback.find().sort({ createdAt: -1 });
   res.json(list);
 });
 
-// 审核活动（管理员用，实际项目应加权限校验）
-app.post('/api/activity/:id/approve', auth, requireRole(['founder', 'admin']), async (req, res) => {
-  const { id } = req.params;
-  const activity = await Activity.findByIdAndUpdate(id, { status: 'approved' }, { new: true });
-  res.json(activity);
+// 发布跨校联合内容
+app.post('/api/crosscampus', auth, async (req, res) => {
+  const { title, content, media } = req.body;
+  const user = await User.findById(req.userId);
+  if (!title || !content || !user) {
+    return res.status(400).json({ error: '信息不完整' });
+  }
+  const post = await CrossCampus.create({
+    title,
+    content,
+    author: user.email,
+    authorId: user._id,
+    authorName: user.name,
+    authorAvatar: user.avatar,
+    authorClass: user.class,
+    media: media || [],
+    createdAt: new Date()
+  });
+  res.json(post);
+});
+
+// 获取所有跨校联合内容（按时间倒序）
+app.get('/api/crosscampus', async (req, res) => {
+  const list = await CrossCampus.find().sort({ createdAt: -1 });
+  res.json(list);
+});
+
+// 发布学习板块内容
+app.post('/api/study', auth, async (req, res) => {
+  const { tab, title, content, media } = req.body;
+  const user = await User.findById(req.userId);
+  if (!tab || !title || !content || !user) {
+    return res.status(400).json({ error: '信息不完整' });
+  }
+  const post = await Study.create({
+    tab,
+    title,
+    content,
+    author: user.email,
+    authorId: user._id,
+    authorName: user.name,
+    authorAvatar: user.avatar,
+    authorClass: user.class,
+    media: media || [],
+    createdAt: new Date()
+  });
+  res.json(post);
+});
+
+// 获取学习板块内容（可按tab分类，按时间倒序）
+app.get('/api/study', async (req, res) => {
+  const { tab } = req.query;
+  const filter = tab ? { tab } : {};
+  const list = await Study.find(filter).sort({ createdAt: -1 });
+  res.json(list);
+});
+
+// 发布艺术作品
+app.post('/api/art', auth, async (req, res) => {
+  const { tab, title, content, media } = req.body;
+  const user = await User.findById(req.userId);
+  if (!tab || !title || !content || !user) {
+    return res.status(400).json({ error: '信息不完整' });
+  }
+  const post = await Art.create({
+    tab,
+    title,
+    content,
+    author: user.email,
+    authorId: user._id,
+    authorName: user.name,
+    authorAvatar: user.avatar,
+    authorClass: user.class,
+    media: media || [],
+    likes: 0,
+    likedUsers: [],
+    createdAt: new Date()
+  });
+  res.json(post);
 });
 
 // 获取艺术作品（可按tab分类，支持按热度或时间排序）
@@ -232,18 +325,41 @@ app.post('/api/art/:id/like', auth, async (req, res) => {
   res.json(art);
 });
 
-// 获取学习板块内容（可按tab分类，按时间倒序）
-app.get('/api/study', async (req, res) => {
-  const { tab } = req.query;
-  const filter = tab ? { tab } : {};
-  const list = await Study.find(filter).sort({ createdAt: -1 });
+// 发布活动
+app.post('/api/activity', auth, async (req, res) => {
+  const { title, content, media } = req.body;
+  const user = await User.findById(req.userId);
+  if (!title || !content || !user) {
+    return res.status(400).json({ error: '信息不完整' });
+  }
+  const activity = await Activity.create({
+    title,
+    content,
+    author: user.email,
+    authorId: user._id,
+    authorName: user.name,
+    authorAvatar: user.avatar,
+    authorClass: user.class,
+    media: media || [],
+    status: 'pending',
+    createdAt: new Date()
+  });
+  res.json(activity);
+});
+
+// 获取活动列表（可选status，默认只展示已审核通过的）
+app.get('/api/activity', async (req, res) => {
+  const { status } = req.query;
+  const filter = status ? { status } : { status: 'approved' };
+  const list = await Activity.find(filter).sort({ createdAt: -1 });
   res.json(list);
 });
 
-// 获取所有跨校联合内容（按时间倒序）
-app.get('/api/crosscampus', async (req, res) => {
-  const list = await CrossCampus.find().sort({ createdAt: -1 });
-  res.json(list);
+// 审核活动（管理员用，实际项目应加权限校验）
+app.post('/api/activity/:id/approve', auth, requireRole(['founder', 'admin']), async (req, res) => {
+  const { id } = req.params;
+  const activity = await Activity.findByIdAndUpdate(id, { status: 'approved' }, { new: true });
+  res.json(activity);
 });
 
 // 全局搜索API
@@ -270,31 +386,6 @@ app.get('/api/search', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: '搜索失败' });
   }
-});
-
-// 发布意见
-app.post('/api/feedback', auth, async (req, res) => {
-  const { category, content } = req.body;
-  const user = await User.findById(req.userId);
-  if (!category || !content || !user) {
-    return res.status(400).json({ error: '信息不完整' });
-  }
-  const feedback = await Feedback.create({
-    category,
-    content,
-    author: user.email,
-    authorName: user.name,
-    authorAvatar: user.avatar,
-    authorClass: user.class,
-    createdAt: new Date()
-  });
-  res.json(feedback);
-});
-
-// 获取所有意见（按时间倒序）
-app.get('/api/feedback', async (req, res) => {
-  const list = await Feedback.find().sort({ createdAt: -1 });
-  res.json(list);
 });
 
 // 权限管理API

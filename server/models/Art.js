@@ -8,6 +8,7 @@ const ArtSchema = new mongoose.Schema({
   authorName: { type: String },
   authorAvatar: { type: String },
   authorClass: { type: String },
+  media: [String], // 媒体文件URL数组
   likes: { type: Number, default: 0 },
   likedUsers: [{ type: String }], // 新增，存储已点赞用户ID
   createdAt: { type: Date, default: Date.now }
