@@ -108,6 +108,12 @@ app.post('/api/register', async (req, res) => {
     return res.status(400).json({ error: '邮箱和密码必填' });
   }
   try {
+    // 检查邮箱是否已存在
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: '邮箱已被注册' });
+    }
+    
     // 名字唯一性校验
     if (name) {
       const nameExist = await User.findOne({ name });
@@ -115,11 +121,13 @@ app.post('/api/register', async (req, res) => {
         return res.status(400).json({ error: '名字已被占用' });
       }
     }
+    
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hashedPassword, name, age, class: userClass, avatar });
     res.json({ message: '注册成功' });
   } catch (e) {
-    res.status(400).json({ error: '邮箱已被注册' });
+    console.error('注册错误:', e);
+    res.status(500).json({ error: `注册失败: ${e.message}` });
   }
 });
 
