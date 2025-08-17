@@ -75,7 +75,19 @@ const upload = multer({
 });
 
 // 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform');
+mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform', {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  maxIdleTimeMS: 30000,
+  bufferCommands: false,
+  bufferMaxEntries: 0
+}).then(() => {
+  console.log('MongoDB连接成功');
+}).catch(err => {
+  console.error('MongoDB连接失败:', err);
+});
 
 // 测试接口
 app.get('/', (req, res) => {
