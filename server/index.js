@@ -62,7 +62,8 @@ const requireRole = (roles) => {
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://platform-program-client.vercel.app'
+    'https://platform-program-client.vercel.app',
+    /https:\/\/platform-program-client.*\.vercel\.app$/
   ],
   credentials: true
 }));
