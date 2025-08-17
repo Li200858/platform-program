@@ -60,22 +60,7 @@ const requireRole = (roles) => {
 
 // CORS 配置 - 允许前端域名访问
 app.use(cors({
-  origin: function (origin, callback) {
-    // 允许的域名列表
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://platform-program-client.vercel.app'
-    ];
-    
-    // 允许所有 platform-program-client 的 vercel 子域名
-    if (!origin || 
-        allowedOrigins.includes(origin) || 
-        /^https:\/\/platform-program-client.*\.vercel\.app$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // 临时允许所有域名，解决部署问题
   credentials: true
 }));
 app.use(express.json());
