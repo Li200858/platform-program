@@ -88,7 +88,7 @@ const upload = multer({ storage: storage });
 app.use('/uploads', express.static('uploads'));
 
 // 连接MongoDB
-mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform');
+mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform');
 
 // 测试接口
 app.get('/', (req, res) => {
