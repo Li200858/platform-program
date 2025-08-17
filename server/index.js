@@ -58,7 +58,14 @@ const requireRole = (roles) => {
   };
 };
 
-app.use(cors());
+// CORS 配置 - 允许前端域名访问
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://platform-program-client.vercel.app'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // 确保 uploads 目录存在
