@@ -68,24 +68,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 确保 uploads 目录存在
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + ext);
+// Vercel无服务器环境 - 使用内存存储
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB 限制
   }
 });
-const upload = multer({ storage: storage });
-
-// 静态资源托管
-app.use('/uploads', express.static('uploads'));
 
 // 连接MongoDB
 mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform');
@@ -102,24 +92,12 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
   
   try {
-    let fileUrl;
-    
-    // 如果配置了 Cloudinary，使用云存储
-    if (process.env.CLOUDINARY_CLOUD_NAME) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        resource_type: 'auto',
-        folder: 'campus-platform'
-      });
-      fileUrl = result.secure_url;
-      
-      // 删除本地文件
-      fs.unlinkSync(req.file.path);
-    } else {
-      // 使用本地存储
-      fileUrl = `/uploads/${req.file.filename}`;
-    }
-    
-    res.json({ url: fileUrl });
+    // Vercel环境下，文件上传功能暂时禁用
+    // 在生产环境中，建议使用云存储服务如Cloudinary、AWS S3等
+    res.status(501).json({ 
+      error: '文件上传功能暂时不可用',
+      message: '请联系管理员配置云存储服务'
+    });
   } catch (error) {
     console.error('文件上传错误:', error);
     res.status(500).json({ error: '文件上传失败' });
