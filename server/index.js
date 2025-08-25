@@ -75,17 +75,44 @@ const upload = multer({
 });
 
 // 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform', {
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
-  maxPoolSize: 10,
-  minPoolSize: 5,
-  maxIdleTimeMS: 30000
-}).then(() => {
-  console.log('MongoDB连接成功');
-}).catch(err => {
-  console.error('MongoDB连接失败:', err);
-});
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/campus-platform';
+    console.log('尝试连接MongoDB:', mongoURI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // 隐藏密码
+    
+    await mongoose.connect(mongoURI, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      minPoolSize: 1,
+      maxIdleTimeMS: 30000
+    });
+    
+    console.log('MongoDB连接成功');
+  } catch (err) {
+    console.error('MongoDB连接失败:', err.message);
+    console.error('错误详情:', {
+      name: err.name,
+      code: err.code,
+      codeName: err.codeName
+    });
+    
+    // 如果是认证错误，提供更详细的帮助信息
+    if (err.code === 8000 || err.name === 'MongoServerError') {
+      console.error('认证失败，请检查：');
+      console.error('1. MongoDB Atlas用户名和密码是否正确');
+      console.error('2. 数据库名称是否正确');
+      console.error('3. 网络访问是否已配置');
+      console.error('4. 连接字符串格式是否正确');
+    }
+    
+    // 继续运行服务器，但某些功能可能不可用
+    console.log('服务器将继续运行，但数据库功能不可用');
+  }
+};
+
+// 启动数据库连接
+connectDB();
 
 // 测试接口
 app.get('/', (req, res) => {

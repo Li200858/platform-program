@@ -1,0 +1,24 @@
+{
+  "name": "platform-program",
+  "version": "1.0.0",
+  "description": "校园平台项目",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "cd server && npm run dev",
+    "build": "cd client && npm run build",
+    "vercel-build": "cd client && npm run build"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mongoose": "^8.16.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
