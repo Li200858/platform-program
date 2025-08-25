@@ -7,7 +7,8 @@
     "start": "node server/index.js",
     "dev": "cd server && npm run dev",
     "build": "cd client && npm run build",
-    "vercel-build": "cd client && npm run build"
+    "vercel-build": "npm install && cd client && npm install && npm run build",
+    "install-deps": "npm install && cd client && npm install && cd ../server && npm install"
   },
   "dependencies": {
     "express": "^5.1.0",
