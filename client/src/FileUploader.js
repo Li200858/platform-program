@@ -7,19 +7,39 @@ export default function FileUploader({ onUpload }) {
   const handleUpload = async () => {
     const file = fileInput.current.files[0];
     if (!file) return;
+    
+    // 文件大小检查 (10MB限制)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('文件大小不能超过10MB');
+      return;
+    }
+    
+    // 文件类型检查
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('只支持图片和视频文件');
+      return;
+    }
+    
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
-    setUploading(false);
-    if (res.ok) {
-      onUpload(data.url);
-    } else {
-      alert(data.error || '上传失败');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      setUploading(false);
+      if (res.ok) {
+        onUpload(data.url);
+      } else {
+        alert(data.error || '上传失败');
+      }
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      setUploading(false);
+      alert('上传失败，请检查网络连接');
     }
   };
 

@@ -11,6 +11,10 @@
 - **JWT_SECRET**: JWT认证密钥
   - 建议使用32位以上随机字符串
   - 可以使用在线生成器生成
+- **FOUNDER_EMAILS**: 创始人邮箱列表（可选）
+  - 格式: `founder@example.com,admin@example.com`
+  - 用逗号分隔多个邮箱
+  - 使用这些邮箱注册或登录的用户将自动获得创始人权限
 
 ### 2. 部署步骤
 1. 将整个`deploy-package`文件夹拖拽到Netlify

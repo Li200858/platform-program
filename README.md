@@ -66,10 +66,20 @@ npm start
 ## 使用说明
 
 ### 1. 设置创始人
-首次使用时，需要设置创始人：
+有两种方式设置创始人：
+
+#### 方式一：基于特定邮箱（推荐）
+1. 在环境变量中设置 `FOUNDER_EMAILS=your-email@example.com`
+2. 使用指定邮箱注册或登录，将自动获得创始人权限
+3. 支持多个邮箱，用逗号分隔：`FOUNDER_EMAILS=email1@example.com,email2@example.com`
+
+#### 方式二：传统方式
 1. 先注册一个用户账号
 2. 运行 `node setup-founder.js` 脚本
 3. 第一个注册的用户将被设为创始人
+
+#### 方式三：批量设置现有用户
+运行 `node setup-founder-email.js` 脚本，将环境变量中指定的邮箱用户设为创始人
 
 ### 2. 用户权限管理
 - 创始人可以在管理员面板中搜索用户邮箱

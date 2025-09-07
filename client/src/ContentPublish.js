@@ -66,6 +66,7 @@ export default function ContentPublish({ type, onBack }) {
         }
       } catch (error) {
         console.error('检查个人信息失败:', error);
+        setProfileMessage('无法检查个人信息，请稍后重试');
       }
     };
     
@@ -146,7 +147,8 @@ export default function ContentPublish({ type, onBack }) {
         setMsg(data.error || '提交失败');
       }
     } catch (error) {
-      setMsg('提交失败，请稍后重试');
+      console.error('内容提交失败:', error);
+      setMsg('提交失败，请检查网络连接后重试');
     }
   };
 

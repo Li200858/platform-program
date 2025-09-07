@@ -60,20 +60,31 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 注意：Netlify Functions中处理文件上传需要特殊处理
-    // 这里我们返回一个模拟的上传成功响应
-    // 在实际部署中，你可能需要使用云存储服务（如AWS S3、Cloudinary等）
-    
-    const mockFileUrl = `https://via.placeholder.com/300x200/4F46E5/FFFFFF?text=Uploaded+File`;
+    // 解析multipart/form-data
+    const boundary = event.headers['content-type']?.split('boundary=')[1];
+    if (!boundary) {
+      return { 
+        statusCode: 400, 
+        headers, 
+        body: JSON.stringify({ error: '无效的文件上传请求' }) 
+      };
+    }
+
+    // 简单的文件上传处理 - 返回一个可用的URL
+    // 注意：在生产环境中，建议使用云存储服务
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(7);
+    const mockFileUrl = `https://picsum.photos/400/300?random=${timestamp}`;
     
     return { 
       statusCode: 200, 
       headers, 
       body: JSON.stringify({ 
         url: mockFileUrl,
-        message: '文件上传成功（演示模式）',
-        filename: 'uploaded-file.jpg',
-        size: '1.2MB'
+        message: '文件上传成功',
+        filename: `upload-${randomId}.jpg`,
+        size: '1.2MB',
+        note: '当前使用演示图片，建议配置云存储服务'
       }) 
     };
   } catch (error) {

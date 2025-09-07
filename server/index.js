@@ -159,25 +159,65 @@ app.post('/api/register', async (req, res) => {
       }
     }
     
+    // 检查是否为创始人邮箱
+    const founderEmails = process.env.FOUNDER_EMAILS ? process.env.FOUNDER_EMAILS.split(',').map(e => e.trim()) : [];
+    const isFounderEmail = founderEmails.includes(email);
+    
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hashedPassword, name, age, class: userClass, avatar });
+    const userData = { email, password: hashedPassword, name, age, class: userClass, avatar };
+    
+    // 如果是创始人邮箱，设置为创始人角色
+    if (isFounderEmail) {
+      userData.role = 'founder';
+      console.log(`创始人邮箱注册: ${email}`);
+    }
+    
+    const user = await User.create(userData);
     res.json({ message: '注册成功' });
   } catch (e) {
     console.error('注册错误:', e);
-    res.status(500).json({ error: `注册失败: ${e.message}` });
+    if (e.name === 'ValidationError') {
+      res.status(400).json({ error: '数据验证失败' });
+    } else if (e.name === 'MongoError' && e.code === 11000) {
+      res.status(400).json({ error: '邮箱或用户名已存在' });
+    } else {
+      res.status(500).json({ error: '注册失败，请稍后重试' });
+    }
   }
 });
 
 // 登录接口
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ error: '用户不存在' });
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.status(400).json({ error: '密码错误' });
-  // 生成token
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
-  res.json({ token, email: user.email, role: user.role });
+  
+  // 输入验证
+  if (!email || !password) {
+    return res.status(400).json({ error: '邮箱和密码不能为空' });
+  }
+  
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: '用户不存在' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: '密码错误' });
+  
+  // 检查是否为创始人邮箱，如果是则更新用户角色
+  const founderEmails = process.env.FOUNDER_EMAILS ? process.env.FOUNDER_EMAILS.split(',').map(e => e.trim()) : [];
+  const isFounderEmail = founderEmails.includes(email);
+  
+  if (isFounderEmail && user.role !== 'founder') {
+    user.role = 'founder';
+    await user.save();
+    console.log(`创始人邮箱登录，已更新角色: ${email}`);
+  }
+  
+    // 生成token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your_jwt_secret', { expiresIn: '7d' });
+    res.json({ token, email: user.email, role: user.role });
+  } catch (error) {
+    console.error('登录错误:', error);
+    res.status(500).json({ error: '登录失败，请稍后重试' });
+  }
 });
 
 // 获取当前用户信息

@@ -28,6 +28,7 @@ export default function ContentStatus() {
       }
     } catch (error) {
       console.error('获取内容状态失败:', error);
+      setMsg('获取内容状态失败，请检查网络连接');
     }
   };
 

@@ -72,7 +72,18 @@ exports.handler = async (event, context) => {
         return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
       }
 
+      // 验证请求体
+      if (!event.body) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: '请求体不能为空' }) };
+      }
+
       const feedbackData = JSON.parse(event.body);
+      
+      // 输入验证
+      if (!feedbackData.content || !feedbackData.content.trim()) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: '反馈内容不能为空' }) };
+      }
+      
       const newFeedback = new Feedback({
         ...feedbackData,
         author: user.email
@@ -111,6 +122,16 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   } catch (error) {
     console.error('Feedback error:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: '服务器错误' }) };
+    
+    // 根据错误类型返回不同的错误信息
+    if (error.name === 'ValidationError') {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: '数据验证失败' }) };
+    }
+    
+    if (error.name === 'MongoError' && error.code === 11000) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: '数据已存在' }) };
+    }
+    
+    return { statusCode: 500, headers, body: JSON.stringify({ error: '服务器内部错误，请稍后重试' }) };
   }
 };

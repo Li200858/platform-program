@@ -108,12 +108,20 @@ exports.handler = async (event, context) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     
+    // 检查是否为创始人邮箱
+    const founderEmails = process.env.FOUNDER_EMAILS ? process.env.FOUNDER_EMAILS.split(',').map(e => e.trim()) : [];
+    const isFounderEmail = founderEmails.includes(email);
+    
     // 创建新用户
     const newUser = new User({
       email,
       password: hashedPassword,
-      role: 'user'
+      role: isFounderEmail ? 'founder' : 'user'
     });
+    
+    if (isFounderEmail) {
+      console.log(`创始人邮箱注册: ${email}`);
+    }
     
     await newUser.save();
     

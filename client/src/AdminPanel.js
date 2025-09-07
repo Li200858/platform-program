@@ -29,6 +29,7 @@ export default function AdminPanel() {
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
+      setMsg('获取用户列表失败，请检查网络连接');
     }
   };
 
@@ -43,6 +44,7 @@ export default function AdminPanel() {
       }
     } catch (error) {
       console.error('获取待审核内容失败:', error);
+      setMsg('获取待审核内容失败，请检查网络连接');
     }
   };
 

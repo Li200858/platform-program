@@ -133,6 +133,16 @@ exports.handler = async (event, context) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   } catch (error) {
     console.error('Art error:', error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: '服务器错误' }) };
+    
+    // 根据错误类型返回不同的错误信息
+    if (error.name === 'ValidationError') {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: '数据验证失败' }) };
+    }
+    
+    if (error.name === 'MongoError' && error.code === 11000) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: '数据已存在' }) };
+    }
+    
+    return { statusCode: 500, headers, body: JSON.stringify({ error: '服务器内部错误，请稍后重试' }) };
   }
 };

@@ -9,6 +9,28 @@ export default function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg('');
+    
+    // 输入验证
+    if (!email.trim()) {
+      setMsg('请输入邮箱');
+      return;
+    }
+    if (!password.trim()) {
+      setMsg('请输入密码');
+      return;
+    }
+    if (!isLogin && password.length < 6) {
+      setMsg('密码长度至少6位');
+      return;
+    }
+    
+    // 邮箱格式验证
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setMsg('请输入有效的邮箱地址');
+      return;
+    }
+    
     const url = isLogin ? '/api/login' : '/api/register';
     try {
       const res = await fetch(url, {
@@ -28,8 +50,9 @@ export default function Login({ onLogin }) {
       } else {
         setMsg(data.error || '出错了');
       }
-    } catch {
-      setMsg('网络错误');
+    } catch (error) {
+      console.error('登录/注册错误:', error);
+      setMsg('网络错误，请检查网络连接');
     }
   };
 

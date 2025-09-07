@@ -106,6 +106,16 @@ exports.handler = async (event, context) => {
       };
     }
     
+    // 检查是否为创始人邮箱，如果是则更新用户角色
+    const founderEmails = process.env.FOUNDER_EMAILS ? process.env.FOUNDER_EMAILS.split(',').map(e => e.trim()) : [];
+    const isFounderEmail = founderEmails.includes(email);
+    
+    if (isFounderEmail && user.role !== 'founder') {
+      user.role = 'founder';
+      await user.save();
+      console.log(`创始人邮箱登录，已更新角色: ${email}`);
+    }
+    
     // 生成JWT token
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
