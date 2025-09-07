@@ -20,7 +20,19 @@ export default function Study({ user }) {
     const dbTab = currentTab ? currentTab.dbValue : tab;
     fetch(`/api/study?tab=${encodeURIComponent(dbTab)}`)
       .then(res => res.json())
-      .then(data => setList(data));
+      .then(data => {
+        // 确保data是数组
+        if (Array.isArray(data)) {
+          setList(data);
+        } else {
+          console.error('API返回的数据不是数组:', data);
+          setList([]);
+        }
+      })
+      .catch(error => {
+        console.error('获取学习内容失败:', error);
+        setList([]);
+      });
   }, [tab, tabs]);
 
   // 渲染已上传文件
@@ -116,7 +128,7 @@ export default function Study({ user }) {
       </div>
       
       <ul>
-        {list.map(item => (
+        {Array.isArray(list) && list.map(item => (
           <li key={item._id} style={{ 
             marginBottom: 20, 
             border: '1px solid #eee', 
