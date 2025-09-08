@@ -80,8 +80,9 @@ exports.handler = async (event, context) => {
       return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
     }
 
-    // 验证创始人权限
-    if (!(await verifyFounder(user))) {
+    // 获取用户数据并验证创始人权限
+    const userData = await User.findById(user.userId);
+    if (!userData || userData.role !== 'founder') {
       return { statusCode: 403, headers, body: JSON.stringify({ error: '只有创始人可以转让权限' }) };
     }
 

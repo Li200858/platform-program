@@ -139,8 +139,9 @@ exports.handler = async (event, context) => {
       // 普通用户只能看到自己的反馈
       // 管理员可以看到所有反馈
       let query = {};
-      if (!(await verifyAdmin(user))) {
-        query.author = user.email;
+      const userData = await User.findById(user.userId);
+      if (!userData || !(userData.role === 'founder' || userData.role === 'admin')) {
+        query.author = userData.email;
       }
 
       const feedbacks = await Feedback.find(query).sort({ createdAt: -1 });

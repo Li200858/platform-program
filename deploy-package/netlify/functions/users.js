@@ -96,8 +96,9 @@ exports.handler = async (event, context) => {
       return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
     }
 
-    // 验证管理员权限
-    if (!(await verifyAdmin(user))) {
+    // 获取用户数据并验证管理员权限
+    const userData = await User.findById(user.userId);
+    if (!userData || !(userData.role === 'founder' || userData.role === 'admin')) {
       return { statusCode: 403, headers, body: JSON.stringify({ error: '权限不足' }) };
     }
 

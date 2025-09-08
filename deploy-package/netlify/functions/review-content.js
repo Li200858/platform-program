@@ -125,30 +125,15 @@ exports.handler = async (event, context) => {
       return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
     }
 
-    console.log('User from token:', { userId: user.userId, email: user.email });
-
     // 获取用户数据并验证管理员权限
     const userData = await User.findById(user.userId);
-    if (!userData) {
-      console.log('User not found in database:', user.userId);
-      return { statusCode: 404, headers, body: JSON.stringify({ error: '用户不存在' }) };
-    }
-
-    console.log('User data from database:', { role: userData.role, email: userData.email });
-
-    if (!(userData.role === 'founder' || userData.role === 'admin')) {
-      console.log('User does not have admin role:', userData.role);
+    if (!userData || !(userData.role === 'founder' || userData.role === 'admin')) {
       return { statusCode: 403, headers, body: JSON.stringify({ error: '权限不足' }) };
     }
 
     // 获取内容ID和审核操作
     const contentId = event.path.split('/').pop();
-    console.log('Content ID:', contentId);
-    console.log('Event path:', event.path);
-    console.log('Event body:', event.body);
-    
     const { action, note } = JSON.parse(event.body);
-    console.log('Action:', action, 'Note:', note);
 
     if (!['approve', 'reject'].includes(action)) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: '无效的审核操作' }) };
@@ -157,11 +142,8 @@ exports.handler = async (event, context) => {
     // 查找待审核内容
     const pendingContent = await PendingContent.findById(contentId);
     if (!pendingContent) {
-      console.log('Pending content not found:', contentId);
       return { statusCode: 404, headers, body: JSON.stringify({ error: '内容不存在' }) };
     }
-
-    console.log('Found pending content:', pendingContent._id);
 
     // 更新审核状态
     pendingContent.status = action === 'approve' ? 'approved' : 'rejected';
