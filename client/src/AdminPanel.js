@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import config from './config';
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('users');
@@ -6,9 +7,57 @@ export default function AdminPanel() {
   const [pendingContent, setPendingContent] = useState([]);
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResult, setSearchResult] = useState(null);
-  const [msg, setMsg] = useState('');
-  const [rejectNote, setRejectNote] = useState('');
   const [rejectingContentId, setRejectingContentId] = useState(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 优化的数据获取函数
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(Array.isArray(data) ? data : []);
+      } else {
+        console.error('获取用户列表失败:', res.status);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error('获取用户列表失败:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchPendingContent = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/api/pending-content`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setPendingContent(Array.isArray(data) ? data : []);
+      } else {
+        console.error('获取待审核内容失败:', res.status);
+        setPendingContent([]);
+      }
+    } catch (error) {
+      console.error('获取待审核内容失败:', error);
+      setPendingContent([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -16,88 +65,52 @@ export default function AdminPanel() {
     } else if (activeTab === 'review') {
       fetchPendingContent();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchUsers, fetchPendingContent]);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch('/api/users', {
-        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setUsers(data);
-        } else {
-          console.error('API返回的用户数据不是数组:', data);
-          setUsers([]);
-        }
-      }
-    } catch (error) {
-      console.error('获取用户列表失败:', error);
-      setMsg('获取用户列表失败，请检查网络连接');
-    }
-  };
-
-  const fetchPendingContent = async () => {
-    try {
-      console.log('正在获取待审核内容...');
-      const res = await fetch('/api/pending-content', {
-        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        console.log('获取到的待审核内容:', data);
-        if (Array.isArray(data)) {
-          setPendingContent(data);
-          console.log('待审核内容已更新，数量:', data.length);
-        } else {
-          console.error('API返回的待审核内容数据不是数组:', data);
-          setPendingContent([]);
-        }
-      } else {
-        console.error('获取待审核内容失败，状态码:', res.status);
-        const error = await res.json();
-        console.error('错误信息:', error);
-      }
-    } catch (error) {
-      console.error('获取待审核内容失败:', error);
-      setMsg('获取待审核内容失败，请检查网络连接');
-    }
-  };
-
-  const searchUser = async () => {
-    if (!searchEmail) {
+  const searchUser = useCallback(async () => {
+    if (!searchEmail.trim()) {
       setMsg('请输入邮箱');
       return;
     }
+
     try {
-      const res = await fetch(`/api/users/search?email=${encodeURIComponent(searchEmail)}`, {
-        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/api/users/search?email=${encodeURIComponent(searchEmail)}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+
       if (res.ok) {
         const data = await res.json();
         setSearchResult(data);
         setMsg('');
       } else {
         const error = await res.json();
-        setMsg(error.error);
+        setMsg(error.error || '搜索失败');
         setSearchResult(null);
       }
     } catch (error) {
+      console.error('搜索用户失败:', error);
       setMsg('搜索失败');
+      setSearchResult(null);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [searchEmail]);
 
-  const transferRole = async (userId, newRole) => {
+  const transferRole = useCallback(async (userId, newRole) => {
     try {
-      const res = await fetch(`/api/users/${userId}/transfer-role`, {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/api/transfer-role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + localStorage.getItem('token')
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ newRole })
+        body: JSON.stringify({ userId, newRole })
       });
+
       if (res.ok) {
         setMsg('权限转让成功');
         fetchUsers();
@@ -105,28 +118,33 @@ export default function AdminPanel() {
         setSearchEmail('');
       } else {
         const error = await res.json();
-        setMsg(error.error);
+        setMsg(error.error || '权限转让失败');
       }
     } catch (error) {
+      console.error('权限转让失败:', error);
       setMsg('权限转让失败');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [fetchUsers]);
 
-  const reviewContent = async (contentId, action, note = '') => {
+  const reviewContent = useCallback(async (contentId, action, note = '') => {
     try {
-      const res = await fetch(`/api/pending-content/${contentId}/review`, {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/api/pending-content/${contentId}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + localStorage.getItem('token')
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ action, note })
       });
+
       if (res.ok) {
         const result = await res.json();
         console.log('审核成功:', result);
         setMsg(action === 'approve' ? '内容已通过' : '内容已驳回');
-        // 延迟一下再刷新，确保数据库更新完成
         setTimeout(() => {
           fetchPendingContent();
         }, 500);
@@ -135,341 +153,364 @@ export default function AdminPanel() {
       } else {
         const error = await res.json();
         console.error('审核失败:', error);
-        setMsg(error.error);
+        setMsg(error.error || '审核失败');
       }
     } catch (error) {
+      console.error('审核失败:', error);
       setMsg('审核失败');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [fetchPendingContent]);
 
-  const handleReject = (contentId) => {
+  const handleReject = useCallback((contentId) => {
     if (!rejectNote.trim()) {
       setMsg('请填写驳回原因');
       return;
     }
     reviewContent(contentId, 'reject', rejectNote.trim());
-  };
+  }, [rejectNote, reviewContent]);
 
-  const getRoleText = (role) => {
+  const getRoleText = useCallback((role) => {
     const roleMap = {
       'founder': '创始人',
       'admin': '管理员',
       'user': '用户'
     };
     return roleMap[role] || '用户';
-  };
+  }, []);
 
-  const getStatusText = (status) => {
-    const statusMap = {
-      'pending': '待审核',
-      'approved': '已通过', 
-      'rejected': '已驳回'
+  const getRoleColor = useCallback((role) => {
+    const colorMap = {
+      'founder': '#dc3545',
+      'admin': '#007bff',
+      'user': '#6c757d'
     };
-    return statusMap[status] || status;
-  };
+    return colorMap[role] || '#6c757d';
+  }, []);
+
+  // 使用useMemo缓存标签页数据
+  const tabs = useMemo(() => [
+    { key: 'users', label: '用户管理' },
+    { key: 'review', label: '内容审核' }
+  ], []);
 
   return (
-    <div style={{ 
-      maxWidth: 1400, 
-      margin: '40px auto', 
-      background: '#fff',
-      borderRadius: 16,
-      padding: 40,
-      boxShadow: '0 8px 32px rgba(79, 70, 229, 0.12)',
-      border: '1px solid #F8FAFC'
-    }}>
-      <h2 style={{ 
-        margin: '0 0 30px 0', 
-        color: '#4F46E5', 
-        fontSize: '28px', 
-        fontWeight: '600',
-        textAlign: 'center'
-      }}>
-        管理员面板
-      </h2>
-      
-      <div style={{ marginBottom: 30, display: 'flex', justifyContent: 'center', gap: '20px' }}>
-        <button 
-          onClick={() => setActiveTab('users')}
-          style={{
-            padding: '16px 40px',
-            backgroundColor: activeTab === 'users' ? '#4F46E5' : '#F8FAFC',
-            color: activeTab === 'users' ? 'white' : '#374151',
-            border: activeTab === 'users' ? 'none' : '2px solid #E5E7EB',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '18px',
-            fontWeight: '600',
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'users' ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
-            minWidth: '200px'
-          }}
-          onMouseEnter={e => {
-            if (activeTab !== 'users') {
-              e.target.style.backgroundColor = '#EEF2FF';
-              e.target.style.borderColor = '#4F46E5';
-            }
-          }}
-          onMouseLeave={e => {
-            if (activeTab !== 'users') {
-              e.target.style.backgroundColor = '#F8FAFC';
-              e.target.style.borderColor = '#E5E7EB';
-            }
-          }}
-        >
-          用户管理
-        </button>
-        <button 
-          onClick={() => setActiveTab('review')}
-          style={{
-            padding: '16px 40px',
-            backgroundColor: activeTab === 'review' ? '#4F46E5' : '#F8FAFC',
-            color: activeTab === 'review' ? 'white' : '#374151',
-            border: activeTab === 'review' ? 'none' : '2px solid #E5E7EB',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '18px',
-            fontWeight: '600',
-            transition: 'all 0.2s ease',
-            boxShadow: activeTab === 'review' ? '0 4px 12px rgba(79, 70, 229, 0.2)' : 'none',
-            minWidth: '200px'
-          }}
-          onMouseEnter={e => {
-            if (activeTab !== 'review') {
-              e.target.style.backgroundColor = '#EEF2FF';
-              e.target.style.borderColor = '#4F46E5';
-            }
-          }}
-          onMouseLeave={e => {
-            if (activeTab !== 'review') {
-              e.target.style.backgroundColor = '#F8FAFC';
-              e.target.style.borderColor = '#E5E7EB';
-            }
-          }}
-        >
-          内容审核
-        </button>
-      </div>
+    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
+      <h2>管理面板</h2>
 
       {msg && (
-        <div style={{
-          padding: '12px 16px',
-          marginBottom: 20,
-          backgroundColor: msg.includes('成功') || msg.includes('权限转让成功') || msg.includes('内容已通过') ? '#D1FAE5' : '#FEE2E2',
-          color: msg.includes('成功') || msg.includes('权限转让成功') || msg.includes('内容已通过') ? '#059669' : '#DC2626',
-          borderRadius: '8px',
-          border: `1px solid ${msg.includes('成功') || msg.includes('权限转让成功') || msg.includes('内容已通过') ? '#A7F3D0' : '#FECACA'}`,
-          fontSize: '14px',
-          fontWeight: '500'
+        <div style={{ 
+          color: msg.includes('成功') ? 'green' : 'red', 
+          marginBottom: 15,
+          padding: 10,
+          backgroundColor: msg.includes('成功') ? '#d4edda' : '#f8d7da',
+          border: `1px solid ${msg.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`,
+          borderRadius: 4
         }}>
           {msg}
         </div>
       )}
 
+      {/* 标签页 */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding: '12px 24px',
+              border: '1px solid #ddd',
+              backgroundColor: activeTab === tab.key ? '#007bff' : '#f8f9fa',
+              color: activeTab === tab.key ? 'white' : '#333',
+              borderRadius: 4,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 用户管理 */}
       {activeTab === 'users' && (
         <div>
           <h3>用户管理</h3>
           
-          {/* 搜索用户 */}
-          <div style={{ marginBottom: 20, padding: 20, backgroundColor: '#f8f9fa', borderRadius: 5 }}>
-            <h4>搜索用户（通过邮箱）</h4>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-              <input
-                type="email"
-                value={searchEmail}
-                onChange={e => setSearchEmail(e.target.value)}
-                placeholder="请输入用户邮箱"
-                style={{ flex: 1, padding: 8, borderRadius: 5, border: '1px solid #ddd' }}
-              />
-              <button onClick={searchUser} style={{ padding: '8px 16px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: 5, cursor: 'pointer' }}>
-                搜索
-              </button>
-            </div>
-            
-            {searchResult && (
-              <div style={{ padding: 15, backgroundColor: 'white', borderRadius: 5, border: '1px solid #ddd' }}>
-                <h5>搜索结果：</h5>
-                <p><strong>邮箱：</strong>{searchResult.email}</p>
-                <p><strong>昵称：</strong>{searchResult.name || '未设置'}</p>
-                <p><strong>当前身份：</strong>{getRoleText(searchResult.role)}</p>
-                <div style={{ marginTop: 10 }}>
-                  <button 
-                    onClick={() => transferRole(searchResult._id, 'admin')}
-                    style={{ marginRight: 10, padding: '5px 10px', backgroundColor: '#f39c12', color: 'white', border: 'none', borderRadius: 3, cursor: 'pointer' }}
-                  >
-                    设为管理员
-                  </button>
-                  <button 
-                    onClick={() => transferRole(searchResult._id, 'founder')}
-                    style={{ marginRight: 10, padding: '5px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 3, cursor: 'pointer' }}
-                  >
-                    转让创始人权限
-                  </button>
-                </div>
-              </div>
-            )}
+          <div style={{ marginBottom: 20 }}>
+            <input
+              type="email"
+              value={searchEmail}
+              onChange={e => setSearchEmail(e.target.value)}
+              placeholder="输入邮箱搜索用户"
+              style={{ padding: 8, marginRight: 10, minWidth: 200 }}
+            />
+            <button 
+              onClick={searchUser}
+              disabled={loading}
+              style={{ 
+                padding: '8px 16px', 
+                backgroundColor: '#007bff', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loading ? '搜索中...' : '搜索'}
+            </button>
           </div>
 
-          {/* 用户列表 */}
+          {searchResult && (
+            <div style={{ 
+              border: '1px solid #ddd', 
+              borderRadius: 8, 
+              padding: 20, 
+              marginBottom: 20,
+              backgroundColor: '#f8f9fa'
+            }}>
+              <h4>搜索结果</h4>
+              <div style={{ marginBottom: 10 }}>
+                <strong>邮箱：</strong> {searchResult.email}
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <strong>姓名：</strong> {searchResult.name || '未设置'}
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <strong>班级：</strong> {searchResult.class || '未设置'}
+              </div>
+              <div style={{ marginBottom: 15 }}>
+                <strong>当前角色：</strong> 
+                <span style={{ 
+                  color: getRoleColor(searchResult.role),
+                  fontWeight: 'bold'
+                }}>
+                  {getRoleText(searchResult.role)}
+                </span>
+              </div>
+              <div>
+                <button 
+                  onClick={() => transferRole(searchResult._id, 'admin')}
+                  disabled={loading || searchResult.role === 'admin'}
+                  style={{ 
+                    padding: '6px 12px', 
+                    backgroundColor: '#28a745', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 4, 
+                    marginRight: 8,
+                    cursor: (loading || searchResult.role === 'admin') ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  设为管理员
+                </button>
+                <button 
+                  onClick={() => transferRole(searchResult._id, 'user')}
+                  disabled={loading || searchResult.role === 'user'}
+                  style={{ 
+                    padding: '6px 12px', 
+                    backgroundColor: '#6c757d', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 4,
+                    cursor: (loading || searchResult.role === 'user') ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  设为普通用户
+                </button>
+              </div>
+            </div>
+          )}
+
           <div>
             <h4>所有用户</h4>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <th style={{ padding: 10, textAlign: 'left', border: '1px solid #ddd' }}>邮箱</th>
-                    <th style={{ padding: 10, textAlign: 'left', border: '1px solid #ddd' }}>昵称</th>
-                    <th style={{ padding: 10, textAlign: 'left', border: '1px solid #ddd' }}>身份</th>
-                    <th style={{ padding: 10, textAlign: 'left', border: '1px solid #ddd' }}>班级</th>
-                    <th style={{ padding: 10, textAlign: 'left', border: '1px solid #ddd' }}>注册时间</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.isArray(users) && users.map(user => (
-                    <tr key={user._id}>
-                      <td style={{ padding: 10, border: '1px solid #ddd' }}>{user.email}</td>
-                      <td style={{ padding: 10, border: '1px solid #ddd' }}>{user.name || '未设置'}</td>
-                      <td style={{ padding: 10, border: '1px solid #ddd' }}>
+            {loading && <div style={{ textAlign: 'center', padding: 20 }}>加载中...</div>}
+            
+            {!loading && users.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 20, color: '#666' }}>
+                暂无用户数据
+              </div>
+            )}
+            
+            {!loading && users.length > 0 && (
+              <div style={{ display: 'grid', gap: 15 }}>
+                {users.map(user => (
+                  <div key={user._id} style={{ 
+                    border: '1px solid #ddd', 
+                    borderRadius: 8, 
+                    padding: 15,
+                    backgroundColor: '#fff'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', marginBottom: 5 }}>
+                          {user.email}
+                        </div>
+                        <div style={{ fontSize: 14, color: '#666' }}>
+                          {user.name && <span>姓名: {user.name} </span>}
+                          {user.class && <span>班级: {user.class}</span>}
+                        </div>
+                      </div>
+                      <div>
                         <span style={{ 
-                          color: user.role === 'founder' ? '#e74c3c' : user.role === 'admin' ? '#f39c12' : '#3498db',
-                          fontWeight: 'bold'
+                          color: getRoleColor(user.role),
+                          fontWeight: 'bold',
+                          backgroundColor: '#f8f9fa',
+                          padding: '4px 8px',
+                          borderRadius: 4
                         }}>
                           {getRoleText(user.role)}
                         </span>
-                      </td>
-                      <td style={{ padding: 10, border: '1px solid #ddd' }}>{user.class || '未设置'}</td>
-                      <td style={{ padding: 10, border: '1px solid #ddd' }}>
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {/* 内容审核 */}
       {activeTab === 'review' && (
         <div>
           <h3>内容审核</h3>
           
-          {pendingContent.length === 0 ? (
-            <p>暂无待审核内容</p>
-          ) : (
-            <div>
-              {Array.isArray(pendingContent) && pendingContent.map(content => (
+          {loading && <div style={{ textAlign: 'center', padding: 20 }}>加载中...</div>}
+          
+          {!loading && pendingContent.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 40, color: '#666' }}>
+              暂无待审核内容
+            </div>
+          )}
+          
+          {!loading && pendingContent.length > 0 && (
+            <div style={{ display: 'grid', gap: 20 }}>
+              {pendingContent.map(content => (
                 <div key={content._id} style={{ 
-                  marginBottom: 20, 
-                  padding: 20, 
-                  border: '1px solid #ddd', 
-                  borderRadius: 5,
-                  backgroundColor: content.status === 'pending' ? '#fff3cd' : content.status === 'approved' ? '#d4edda' : '#f8d7da'
+                  border: '1px solid #ffc107', 
+                  borderRadius: 8, 
+                  padding: 20,
+                  backgroundColor: '#fff'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <h4>{content.title}</h4>
-                    <span style={{ 
-                      padding: '5px 10px', 
-                      borderRadius: 3,
-                      backgroundColor: content.status === 'pending' ? '#ffc107' : content.status === 'approved' ? '#28a745' : '#dc3545',
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 5px 0', color: '#333' }}>
+                        {content.title || '无标题'}
+                      </h4>
+                      <div style={{ fontSize: 14, color: '#666', marginBottom: 8 }}>
+                        <span style={{ 
+                          backgroundColor: '#ffc107',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: 3,
+                          marginRight: 10
+                        }}>
+                          {content.category}
+                        </span>
+                        <span>作者: {content.authorName || content.author}</span>
+                      </div>
+                    </div>
+                    <div style={{ 
+                      backgroundColor: '#ffc107',
                       color: 'white',
-                      fontSize: '12px'
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      fontSize: 12
                     }}>
-                      {getStatusText(content.status)}
-                    </span>
+                      待审核
+                    </div>
                   </div>
                   
-                                     <p><strong>分类：</strong>{content.category}</p>
-                   <p><strong>类型：</strong>{content.type}</p>
-                   <p><strong>作者：</strong>
-                     <div style={{ display: 'flex', alignItems: 'center', marginTop: 5 }}>
-                       {content.authorAvatar && (
-                         <img src={content.authorAvatar} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', marginRight: 8 }} />
-                       )}
-                       <span>{content.authorName || content.author}</span>
-                     </div>
-                   </p>
-                  <p><strong>内容：</strong></p>
-                  <div style={{ 
-                    padding: 10, 
-                    backgroundColor: '#f8f9fa', 
-                    borderRadius: 3, 
-                    marginBottom: 10,
-                    whiteSpace: 'pre-wrap'
-                  }}>
+                  <div style={{ color: '#333', lineHeight: 1.5, marginBottom: 15 }}>
                     {content.content}
                   </div>
                   
                   {content.media && content.media.length > 0 && (
-                    <div style={{ marginBottom: 10 }}>
+                    <div style={{ marginBottom: 15 }}>
                       <strong>媒体文件：</strong>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        {content.media.map((url, index) => (
-                          <img key={index} src={url} alt={`媒体${index + 1}`} style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 5 }} />
-                        ))}
+                      <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+                        {content.media.map((url, idx) => {
+                          const ext = url.split('.').pop()?.toLowerCase();
+                          if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)) {
+                            return (
+                              <img
+                                key={idx}
+                                src={config.API_BASE_URL + url}
+                                alt={`媒体 ${idx + 1}`}
+                                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4 }}
+                              />
+                            );
+                          }
+                          return (
+                            <a key={idx} href={config.API_BASE_URL + url} target="_blank" rel="noopener noreferrer">
+                              文件 {idx + 1}
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                   
-                  {content.status === 'pending' && (
-                    <div style={{ marginTop: 15 }}>
-                      <button 
-                        onClick={() => reviewContent(content._id, 'approve')}
-                        style={{ 
-                          marginRight: 10, 
-                          padding: '8px 16px', 
-                          backgroundColor: '#28a745', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: 5, 
-                          cursor: 'pointer' 
-                        }}
-                      >
-                        通过
-                      </button>
-                      <button 
-                        onClick={() => setRejectingContentId(content._id)}
-                        style={{ 
-                          padding: '8px 16px', 
-                          backgroundColor: '#dc3545', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: 5, 
-                          cursor: 'pointer' 
-                        }}
-                      >
-                        驳回
-                      </button>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <button 
+                      onClick={() => reviewContent(content._id, 'approve')}
+                      disabled={loading}
+                      style={{ 
+                        padding: '8px 16px', 
+                        backgroundColor: '#28a745', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: 4,
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      通过
+                    </button>
+                    <button 
+                      onClick={() => setRejectingContentId(content._id)}
+                      disabled={loading}
+                      style={{ 
+                        padding: '8px 16px', 
+                        backgroundColor: '#dc3545', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: 4,
+                        cursor: loading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      驳回
+                    </button>
+                  </div>
                   
                   {rejectingContentId === content._id && (
-                    <div style={{ marginTop: 15, padding: 15, backgroundColor: '#f8f9fa', borderRadius: 5 }}>
-                      <h5 style={{ marginBottom: 10, color: '#dc3545' }}>填写驳回原因（必填）：</h5>
+                    <div style={{ marginTop: 15, padding: 15, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
                       <textarea
                         value={rejectNote}
-                        onChange={(e) => setRejectNote(e.target.value)}
-                        placeholder="请输入驳回原因..."
-                        style={{
-                          width: '100%',
-                          minHeight: 80,
-                          padding: 8,
-                          borderRadius: 5,
-                          border: '1px solid #ddd',
-                          resize: 'vertical'
+                        onChange={e => setRejectNote(e.target.value)}
+                        placeholder="请填写驳回原因"
+                        style={{ 
+                          width: '100%', 
+                          minHeight: 80, 
+                          padding: 8, 
+                          border: '1px solid #ddd', 
+                          borderRadius: 4,
+                          marginBottom: 10
                         }}
                       />
-                      <div style={{ marginTop: 10 }}>
+                      <div>
                         <button 
                           onClick={() => handleReject(content._id)}
+                          disabled={loading}
                           style={{ 
-                            marginRight: 10, 
-                            padding: '8px 16px', 
+                            padding: '6px 12px', 
                             backgroundColor: '#dc3545', 
                             color: 'white', 
                             border: 'none', 
-                            borderRadius: 5, 
-                            cursor: 'pointer' 
+                            borderRadius: 4, 
+                            marginRight: 8,
+                            cursor: loading ? 'not-allowed' : 'pointer'
                           }}
                         >
                           确认驳回
@@ -480,23 +521,17 @@ export default function AdminPanel() {
                             setRejectNote('');
                           }}
                           style={{ 
-                            padding: '8px 16px', 
+                            padding: '6px 12px', 
                             backgroundColor: '#6c757d', 
                             color: 'white', 
                             border: 'none', 
-                            borderRadius: 5, 
-                            cursor: 'pointer' 
+                            borderRadius: 4,
+                            cursor: 'pointer'
                           }}
                         >
                           取消
                         </button>
                       </div>
-                    </div>
-                  )}
-                  
-                  {content.reviewNote && (
-                    <div style={{ marginTop: 10, padding: 10, backgroundColor: '#e9ecef', borderRadius: 3 }}>
-                      <strong>审核备注：</strong>{content.reviewNote}
                     </div>
                   )}
                 </div>
@@ -507,4 +542,4 @@ export default function AdminPanel() {
       )}
     </div>
   );
-} 
+}

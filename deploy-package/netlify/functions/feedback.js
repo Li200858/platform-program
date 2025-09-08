@@ -1,53 +1,56 @@
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
-// 连接MongoDB
+// 优化的数据库连接
+let cachedConnection = null;
 const connectDB = async () => {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+  
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('MongoDB connected');
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    
+    await mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    
+    cachedConnection = mongoose.connection;
+    console.log('MongoDB connected successfully');
+    return cachedConnection;
   } catch (err) {
     console.error('MongoDB connection error:', err);
     throw err;
   }
 };
 
-// 反馈模型
+// 优化的模型定义
 const feedbackSchema = new mongoose.Schema({
-  content: { type: String, required: true },
-  type: { type: String, default: 'general' }, // general, bug, feature, other
-  author: { type: String, required: true }, // 用户邮箱
+  content: { type: String, required: true, trim: true },
+  type: { type: String, default: 'general' },
+  category: { type: String, required: true },
+  author: { type: String, required: true },
   authorName: String,
-  status: { type: String, default: 'pending' }, // pending, processing, resolved
-  response: String, // 管理员回复
-  respondedBy: String, // 回复人
+  authorAvatar: String,
+  media: [String],
+  status: { type: String, default: 'pending', enum: ['pending', 'processing', 'resolved'] },
+  response: String,
+  respondedBy: String,
   respondedAt: Date,
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, {
+  timestamps: true
 });
 
-const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
-
-// 验证权限中间件
-const verifyAuth = (event) => {
-  const authHeader = event.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  
-  try {
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return decoded;
-  } catch (error) {
-    return null;
-  }
-};
-
-// 用户模型
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'user' },
+  role: { type: String, default: 'user', enum: ['user', 'admin', 'founder'] },
   name: String,
   class: String,
   avatar: String,
@@ -59,96 +62,157 @@ const userSchema = new mongoose.Schema({
   interests: [String],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+}, {
+  timestamps: true
 });
 
+// 使用缓存模型
+const Feedback = mongoose.models.Feedback || mongoose.model('Feedback', feedbackSchema);
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
+// 优化的认证函数
+const verifyAuth = (event) => {
+  try {
+    const authHeader = event.headers.authorization || event.headers.Authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+    
+    const token = authHeader.substring(7);
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded;
+  } catch (error) {
+    console.error('Auth verification failed:', error.message);
+    return null;
+  }
+};
+
+// 优化的错误处理
+const createErrorResponse = (statusCode, message, details = null) => {
+  const response = {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+    },
+    body: JSON.stringify({ error: message, ...(details && { details }) })
+  };
+  return response;
+};
+
+const createSuccessResponse = (data, statusCode = 200) => {
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+    },
+    body: JSON.stringify(data)
+  };
+};
 
 exports.handler = async (event, context) => {
-  // 设置CORS
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS'
-  };
-
   // 处理OPTIONS请求
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers };
+    return createSuccessResponse({}, 200);
   }
 
   try {
     await connectDB();
     
-    // 提交反馈
+    // 验证用户身份
+    const user = verifyAuth(event);
+    if (!user) {
+      return createErrorResponse(401, '未授权访问');
+    }
+
+    // 获取用户数据
+    const userData = await User.findById(user.userId).lean();
+    if (!userData) {
+      return createErrorResponse(404, '用户不存在');
+    }
+
+    // 处理GET请求 - 获取反馈列表
+    if (event.httpMethod === 'GET') {
+      let query = {};
+      
+      // 普通用户只能看到自己的反馈，管理员可以看到所有反馈
+      if (!(userData.role === 'founder' || userData.role === 'admin')) {
+        query.author = userData.email;
+      }
+
+      const feedbacks = await Feedback.find(query)
+        .sort({ createdAt: -1 })
+        .limit(100) // 限制返回数量提高性能
+        .lean();
+      
+      return createSuccessResponse(feedbacks);
+    }
+
+    // 处理POST请求 - 创建新反馈
     if (event.httpMethod === 'POST') {
-      const user = verifyAuth(event);
-      if (!user) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
-      }
-
-      // 验证请求体
       if (!event.body) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: '请求体不能为空' }) };
+        return createErrorResponse(400, '请求体不能为空');
       }
 
-      const feedbackData = JSON.parse(event.body);
+      const { content, category, media = [] } = JSON.parse(event.body);
       
-      // 输入验证
-      if (!feedbackData.content || !feedbackData.content.trim()) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: '反馈内容不能为空' }) };
+      if (!content || !content.trim()) {
+        return createErrorResponse(400, '反馈内容不能为空');
       }
-      
-      const newFeedback = new Feedback({
-        ...feedbackData,
-        author: user.email
+
+      if (!category) {
+        return createErrorResponse(400, '分类不能为空');
+      }
+
+      const feedback = new Feedback({
+        content: content.trim(),
+        category,
+        author: userData.email,
+        authorName: userData.name,
+        authorAvatar: userData.avatar,
+        media: Array.isArray(media) ? media : []
       });
 
-      await newFeedback.save();
+      await feedback.save();
       
-      return { 
-        statusCode: 201, 
-        headers, 
-        body: JSON.stringify({ 
-          message: '反馈提交成功',
-          feedbackId: newFeedback._id
-        }) 
-      };
+      return createSuccessResponse({
+        message: '反馈提交成功',
+        feedbackId: feedback._id
+      }, 201);
     }
 
-    // 获取反馈列表
-    if (event.httpMethod === 'GET') {
-      const user = verifyAuth(event);
-      if (!user) {
-        return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
-      }
+    return createErrorResponse(405, '方法不被允许');
 
-      // 普通用户只能看到自己的反馈
-      // 管理员可以看到所有反馈
-      let query = {};
-      const userData = await User.findById(user.userId);
-      if (!userData || !(userData.role === 'founder' || userData.role === 'admin')) {
-        query.author = userData?.email || user.email;
-      }
-
-      const feedbacks = await Feedback.find(query).sort({ createdAt: -1 });
-      return { statusCode: 200, headers, body: JSON.stringify(feedbacks) };
-    }
-
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
   } catch (error) {
-    console.error('Feedback error:', error);
+    console.error('Feedback API error:', error);
     
     // 根据错误类型返回不同的错误信息
     if (error.name === 'ValidationError') {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: '数据验证失败' }) };
+      const errors = Object.values(error.errors).map(err => err.message);
+      return createErrorResponse(400, '数据验证失败', errors);
     }
     
     if (error.name === 'MongoError' && error.code === 11000) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: '数据已存在' }) };
+      return createErrorResponse(400, '数据已存在');
     }
     
-    return { statusCode: 500, headers, body: JSON.stringify({ error: '服务器内部错误，请稍后重试' }) };
+    if (error.name === 'JsonWebTokenError') {
+      return createErrorResponse(401, '无效的认证令牌');
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return createErrorResponse(401, '认证令牌已过期');
+    }
+    
+    return createErrorResponse(500, '服务器内部错误');
   }
 };
