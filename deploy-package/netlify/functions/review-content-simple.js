@@ -12,6 +12,25 @@ const connectDB = async () => {
   }
 };
 
+// 待审核内容模型
+const pendingContentSchema = new mongoose.Schema({
+  type: { type: String, required: true },
+  category: { type: String, required: true },
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  media: [String],
+  author: { type: String, required: true },
+  authorName: String,
+  authorAvatar: String,
+  status: { type: String, default: 'pending' },
+  reviewNote: String,
+  reviewedBy: String,
+  reviewedAt: Date,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const PendingContent = mongoose.models.PendingContent || mongoose.model('PendingContent', pendingContentSchema);
+
 // 用户模型
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
@@ -31,25 +50,6 @@ const userSchema = new mongoose.Schema({
 });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
-
-// 待审核内容模型
-const pendingContentSchema = new mongoose.Schema({
-  type: { type: String, required: true },
-  category: { type: String, required: true },
-  title: { type: String, required: true },
-  content: { type: String, required: true },
-  media: [String],
-  author: { type: String, required: true },
-  authorName: String,
-  authorAvatar: String,
-  status: { type: String, default: 'pending' },
-  reviewNote: String,
-  reviewedBy: String,
-  reviewedAt: Date,
-  createdAt: { type: Date, default: Date.now }
-});
-
-const PendingContent = mongoose.models.PendingContent || mongoose.model('PendingContent', pendingContentSchema);
 
 // 验证权限中间件
 const verifyAuth = (event) => {
@@ -86,23 +86,30 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    console.log('Review content simple function started');
     await connectDB();
+    console.log('Database connected successfully');
     
     // 验证用户身份
     const user = verifyAuth(event);
     if (!user) {
+      console.log('User authentication failed');
       return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
     }
+    console.log('User authenticated:', user.email);
 
     // 获取用户数据并验证管理员权限
     const userData = await User.findById(user.userId);
     if (!userData || !(userData.role === 'founder' || userData.role === 'admin')) {
+      console.log('User permission denied:', userData?.role);
       return { statusCode: 403, headers, body: JSON.stringify({ error: '权限不足' }) };
     }
+    console.log('User permission verified:', userData.role);
 
     // 获取内容ID和审核操作
     const contentId = event.path.split('/').pop();
     const { action, note } = JSON.parse(event.body);
+    console.log('Review action:', { contentId, action, note });
 
     if (!['approve', 'reject'].includes(action)) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: '无效的审核操作' }) };
@@ -111,8 +118,10 @@ exports.handler = async (event, context) => {
     // 查找待审核内容
     const pendingContent = await PendingContent.findById(contentId);
     if (!pendingContent) {
+      console.log('Content not found:', contentId);
       return { statusCode: 404, headers, body: JSON.stringify({ error: '内容不存在' }) };
     }
+    console.log('Content found:', pendingContent._id);
 
     // 更新审核状态
     pendingContent.status = action === 'approve' ? 'approved' : 'rejected';
@@ -121,6 +130,7 @@ exports.handler = async (event, context) => {
     pendingContent.reviewedAt = new Date();
 
     await pendingContent.save();
+    console.log('Content status updated successfully');
 
     return { 
       statusCode: 200, 
