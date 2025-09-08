@@ -45,10 +45,22 @@ export default function FileUploader({ onUpload }) {
 
   return (
     <div style={{ margin: '10px 0' }}>
-      <input type="file" ref={fileInput} />
-      <button type="button" onClick={handleUpload} disabled={uploading}>
-        {uploading ? '上传中...' : '上传文件'}
-      </button>
+      <input 
+        type="file" 
+        ref={fileInput} 
+        onChange={handleUpload}
+        accept="image/*,video/*"
+        style={{ marginBottom: '10px' }}
+        disabled={uploading}
+      />
+      {uploading && (
+        <div style={{ color: '#007bff', fontSize: '14px', marginBottom: '5px' }}>
+          上传中...
+        </div>
+      )}
+      <div style={{ fontSize: '12px', color: '#666' }}>
+        支持图片和视频文件，最大10MB
+      </div>
     </div>
   );
 }

@@ -1,45 +1,5 @@
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// 配置multer存储
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = '/tmp/uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-// 文件类型过滤
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'video/mp4', 'video/webm', 'video/ogg',
-    'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain'
-  ];
-  
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('不支持的文件类型'), false);
-  }
-};
-
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB限制
-  }
-});
+// 注意：Netlify Functions不支持multer和文件系统操作
+// 这里提供一个简化的文件上传处理方案
 
 exports.handler = async (event, context) => {
   // 设置CORS
@@ -60,20 +20,31 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 解析multipart/form-data
-    const boundary = event.headers['content-type']?.split('boundary=')[1];
-    if (!boundary) {
+    // 检查请求体
+    if (!event.body) {
       return { 
         statusCode: 400, 
         headers, 
-        body: JSON.stringify({ error: '无效的文件上传请求' }) 
+        body: JSON.stringify({ error: '请求体不能为空' }) 
       };
     }
 
-    // 简单的文件上传处理 - 返回一个可用的URL
-    // 注意：在生产环境中，建议使用云存储服务
+    // 检查Content-Type
+    const contentType = event.headers['content-type'] || '';
+    if (!contentType.includes('multipart/form-data')) {
+      return { 
+        statusCode: 400, 
+        headers, 
+        body: JSON.stringify({ error: '只支持multipart/form-data格式' }) 
+      };
+    }
+
+    // 生成一个模拟的文件URL
+    // 注意：在生产环境中，建议使用云存储服务如Cloudinary、AWS S3等
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(7);
+    
+    // 根据文件类型返回不同的演示图片
     const mockFileUrl = `https://picsum.photos/400/300?random=${timestamp}`;
     
     return { 
