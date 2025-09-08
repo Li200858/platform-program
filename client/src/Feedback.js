@@ -21,7 +21,14 @@ export default function Feedback({ user }) {
 
   useEffect(() => {
     fetch('/api/feedback')
-      .then(res => res.json())
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        } else {
+          console.error('API请求失败:', res.status);
+          return [];
+        }
+      })
       .then(data => {
         if (Array.isArray(data)) {
           setList(data);
@@ -29,6 +36,10 @@ export default function Feedback({ user }) {
           console.error('API返回的数据不是数组:', data);
           setList([]);
         }
+      })
+      .catch(error => {
+        console.error('获取反馈数据失败:', error);
+        setList([]);
       });
   }, []);
 
