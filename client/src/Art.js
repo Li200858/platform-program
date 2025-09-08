@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-
 import ContentPublish from './ContentPublish';
+import Avatar from './Avatar';
 
 export default function Art({ user }) {
   const tabs = useMemo(() => [
@@ -166,21 +166,16 @@ export default function Art({ user }) {
             background: '#f8f9fa'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
-              {item.authorAvatar && (
-                <img 
-                  src={`http://localhost:5000${item.authorAvatar}`} 
-                  alt="" 
-                  style={{ 
-                    width: 40, 
-                    height: 40, 
-                    borderRadius: '50%', 
-                    objectFit: 'cover', 
-                    marginRight: 12,
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                  }} 
-                />
-              )}
+              <Avatar 
+                src={item.authorAvatar ? `http://localhost:5000${item.authorAvatar}` : ''} 
+                name={item.authorName || item.author || '用户'} 
+                size={40}
+                style={{ 
+                  marginRight: 12,
+                  border: '2px solid #fff',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }}
+              />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: 2 }}>
                   {item.authorName || item.author}

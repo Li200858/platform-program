@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import FileUploader from './FileUploader';
+import Avatar from './Avatar';
 
 export default function MyProfile() {
   const [name, setName] = useState('');
@@ -231,21 +232,16 @@ export default function MyProfile() {
 头像：
           </label>
           <div>
-            {avatar && (
-              <img 
-                src={avatar} 
-                alt="头像"
-                style={{ 
-                  width: 100, 
-                  height: 100, 
-                  borderRadius: '50%', 
-                  objectFit: 'cover', 
-                  marginBottom: 16,
-                  border: '3px solid #4F46E5',
-                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
-                }} 
-              />
-            )}
+            <Avatar 
+              src={avatar} 
+              name={name || '用户'} 
+              size={100}
+              style={{ 
+                marginBottom: 16,
+                border: '3px solid #4F46E5',
+                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+              }}
+            />
             <FileUploader
               onUpload={url => {
                 // 只允许图片

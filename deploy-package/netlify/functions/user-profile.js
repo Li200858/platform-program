@@ -80,9 +80,9 @@ exports.handler = async (event, context) => {
           return { statusCode: 404, headers, body: JSON.stringify({ error: '用户不存在' }) };
         }
         
-        // 检查个人信息是否完善
+        // 检查个人信息是否完善（头像不是必填项）
         const requiredFields = ['name', 'class'];
-        const missingFields = requiredFields.filter(field => !userData[field]);
+        const missingFields = requiredFields.filter(field => !userData[field] || userData[field].trim() === '');
         
         const isComplete = missingFields.length === 0;
         const message = isComplete 
