@@ -15,9 +15,29 @@ export default function FileUploader({ onUpload }) {
     }
     
     // 文件类型检查
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    const allowedTypes = [
+      // 图片
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp',
+      // 视频
+      'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov',
+      // 音频
+      'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg',
+      // 文档
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      // 文本
+      'text/plain', 'text/csv',
+      // 压缩文件
+      'application/zip', 'application/x-rar-compressed'
+    ];
+    
     if (!allowedTypes.includes(file.type)) {
-      alert('只支持图片和视频文件');
+      alert('不支持的文件类型。支持：图片、视频、音频、文档、文本、压缩文件');
       return;
     }
     
@@ -49,7 +69,7 @@ export default function FileUploader({ onUpload }) {
         type="file" 
         ref={fileInput} 
         onChange={handleUpload}
-        accept="image/*,video/*"
+        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
         style={{ marginBottom: '10px' }}
         disabled={uploading}
       />
@@ -59,7 +79,7 @@ export default function FileUploader({ onUpload }) {
         </div>
       )}
       <div style={{ fontSize: '12px', color: '#666' }}>
-        支持图片和视频文件，最大10MB
+        支持图片、视频、音频、文档、文本、压缩文件，最大10MB
       </div>
     </div>
   );
