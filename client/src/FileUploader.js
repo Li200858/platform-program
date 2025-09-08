@@ -81,6 +81,9 @@ export default function FileUploader({ onUpload }) {
       <div style={{ fontSize: '12px', color: '#666' }}>
         支持图片、视频、音频、文档、文本、压缩文件，最大10MB
       </div>
+      <div style={{ fontSize: '11px', color: '#ff6b6b', marginTop: '5px', padding: '5px', backgroundColor: '#fff5f5', borderRadius: '3px' }}>
+        ⚠️ 演示模式：当前使用演示文件，实际文件未保存
+      </div>
     </div>
   );
 }
