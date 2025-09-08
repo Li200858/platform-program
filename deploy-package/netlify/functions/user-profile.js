@@ -111,7 +111,7 @@ exports.handler = async (event, context) => {
     }
 
     // 更新用户信息
-    if (event.httpMethod === 'PUT') {
+    if (event.httpMethod === 'PUT' || event.httpMethod === 'POST') {
       const updateData = JSON.parse(event.body);
       
       // 移除敏感字段
