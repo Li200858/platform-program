@@ -127,7 +127,7 @@ export default function Activity({ user }) {
       
       {tab === 'notice' && (
         <ul>
-          {list.map(item => (
+          {Array.isArray(list) && list.map(item => (
             <li key={item._id} style={{ 
               marginBottom: 20, 
               border: '1px solid #eee', 

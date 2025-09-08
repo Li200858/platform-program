@@ -119,7 +119,7 @@ export default function Feedback({ user }) {
       </form>
       {msg && <div style={{ color: msg === '提交成功' ? 'green' : 'red', marginBottom: 10 }}>{msg}</div>}
       <ul>
-        {list.map(item => (
+        {Array.isArray(list) && list.map(item => (
           <li key={item._id} style={{ marginBottom: 15, borderBottom: '1px solid #eee', paddingBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             {item.authorAvatar && <img src={`http://localhost:5000${item.authorAvatar}`} alt="头像" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', marginRight: 8, border: '1px solid #eee' }} />}
             <div style={{ flex: 1 }}>

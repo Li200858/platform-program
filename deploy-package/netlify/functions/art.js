@@ -83,10 +83,7 @@ exports.handler = async (event, context) => {
       return { 
         statusCode: 200, 
         headers, 
-        body: JSON.stringify({ 
-          content: artContent,
-          total: artContent.length
-        }) 
+        body: JSON.stringify(artContent) 
       };
     }
 

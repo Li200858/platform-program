@@ -560,7 +560,7 @@ export default function ContentStatus() {
             {contentStatus.pending.length === 0 ? (
               <p>暂无审核中的内容</p>
             ) : (
-              contentStatus.pending.map(content => (
+              Array.isArray(contentStatus.pending) && contentStatus.pending.map(content => (
                 <div key={content._id} style={{ 
                   marginBottom: 20, 
                   padding: 20, 
@@ -606,7 +606,7 @@ export default function ContentStatus() {
             {contentStatus.approved.length === 0 ? (
               <p>暂无已通过的内容</p>
             ) : (
-              contentStatus.approved.map(content => (
+              Array.isArray(contentStatus.approved) && contentStatus.approved.map(content => (
                 <div key={content._id} style={{ 
                   marginBottom: 20, 
                   padding: 20, 
@@ -652,7 +652,7 @@ export default function ContentStatus() {
             {contentStatus.rejected.length === 0 ? (
               <p>暂无被驳回的内容</p>
             ) : (
-              contentStatus.rejected.map(content => (
+              Array.isArray(contentStatus.rejected) && contentStatus.rejected.map(content => (
                 <div key={content._id} style={{ 
                   marginBottom: 20, 
                   padding: 20, 

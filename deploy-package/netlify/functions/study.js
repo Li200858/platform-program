@@ -62,10 +62,7 @@ exports.handler = async (event, context) => {
     return { 
       statusCode: 200, 
       headers, 
-      body: JSON.stringify({ 
-        content: studyContent,
-        total: studyContent.length
-      }) 
+      body: JSON.stringify(studyContent) 
     };
   } catch (error) {
     console.error('Study error:', error);

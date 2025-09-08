@@ -302,7 +302,7 @@ export default function AdminPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(user => (
+                  {Array.isArray(users) && users.map(user => (
                     <tr key={user._id}>
                       <td style={{ padding: 10, border: '1px solid #ddd' }}>{user.email}</td>
                       <td style={{ padding: 10, border: '1px solid #ddd' }}>{user.name || '未设置'}</td>
@@ -335,7 +335,7 @@ export default function AdminPanel() {
             <p>暂无待审核内容</p>
           ) : (
             <div>
-              {pendingContent.map(content => (
+              {Array.isArray(pendingContent) && pendingContent.map(content => (
                 <div key={content._id} style={{ 
                   marginBottom: 20, 
                   padding: 20, 

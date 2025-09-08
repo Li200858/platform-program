@@ -57,10 +57,7 @@ exports.handler = async (event, context) => {
     return { 
       statusCode: 200, 
       headers, 
-      body: JSON.stringify({ 
-        content: crosscampusContent,
-        total: crosscampusContent.length
-      }) 
+      body: JSON.stringify(crosscampusContent) 
     };
   } catch (error) {
     console.error('Cross campus error:', error);
