@@ -73,6 +73,35 @@ exports.handler = async (event, context) => {
 
     // 获取用户信息
     if (event.httpMethod === 'GET') {
+      // 检查是否是个人信息完善检查请求
+      if (event.path === '/api/user-profile-complete') {
+        const userData = await User.findById(user.userId, { password: 0 });
+        if (!userData) {
+          return { statusCode: 404, headers, body: JSON.stringify({ error: '用户不存在' }) };
+        }
+        
+        // 检查个人信息是否完善
+        const requiredFields = ['name', 'class'];
+        const missingFields = requiredFields.filter(field => !userData[field]);
+        
+        const isComplete = missingFields.length === 0;
+        const message = isComplete 
+          ? '个人信息已完善' 
+          : `请完善以下信息：${missingFields.join('、')}`;
+        
+        return { 
+          statusCode: 200, 
+          headers, 
+          body: JSON.stringify({ 
+            isComplete, 
+            message,
+            missingFields,
+            user: userData
+          }) 
+        };
+      }
+      
+      // 普通获取用户信息
       const userData = await User.findById(user.userId, { password: 0 });
       if (!userData) {
         return { statusCode: 404, headers, body: JSON.stringify({ error: '用户不存在' }) };
