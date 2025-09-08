@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ContentPublish from './ContentPublish';
 import Avatar from './Avatar';
+import config from './config';
 
 export default function Study({ user }) {
   const tabs = useMemo(() => [
@@ -44,21 +45,21 @@ export default function Study({ user }) {
           return (
             <img 
               key={idx} 
-              src={`http://localhost:5000${url}`} 
+              src={`${config.API_BASE_URL}${url}`} 
               alt="" 
               style={{ maxWidth: 120, marginRight: 8, cursor: 'pointer' }} 
-              onClick={() => setSelectedImage(`http://localhost:5000${url}`)}
+              onClick={() => setSelectedImage(`${config.API_BASE_URL}${url}`)}
             />
           );
         }
         if (['mp4', 'webm', 'ogg'].includes(ext)) {
-          return <video key={idx} src={`http://localhost:5000${url}`} controls style={{ maxWidth: 180, marginRight: 8 }} />;
+          return <video key={idx} src={`${config.API_BASE_URL}${url}`} controls style={{ maxWidth: 180, marginRight: 8 }} />;
         }
         // 其他文件类型
         return (
           <a
             key={idx}
-            href={`http://localhost:5000${url}`}
+            href={`${config.API_BASE_URL}${url}`}
             download
             target="_blank"
             rel="noopener noreferrer"
@@ -138,7 +139,7 @@ export default function Study({ user }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
               <Avatar 
-                src={item.authorAvatar ? `http://localhost:5000${item.authorAvatar}` : ''} 
+                src={item.authorAvatar ? `${config.API_BASE_URL}${item.authorAvatar}` : ''} 
                 name={item.authorName || item.author || '用户'} 
                 size={40}
                 style={{ 

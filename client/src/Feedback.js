@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FileUploader from './FileUploader';
 import Avatar from './Avatar';
+import config from './config';
 
 export default function Feedback({ user }) {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -67,26 +68,26 @@ export default function Feedback({ user }) {
           return (
             <img 
               key={idx} 
-              src={`http://localhost:5000${url}`} 
+              src={`${config.API_BASE_URL}${url}`} 
               alt="" 
               style={{ maxWidth: 120, marginRight: 8, cursor: 'pointer' }} 
-              onClick={() => setSelectedImage(`http://localhost:5000${url}`)}
+              onClick={() => setSelectedImage(`${config.API_BASE_URL}${url}`)}
             />
           );
         }
         if (["mp4", "webm", "ogg"].includes(ext)) {
-          return <video key={idx} src={`http://localhost:5000${url}`} controls style={{ maxWidth: 180, marginRight: 8 }} />;
+          return <video key={idx} src={`${config.API_BASE_URL}${url}`} controls style={{ maxWidth: 180, marginRight: 8 }} />;
         }
         if (["pdf"].includes(ext)) {
-          return <iframe key={idx} src={`http://localhost:5000${url}`} style={{ width: 180, height: 220, marginRight: 8, border: '1px solid #eee' }} title={`pdf${idx}`}></iframe>;
+          return <iframe key={idx} src={`${config.API_BASE_URL}${url}`} style={{ width: 180, height: 220, marginRight: 8, border: '1px solid #eee' }} title={`pdf${idx}`}></iframe>;
         }
         if (["doc", "docx", "ppt", "pptx"].includes(ext)) {
-          return <a key={idx} href={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent('http://localhost:5000' + url)}`} target="_blank" rel="noopener noreferrer" style={{ marginRight: 8, color: '#007bff', textDecoration: 'underline' }}>在线预览文档{idx + 1}</a>;
+          return <a key={idx} href={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(config.API_BASE_URL + url)}`} target="_blank" rel="noopener noreferrer" style={{ marginRight: 8, color: '#007bff', textDecoration: 'underline' }}>在线预览文档{idx + 1}</a>;
         }
         return (
           <a 
             key={idx} 
-            href={`http://localhost:5000${url}`} 
+            href={`${config.API_BASE_URL}${url}`} 
             download 
             target="_blank"
             rel="noopener noreferrer"
@@ -130,7 +131,7 @@ export default function Feedback({ user }) {
         {Array.isArray(list) && list.map(item => (
           <li key={item._id} style={{ marginBottom: 15, borderBottom: '1px solid #eee', paddingBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <Avatar 
-              src={item.authorAvatar ? `http://localhost:5000${item.authorAvatar}` : ''} 
+              src={item.authorAvatar ? `${config.API_BASE_URL}${item.authorAvatar}` : ''} 
               name={item.authorName || item.author || '用户'} 
               size={36}
               style={{ marginRight: 8, border: '1px solid #eee' }}

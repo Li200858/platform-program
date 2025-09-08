@@ -53,7 +53,7 @@ exports.handler = async (event, context) => {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS'
   };
 
   // 处理OPTIONS请求
@@ -86,6 +86,33 @@ exports.handler = async (event, context) => {
       }
       
       return { statusCode: 200, headers, body: JSON.stringify(content) };
+    }
+
+    // 删除内容
+    if (event.httpMethod === 'DELETE') {
+      const content = await PendingContent.findById(contentId);
+      
+      if (!content) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: '内容不存在' }) };
+      }
+      
+      // 只能删除自己的内容
+      if (content.author !== user.email) {
+        return { statusCode: 403, headers, body: JSON.stringify({ error: '权限不足' }) };
+      }
+      
+      // 只能删除待审核或被驳回的内容
+      if (content.status === 'approved') {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: '已审核通过的内容不能删除' }) };
+      }
+      
+      await PendingContent.findByIdAndDelete(contentId);
+      
+      return { 
+        statusCode: 200, 
+        headers, 
+        body: JSON.stringify({ message: '内容删除成功' }) 
+      };
     }
 
     // 更新内容
