@@ -25,7 +25,12 @@ export default function ContentStatus() {
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data === 'object') {
-          setContentStatus(data);
+          // 确保数据结构正确，提供默认值
+          setContentStatus({
+            pending: Array.isArray(data.pending) ? data.pending : [],
+            approved: Array.isArray(data.approved) ? data.approved : [],
+            rejected: Array.isArray(data.rejected) ? data.rejected : []
+          });
         } else {
           console.error('API返回的内容状态数据格式错误:', data);
           setContentStatus({ pending: [], approved: [], rejected: [] });
@@ -34,6 +39,8 @@ export default function ContentStatus() {
     } catch (error) {
       console.error('获取内容状态失败:', error);
       setMsg('获取内容状态失败，请检查网络连接');
+      // 保持默认状态
+      setContentStatus({ pending: [], approved: [], rejected: [] });
     }
   };
 
@@ -339,7 +346,7 @@ export default function ContentStatus() {
             媒体文件：
           </label>
           <FileUploader onUpload={handleMediaUpload} />
-          {editForm.media.length > 0 && (
+          {(editForm.media?.length || 0) > 0 && (
             <div style={{ marginTop: 16 }}>
               <strong style={{ color: '#374151', fontSize: '14px' }}>
                 已上传的文件：
@@ -498,7 +505,7 @@ export default function ContentStatus() {
             }
           }}
         >
-审核中 ({contentStatus.pending.length})
+审核中 ({contentStatus.pending?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('approved')}
@@ -526,7 +533,7 @@ export default function ContentStatus() {
             }
           }}
         >
-已通过 ({contentStatus.approved.length})
+已通过 ({contentStatus.approved?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('rejected')}
@@ -554,7 +561,7 @@ export default function ContentStatus() {
             }
           }}
         >
-被驳回 ({contentStatus.rejected.length})
+被驳回 ({contentStatus.rejected?.length || 0})
         </button>
       </div>
 
@@ -562,7 +569,7 @@ export default function ContentStatus() {
         {activeTab === 'pending' && (
           <div>
             <h3>审核中</h3>
-            {contentStatus.pending.length === 0 ? (
+            {(contentStatus.pending?.length || 0) === 0 ? (
               <p>暂无审核中的内容</p>
             ) : (
               Array.isArray(contentStatus.pending) && contentStatus.pending.map(content => (
@@ -608,7 +615,7 @@ export default function ContentStatus() {
         {activeTab === 'approved' && (
           <div>
             <h3>已通过</h3>
-            {contentStatus.approved.length === 0 ? (
+            {(contentStatus.approved?.length || 0) === 0 ? (
               <p>暂无已通过的内容</p>
             ) : (
               Array.isArray(contentStatus.approved) && contentStatus.approved.map(content => (
@@ -654,7 +661,7 @@ export default function ContentStatus() {
         {activeTab === 'rejected' && (
           <div>
             <h3>被驳回</h3>
-            {contentStatus.rejected.length === 0 ? (
+            {(contentStatus.rejected?.length || 0) === 0 ? (
               <p>暂无被驳回的内容</p>
             ) : (
               Array.isArray(contentStatus.rejected) && contentStatus.rejected.map(content => (
