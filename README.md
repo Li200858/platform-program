@@ -1,156 +1,204 @@
-# 线上交流平台
+# 校园平台网站
 
-## 功能概述
+一个功能完整的校园内容分享与管理系统，支持多类型内容发布、审核管理、用户互动等功能。
 
-这是一个支持用户发布内容的线上交流平台，具有以下主要功能：
+## 🚀 快速部署
 
-### 1. 用户信息管理
-- 用户可以设置昵称、年纪、班级和头像
-- 用户信息会在发布的内容下方显示
-- 支持头像上传功能
+### Railway + Vercel 部署方案
 
-### 2. 权限系统
-- **创始人（founder）**：最高权限，可以指定管理员，转让创始人权限
-- **管理员（admin）**：可以审核内容，管理用户权限
-- **用户（user）**：普通用户，可以发布内容但需要审核
+本项目采用前后端分离架构：
+- **前端**: 部署到 Vercel
+- **后端**: 部署到 Railway
+- **数据库**: MongoDB Atlas
 
-### 3. 内容审核系统
-- 所有用户发布的内容都需要经过审核
-- 内容分类：学习板块、PBL学习、艺术创作、跨校联合、活动策划等
-- 创始人和管理员可以在审核区域查看、通过或驳回内容
+### 部署步骤
 
-## 本地开发
-
-### 后端设置
+#### 1. 后端部署 (Railway)
 ```bash
-cd server
-npm install
+# 1. 访问 https://railway.app
+# 2. 连接GitHub仓库
+# 3. 创建新项目并选择此仓库
+# 4. 配置环境变量
+# 5. 部署
 ```
 
-### 前端设置
+详细步骤请参考：[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)
+
+#### 2. 前端部署 (Vercel)
 ```bash
-cd client
-npm install
+# 1. 访问 https://vercel.com
+# 2. 连接GitHub仓库
+# 3. 导入项目
+# 4. 配置构建设置
+# 5. 设置环境变量
+# 6. 部署
 ```
 
-### 数据库设置
-确保MongoDB已启动，然后运行：
+详细步骤请参考：[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)
+
+## 🏗️ 技术架构
+
+- **前端**: React.js + 原生CSS
+- **后端**: Node.js + Express.js
+- **数据库**: MongoDB Atlas
+- **部署**: Railway (后端) + Vercel (前端)
+- **认证**: JWT Token
+- **文件存储**: 模拟上传（可扩展至云存储）
+
+## 👥 用户角色
+
+### 普通用户 (user)
+- 发布各类内容
+- 查看和互动
+- 提交反馈意见
+
+### 管理员 (admin)
+- 审核用户内容
+- 管理用户权限
+- 查看所有数据
+
+### 创始人 (founder)
+- 最高权限
+- 系统管理
+- 用户权限分配
+
+## 📝 核心功能
+
+### 内容发布系统
+- **学习资源**: PBL项目式学习、学术研究、学习笔记
+- **艺术创作**: 绘画作品、摄影作品、设计作品
+- **校园活动**: 社团活动、学术讲座、体育赛事
+- **跨校联合**: 校际合作、交流项目、联合活动
+
+### 内容审核系统
+- 管理员审核流程
+- 通过/驳回决定
+- 审核备注系统
+- 状态跟踪
+
+### 用户管理系统
+- 用户信息管理
+- 角色权限分配
+- 用户搜索功能
+- 权限转让
+
+### 意见反馈系统
+- 分类反馈（教学、宿舍、食堂、环境）
+- 多媒体附件支持
+- 反馈状态跟踪
+- 管理员回复
+
+## 🔧 环境变量配置
+
+### 后端环境变量 (Railway)
 ```bash
-cd server
-node setup-founder.js
+MONGODB_URI=mongodb+srv://用户名:密码@集群地址/数据库名?retryWrites=true&w=majority
+JWT_SECRET=您的JWT密钥（至少32个字符）
+FOUNDER_EMAILS=您的邮箱@example.com
+PORT=5000
 ```
 
-### 启动服务
+### 前端环境变量 (Vercel)
 ```bash
-# 启动后端（在server目录下）
-npm start
-
-# 启动前端（在client目录下）
-npm start
+REACT_APP_API_URL=https://您的Railway域名
 ```
 
-## 部署到生产环境
-
-### 快速部署
-1. 查看 `QUICK_DEPLOY.md` 获取详细部署步骤
-2. 运行部署脚本：
-```bash
-./deploy.sh
-```
-
-### 支持的部署平台
-- **后端**: Vercel, Railway, Render, Heroku
-- **前端**: Vercel, Netlify, GitHub Pages
-- **数据库**: MongoDB Atlas (推荐)
-
-## 使用说明
-
-### 1. 设置创始人
-有两种方式设置创始人：
-
-#### 方式一：基于特定邮箱（推荐）
-1. 在环境变量中设置 `FOUNDER_EMAILS=your-email@example.com`
-2. 使用指定邮箱注册或登录，将自动获得创始人权限
-3. 支持多个邮箱，用逗号分隔：`FOUNDER_EMAILS=email1@example.com,email2@example.com`
-
-#### 方式二：传统方式
-1. 先注册一个用户账号
-2. 运行 `node setup-founder.js` 脚本
-3. 第一个注册的用户将被设为创始人
-
-#### 方式三：批量设置现有用户
-运行 `node setup-founder-email.js` 脚本，将环境变量中指定的邮箱用户设为创始人
-
-### 2. 用户权限管理
-- 创始人可以在管理员面板中搜索用户邮箱
-- 可以指定其他用户为管理员
-- 可以转让创始人权限给其他用户
-
-### 3. 内容发布流程
-1. 用户登录后，进入相应板块
-2. 点击"发布内容"按钮
-3. 填写内容信息并选择分类
-4. 提交后内容进入审核区域
-5. 创始人或管理员在管理员面板中审核内容
-6. 审核通过后内容正式显示在网站上
-
-### 4. 管理员功能
-- **用户管理**：查看所有用户，搜索用户，转让权限
-- **内容审核**：查看待审核内容，通过或驳回内容
-
-## API接口
-
-### 用户相关
-- `POST /api/register` - 用户注册
-- `POST /api/login` - 用户登录
-- `GET /api/me` - 获取当前用户信息
-- `POST /api/me` - 更新用户信息
-
-### 权限管理
-- `GET /api/users/search` - 搜索用户（需要创始人或管理员权限）
-- `POST /api/users/:id/transfer-role` - 转让权限
-- `GET /api/users` - 获取所有用户（需要创始人或管理员权限）
-
-### 内容审核
-- `POST /api/pending-content` - 提交内容到审核区域
-- `GET /api/pending-content` - 获取待审核内容列表
-- `POST /api/pending-content/:id/review` - 审核内容
-
-## 技术栈
-
-### 后端
-- Node.js + Express
-- MongoDB + Mongoose
-- JWT认证
-- Multer文件上传
-
-### 前端
-- React
-- 原生CSS样式
-- Fetch API
-
-## 注意事项
-
-1. 确保MongoDB服务正在运行
-2. 创始人权限只能转让给其他用户，不能删除
-3. 内容审核通过后会自动创建到对应的正式内容表中
-4. 文件上传功能支持图片格式
-5. 用户信息修改后需要重新登录才能看到更新
-
-## 文件结构
+## 📁 项目结构
 
 ```
 platform-program/
-├── server/
-│   ├── models/          # 数据模型
-│   ├── index.js         # 后端主文件
-│   ├── setup-founder.js # 创始人设置脚本
-│   └── uploads/         # 上传文件存储
-├── client/
-│   └── src/
-│       ├── App.js       # 主应用组件
-│       ├── MyProfile.js # 用户资料页面
-│       ├── AdminPanel.js # 管理员面板
-│       └── ContentPublish.js # 内容发布页面
+├── client/                 # 前端React应用
+│   ├── src/
+│   │   ├── components/     # React组件
+│   │   ├── config.js       # 配置文件
+│   │   └── ...
+│   ├── package.json
+│   └── ...
+├── server/                 # 后端Node.js应用
+│   ├── models/            # 数据模型
+│   ├── index.js           # 服务器入口
+│   ├── package.json
+│   └── ...
+├── railway.json           # Railway配置
+├── vercel.json            # Vercel配置
+├── Dockerfile             # Docker配置
 └── README.md
-``` # 部署更新 - Mon Sep  8 07:28:33 CST 2025
+```
+
+## 🚀 本地开发
+
+### 安装依赖
+```bash
+# 安装后端依赖
+cd server
+npm install
+
+# 安装前端依赖
+cd ../client
+npm install
+```
+
+### 启动开发服务器
+```bash
+# 启动后端服务器
+cd server
+npm run dev
+
+# 启动前端开发服务器
+cd client
+npm start
+```
+
+### 环境配置
+1. 复制 `server/env.example` 为 `server/.env`
+2. 配置数据库连接和JWT密钥
+3. 启动服务
+
+## 📊 功能特性
+
+### 性能优化
+- React Hooks优化渲染
+- 数据库连接池
+- 查询结果缓存
+- 懒加载和分页
+
+### 安全机制
+- JWT身份认证
+- 角色权限控制
+- 输入数据验证
+- SQL注入防护
+
+### 用户体验
+- 响应式设计
+- 加载状态提示
+- 错误边界处理
+- 友好的错误信息
+
+## 🔮 扩展功能
+
+### 计划中的功能
+- 评论和点赞系统
+- 内容推荐算法
+- 消息通知系统
+- 移动端应用
+
+### 技术升级
+- 微服务架构
+- 容器化部署
+- 实时通信
+- 大数据分析
+
+## 📞 支持
+
+如果遇到问题，可以：
+1. 查看部署指南文档
+2. 检查GitHub Issues
+3. 查看Railway/Vercel官方文档
+
+## 📄 许可证
+
+本项目采用 MIT 许可证。
+
+---
+
+**一个功能完整、技术先进的校园内容管理平台，支持多角色协作、内容审核、用户管理等核心功能。**
