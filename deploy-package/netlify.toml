@@ -52,7 +52,7 @@
 
 [[redirects]]
   from = "/api/pending-content/:id/review"
-  to = "/.netlify/functions/review-content"
+  to = "/.netlify/functions/review-content-simple"
   status = 200
 
 [[redirects]]
@@ -108,6 +108,11 @@
 [[redirects]]
   from = "/api/env-check"
   to = "/.netlify/functions/env-check"
+  status = 200
+
+[[redirects]]
+  from = "/api/debug"
+  to = "/.netlify/functions/debug"
   status = 200
 
 [[redirects]]
