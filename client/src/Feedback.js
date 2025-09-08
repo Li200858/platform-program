@@ -20,7 +20,11 @@ export default function Feedback({ user }) {
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
-    fetch('/api/feedback')
+    fetch('/api/feedback', {
+      headers: { 
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      }
+    })
       .then(res => {
         if (res.ok) {
           return res.json();

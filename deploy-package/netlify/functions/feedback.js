@@ -129,7 +129,7 @@ exports.handler = async (event, context) => {
       let query = {};
       const userData = await User.findById(user.userId);
       if (!userData || !(userData.role === 'founder' || userData.role === 'admin')) {
-        query.author = userData.email;
+        query.author = userData?.email || user.email;
       }
 
       const feedbacks = await Feedback.find(query).sort({ createdAt: -1 });
