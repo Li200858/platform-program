@@ -40,17 +40,24 @@ export default function AdminPanel() {
 
   const fetchPendingContent = async () => {
     try {
+      console.log('正在获取待审核内容...');
       const res = await fetch('/api/pending-content', {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('token') }
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('获取到的待审核内容:', data);
         if (Array.isArray(data)) {
           setPendingContent(data);
+          console.log('待审核内容已更新，数量:', data.length);
         } else {
           console.error('API返回的待审核内容数据不是数组:', data);
           setPendingContent([]);
         }
+      } else {
+        console.error('获取待审核内容失败，状态码:', res.status);
+        const error = await res.json();
+        console.error('错误信息:', error);
       }
     } catch (error) {
       console.error('获取待审核内容失败:', error);
@@ -116,12 +123,18 @@ export default function AdminPanel() {
         body: JSON.stringify({ action, note })
       });
       if (res.ok) {
+        const result = await res.json();
+        console.log('审核成功:', result);
         setMsg(action === 'approve' ? '内容已通过' : '内容已驳回');
-        fetchPendingContent();
+        // 延迟一下再刷新，确保数据库更新完成
+        setTimeout(() => {
+          fetchPendingContent();
+        }, 500);
         setRejectingContentId(null);
         setRejectNote('');
       } else {
         const error = await res.json();
+        console.error('审核失败:', error);
         setMsg(error.error);
       }
     } catch (error) {
