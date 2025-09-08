@@ -79,20 +79,18 @@ exports.handler = async (event, context) => {
       author: user.email 
     }).sort({ createdAt: -1 });
 
-    // 统计各状态的内容数量
-    const stats = {
-      pending: userContent.filter(c => c.status === 'pending').length,
-      approved: userContent.filter(c => c.status === 'approved').length,
-      rejected: userContent.filter(c => c.status === 'rejected').length,
-      total: userContent.length
-    };
+    // 按状态分组内容
+    const pending = userContent.filter(c => c.status === 'pending');
+    const approved = userContent.filter(c => c.status === 'approved');
+    const rejected = userContent.filter(c => c.status === 'rejected');
 
     return { 
       statusCode: 200, 
       headers, 
       body: JSON.stringify({ 
-        content: userContent,
-        stats
+        pending,
+        approved,
+        rejected
       }) 
     };
   } catch (error) {

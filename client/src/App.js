@@ -8,6 +8,7 @@ import Activity from './Activity';
 import MyProfile from './MyProfile';
 import AdminPanel from './AdminPanel';
 import ContentStatus from './ContentStatus';
+import ErrorBoundary from './ErrorBoundary';
 
 import './App.css';
 
@@ -76,7 +77,7 @@ function MainApp() {
   } else if (section === 'my') {
     content = <MyProfile />;
   } else if (section === 'content-status') {
-    content = <ContentStatus />;
+    content = <ErrorBoundary><ContentStatus /></ErrorBoundary>;
   } else if (section === 'admin') {
     content = <AdminPanel />;
   }
