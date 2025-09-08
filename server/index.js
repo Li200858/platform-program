@@ -750,6 +750,15 @@ app.post('/api/pending-content/:id/review', auth, requireRole(['founder', 'admin
   }
 });
 
+// 健康检查端点
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('Server running on port', PORT);

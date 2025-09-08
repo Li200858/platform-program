@@ -5,21 +5,16 @@ FROM node:18-alpine
 WORKDIR /app
 
 # 复制package.json文件
-COPY package*.json ./
-COPY server/package*.json ./server/
+COPY server/package*.json ./
 
 # 安装依赖
 RUN npm install
-RUN cd server && npm install
 
-# 复制源代码
-COPY . .
-
-# 构建前端
-RUN cd client && npm install && npm run build
+# 复制服务器源代码
+COPY server/ .
 
 # 暴露端口
 EXPOSE 5000
 
 # 启动命令
-CMD ["cd", "server", "&&", "npm", "start"]
+CMD ["npm", "start"]
