@@ -47,9 +47,37 @@ const verifyAuth = (event) => {
   }
 };
 
+// 用户模型
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'user' },
+  name: String,
+  class: String,
+  avatar: String,
+  bio: String,
+  phone: String,
+  studentId: String,
+  major: String,
+  grade: String,
+  interests: [String],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
 // 验证管理员权限
-const verifyAdmin = (user) => {
-  return user && (user.role === 'founder' || user.role === 'admin');
+const verifyAdmin = async (user) => {
+  if (!user || !user.userId) return false;
+  
+  try {
+    const userData = await User.findById(user.userId);
+    return userData && (userData.role === 'founder' || userData.role === 'admin');
+  } catch (error) {
+    console.error('Error verifying admin:', error);
+    return false;
+  }
 };
 
 exports.handler = async (event, context) => {
@@ -101,7 +129,7 @@ exports.handler = async (event, context) => {
         return { statusCode: 401, headers, body: JSON.stringify({ error: '未授权访问' }) };
       }
 
-      if (!verifyAdmin(user)) {
+      if (!(await verifyAdmin(user))) {
         return { statusCode: 403, headers, body: JSON.stringify({ error: '权限不足' }) };
       }
 

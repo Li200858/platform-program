@@ -26,7 +26,14 @@ export default function Art({ user }) {
     const dbTab = currentTab ? currentTab.dbValue : tab;
     fetch(`/api/art?tab=${encodeURIComponent(dbTab)}&sort=${sort === 'hot' ? 'hot' : ''}`)
       .then(res => res.json())
-      .then(data => setList(data));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setList(data);
+        } else {
+          console.error('API返回的数据不是数组:', data);
+          setList([]);
+        }
+      });
   }, [tab, sort, tabs]);
 
   const handleLike = async (id) => {
@@ -36,7 +43,7 @@ export default function Art({ user }) {
     });
     const data = await res.json();
     if (res.ok) {
-      setList(list.map(item => item._id === id ? data : item));
+      setList(Array.isArray(list) ? list.map(item => item._id === id ? data : item) : []);
       let newLiked;
       if (likedIds.includes(id)) {
         // 取消点赞

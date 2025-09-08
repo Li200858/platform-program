@@ -24,7 +24,12 @@ export default function ContentStatus() {
       });
       if (res.ok) {
         const data = await res.json();
-        setContentStatus(data);
+        if (data && typeof data === 'object') {
+          setContentStatus(data);
+        } else {
+          console.error('API返回的内容状态数据格式错误:', data);
+          setContentStatus({ pending: [], approved: [], rejected: [] });
+        }
       }
     } catch (error) {
       console.error('获取内容状态失败:', error);

@@ -10,7 +10,14 @@ export default function CrossCampus({ user }) {
   useEffect(() => {
     fetch('/api/crosscampus')
       .then(res => res.json())
-      .then(data => setList(data));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setList(data);
+        } else {
+          console.error('API返回的数据不是数组:', data);
+          setList([]);
+        }
+      });
   }, []);
 
   const renderMedia = (urls) => (

@@ -41,8 +41,16 @@ const verifyAuth = (event) => {
 };
 
 // 验证创始人权限
-const verifyFounder = (user) => {
-  return user && user.role === 'founder';
+const verifyFounder = async (user) => {
+  if (!user || !user.userId) return false;
+  
+  try {
+    const userData = await User.findById(user.userId);
+    return userData && userData.role === 'founder';
+  } catch (error) {
+    console.error('Error verifying founder:', error);
+    return false;
+  }
 };
 
 exports.handler = async (event, context) => {
@@ -73,7 +81,7 @@ exports.handler = async (event, context) => {
     }
 
     // 验证创始人权限
-    if (!verifyFounder(user)) {
+    if (!(await verifyFounder(user))) {
       return { statusCode: 403, headers, body: JSON.stringify({ error: '只有创始人可以转让权限' }) };
     }
 

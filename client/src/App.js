@@ -143,7 +143,7 @@ function MainApp() {
                   ({results.length}条结果)
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {results.map(item => (
+                  {Array.isArray(results) && results.map(item => (
                     <div key={item._id} className="search-result-item">
                       <div style={{ fontWeight: 'bold', marginBottom: 5 }}>{item.title}</div>
                       <div style={{ color: '#7f8c8d', fontSize: '14px' }}>

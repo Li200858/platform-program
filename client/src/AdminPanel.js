@@ -25,7 +25,12 @@ export default function AdminPanel() {
       });
       if (res.ok) {
         const data = await res.json();
-        setUsers(data);
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          console.error('API返回的用户数据不是数组:', data);
+          setUsers([]);
+        }
       }
     } catch (error) {
       console.error('获取用户列表失败:', error);
@@ -40,7 +45,12 @@ export default function AdminPanel() {
       });
       if (res.ok) {
         const data = await res.json();
-        setPendingContent(data);
+        if (Array.isArray(data)) {
+          setPendingContent(data);
+        } else {
+          console.error('API返回的待审核内容数据不是数组:', data);
+          setPendingContent([]);
+        }
       }
     } catch (error) {
       console.error('获取待审核内容失败:', error);

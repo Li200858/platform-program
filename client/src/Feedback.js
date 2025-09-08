@@ -21,7 +21,14 @@ export default function Feedback({ user }) {
   useEffect(() => {
     fetch('/api/feedback')
       .then(res => res.json())
-      .then(data => setList(data));
+      .then(data => {
+        if (Array.isArray(data)) {
+          setList(data);
+        } else {
+          console.error('API返回的数据不是数组:', data);
+          setList([]);
+        }
+      });
   }, []);
 
   const handleFileUpload = url => setMedia([...media, url]);
@@ -43,7 +50,7 @@ export default function Feedback({ user }) {
     });
     const data = await res.json();
     if (res.ok) {
-      setList([data, ...list]);
+      setList([data, ...(Array.isArray(list) ? list : [])]);
       setContent('');
       setMedia([]);
       setMsg('提交成功');

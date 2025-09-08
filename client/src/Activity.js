@@ -12,7 +12,14 @@ export default function Activity({ user }) {
     if (tab === 'notice') {
       fetch('/api/activity')
         .then(res => res.json())
-        .then(data => setList(data));
+        .then(data => {
+          if (Array.isArray(data)) {
+            setList(data);
+          } else {
+            console.error('API返回的数据不是数组:', data);
+            setList([]);
+          }
+        });
     }
   }, [tab]);
 
