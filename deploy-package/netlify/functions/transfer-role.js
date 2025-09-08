@@ -40,18 +40,6 @@ const verifyAuth = (event) => {
   }
 };
 
-// 验证创始人权限
-const verifyFounder = async (user) => {
-  if (!user || !user.userId) return false;
-  
-  try {
-    const userData = await User.findById(user.userId);
-    return userData && userData.role === 'founder';
-  } catch (error) {
-    console.error('Error verifying founder:', error);
-    return false;
-  }
-};
 
 exports.handler = async (event, context) => {
   // 设置CORS

@@ -67,18 +67,6 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-// 验证管理员权限
-const verifyAdmin = async (user) => {
-  if (!user || !user.userId) return false;
-  
-  try {
-    const userData = await User.findById(user.userId);
-    return userData && (userData.role === 'founder' || userData.role === 'admin');
-  } catch (error) {
-    console.error('Error verifying admin:', error);
-    return false;
-  }
-};
 
 exports.handler = async (event, context) => {
   // 设置CORS
