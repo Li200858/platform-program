@@ -17,7 +17,7 @@
 
 [[redirects]]
   from = "/api/users"
-  to = "/.netlify/functions/users"
+  to = "/.netlify/functions/test-simple-users"
   status = 200
 
 [[redirects]]
@@ -47,7 +47,7 @@
 
 [[redirects]]
   from = "/api/pending-content/:id/review"
-  to = "/.netlify/functions/review-content-simple"
+  to = "/.netlify/functions/test-simple-review"
   status = 200
 
 [[redirects]]
