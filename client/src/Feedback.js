@@ -1,96 +1,14 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import FileUploader from './FileUploader';
-import Avatar from './Avatar';
-import config from './config';
+import React, { useState } from 'react';
 
-export default function Feedback({ user }) {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [category, setCategory] = useState('teaching');
+export default function Feedback() {
   const [content, setContent] = useState('');
-  const [media, setMedia] = useState([]);
-  const [list, setList] = useState([]);
+  const [contact, setContact] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 使用useMemo缓存分类数据
-  const categories = useMemo(() => [
-    { key: 'teaching', label: '教学', dbValue: '教学' },
-    { key: 'dormitory', label: '宿舍', dbValue: '宿舍' },
-    { key: 'canteen', label: '食堂', dbValue: '食堂' },
-    { key: 'environment', label: '校园环境', dbValue: '校园环境' }
-  ], []);
-
-  // 优化的媒体渲染函数
-  const renderMedia = useCallback((urls) => {
-    if (!Array.isArray(urls) || urls.length === 0) return null;
-    
-    return (
-      <div style={{ marginTop: 8 }}>
-        {urls.map((url, idx) => {
-          const ext = url.split('.').pop()?.toLowerCase();
-          if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)) {
-            return (
-              <img
-                key={idx}
-                src={config.API_BASE_URL + url}
-                alt={`媒体 ${idx + 1}`}
-                style={{ width: 100, height: 100, objectFit: 'cover', marginRight: 8, cursor: 'pointer' }}
-                onClick={() => setSelectedImage(config.API_BASE_URL + url)}
-              />
-            );
-          }
-          return (
-            <a key={idx} href={config.API_BASE_URL + url} target="_blank" rel="noopener noreferrer" style={{ marginRight: 8 }}>
-              文件 {idx + 1}
-            </a>
-          );
-        })}
-      </div>
-    );
-  }, []);
-
-  // 优化的数据获取函数
-  const fetchFeedbacks = useCallback(async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setList([]);
-        return;
-      }
-
-      const res = await fetch(`${config.API_BASE_URL}/api/feedback`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setList(Array.isArray(data) ? data : []);
-      } else {
-        console.error('获取反馈失败:', res.status);
-        setList([]);
-      }
-    } catch (error) {
-      console.error('获取反馈数据失败:', error);
-      setList([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // 使用useEffect获取数据
-  useEffect(() => {
-    fetchFeedbacks();
-  }, [fetchFeedbacks]);
-
-  const handleFileUpload = useCallback((url) => {
-    setMedia(prev => [...prev, url]);
-  }, []);
-
-  const handleSubmit = useCallback(async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!content.trim()) {
       setMsg('请输入反馈内容');
       return;
@@ -98,32 +16,20 @@ export default function Feedback({ user }) {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setMsg('请先登录');
-        return;
-      }
-
-      const selectedCategory = categories.find(c => c.key === category);
-      const res = await fetch(`${config.API_BASE_URL}/api/feedback`, {
+      const res = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          category: selectedCategory?.dbValue || category, 
-          content: content.trim(), 
-          media 
+          content: content.trim(),
+          contact: contact.trim() || '匿名'
         })
       });
 
       const data = await res.json();
       if (res.ok) {
-        setMsg('提交成功');
+        setMsg('反馈提交成功，感谢您的建议！');
         setContent('');
-        setMedia([]);
-        fetchFeedbacks(); // 重新获取数据
+        setContact('');
       } else {
         setMsg(data.error || '提交失败');
       }
@@ -133,133 +39,123 @@ export default function Feedback({ user }) {
     } finally {
       setLoading(false);
     }
-  }, [content, category, media, categories, fetchFeedbacks]);
+  };
 
   return (
-    <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
-      <h2>意见反馈</h2>
+    <div style={{ 
+      maxWidth: 600, 
+      margin: '40px auto', 
+      background: '#fff', 
+      borderRadius: 15, 
+      padding: 30, 
+      boxShadow: '0 4px 20px rgba(0,0,0,0.1)' 
+    }}>
+      <h2 style={{ marginBottom: 25, color: '#2c3e50', textAlign: 'center' }}>
+        💬 意见反馈
+      </h2>
       
-      {selectedImage && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setSelectedImage(null)}>
-          <img src={selectedImage} alt="预览" style={{ maxWidth: '90%', maxHeight: '90%' }} />
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} style={{ marginBottom: 30 }}>
-        <div style={{ marginBottom: 15 }}>
-          <select 
-            value={category} 
-            onChange={e => setCategory(e.target.value)} 
-            style={{ padding: 8, marginRight: 10, minWidth: 120 }}
-          >
-            {categories.map(c => (
-              <option key={c.key} value={c.key}>{c.label}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div style={{ marginBottom: 15 }}>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+            反馈内容 *
+          </label>
           <textarea
             value={content}
-            onChange={e => setContent(e.target.value)}
-            placeholder="请输入你的意见或建议"
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="请告诉我们您的想法、建议或遇到的问题..."
+            rows={6}
             style={{ 
               width: '100%', 
-              minHeight: 100, 
-              padding: 12, 
-              border: '1px solid #ddd', 
-              borderRadius: 4,
-              resize: 'vertical'
+              padding: '15px', 
+              borderRadius: 8, 
+              border: '2px solid #ecf0f1',
+              resize: 'vertical',
+              fontSize: '14px',
+              lineHeight: '1.5'
             }}
           />
         </div>
-        
-        <div style={{ marginBottom: 15 }}>
-          <FileUploader onUpload={handleFileUpload} />
-          {renderMedia(media)}
-        </div>
-        
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: loading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: 4,
-            cursor: loading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {loading ? '提交中...' : '提交'}
-        </button>
-      </form>
 
-      {msg && (
-        <div style={{ 
-          color: msg === '提交成功' ? 'green' : 'red', 
-          marginBottom: 15,
-          padding: 10,
-          backgroundColor: msg === '提交成功' ? '#d4edda' : '#f8d7da',
-          border: `1px solid ${msg === '提交成功' ? '#c3e6cb' : '#f5c6cb'}`,
-          borderRadius: 4
-        }}>
-          {msg}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+            联系方式（可选）
+          </label>
+          <input
+            type="text"
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder="请输入您的姓名或联系方式（可选）"
+            style={{ 
+              width: '100%', 
+              padding: '12px', 
+              borderRadius: 8, 
+              border: '2px solid #ecf0f1',
+              fontSize: '14px'
+            }}
+          />
         </div>
-      )}
 
-      <div>
-        <h3>反馈列表</h3>
-        {loading && <div style={{ textAlign: 'center', padding: 20 }}>加载中...</div>}
-        
-        {!loading && list.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 20, color: '#666' }}>
-            暂无反馈记录
+        {msg && (
+          <div style={{ 
+            color: msg.includes('成功') ? '#27ae60' : '#e74c3c', 
+            marginBottom: 20,
+            padding: '12px 16px',
+            backgroundColor: msg.includes('成功') ? '#d5f4e6' : '#fadbd8',
+            border: `1px solid ${msg.includes('成功') ? '#a9dfbf' : '#f1948a'}`,
+            borderRadius: 8,
+            fontSize: '14px'
+          }}>
+            {msg}
           </div>
         )}
-        
-        {!loading && list.length > 0 && (
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            {list.map(item => (
-              <li key={item._id} style={{ 
-                marginBottom: 20, 
-                borderBottom: '1px solid #eee', 
-                paddingBottom: 15,
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: 12 
-              }}>
-                <Avatar src={item.authorAvatar} name={item.authorName} size={40} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 8, 
-                    marginBottom: 5 
-                  }}>
-                    <strong style={{ color: '#333' }}>{item.authorName || '匿名用户'}</strong>
-                    <span style={{ 
-                      fontSize: 12, 
-                      color: '#888',
-                      backgroundColor: '#f0f0f0',
-                      padding: '2px 6px',
-                      borderRadius: 3
-                    }}>
-                      {categories.find(c => c.key === item.category)?.label || item.category}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
-                    {new Date(item.createdAt).toLocaleString()}
-                  </div>
-                  <div style={{ color: '#333', lineHeight: 1.5 }}>
-                    {item.content}
-                  </div>
-                  {renderMedia(item.media)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+
+        <div style={{ display: 'flex', gap: 15, justifyContent: 'center' }}>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: '12px 30px',
+              backgroundColor: loading ? '#bdc3c7' : '#3498db',
+              color: 'white',
+              border: 'none',
+              borderRadius: 8,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.target.style.backgroundColor = '#2980b9';
+                e.target.style.transform = 'translateY(-2px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                e.target.style.backgroundColor = '#3498db';
+                e.target.style.transform = 'translateY(0)';
+              }
+            }}
+          >
+            {loading ? '提交中...' : '✨ 提交反馈'}
+          </button>
+        </div>
+      </form>
+
+      <div style={{ 
+        marginTop: 30, 
+        padding: '20px', 
+        backgroundColor: '#f8f9fa', 
+        borderRadius: 8,
+        border: '1px solid #e9ecef'
+      }}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>📝 反馈说明</h4>
+        <ul style={{ margin: 0, paddingLeft: 20, color: '#6c757d', fontSize: '14px', lineHeight: '1.6' }}>
+          <li>您的反馈对我们改进平台非常重要</li>
+          <li>我们会认真阅读每一条反馈并持续优化</li>
+          <li>如需回复，请留下联系方式</li>
+          <li>我们承诺保护您的隐私信息</li>
+        </ul>
       </div>
     </div>
   );
