@@ -12,12 +12,6 @@ const ArtSchema = new mongoose.Schema({
   likedUsers: [{ type: String }], // 存储已点赞用户ID
   views: { type: Number, default: 0 }, // 浏览量
   shares: { type: Number, default: 0 }, // 分享数
-  rating: { 
-    total: { type: Number, default: 0 }, // 总评分
-    count: { type: Number, default: 0 }, // 评分人数
-    average: { type: Number, default: 0 } // 平均评分
-  },
-  ratedUsers: [{ type: String }], // 已评分用户
   comments: [{
     id: { type: String, required: true },
     author: { type: String, required: true },

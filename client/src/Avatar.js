@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import DefaultAvatar from './DefaultAvatar';
 
 export default function Avatar({ 
@@ -9,8 +9,10 @@ export default function Avatar({
   className = '',
   alt = '头像'
 }) {
-  // 如果没有头像URL或URL无效，显示默认头像
-  if (!src || src.trim() === '' || src.includes('picsum.photos')) {
+  const [imageError, setImageError] = useState(false);
+  
+  // 如果没有头像URL或URL无效，或图片加载失败，显示默认头像
+  if (!src || src.trim() === '' || src.includes('picsum.photos') || imageError) {
     return (
       <DefaultAvatar 
         name={name} 
@@ -36,11 +38,7 @@ export default function Avatar({
         ...style
       }}
       className={className}
-      onError={(e) => {
-        // 如果图片加载失败，替换为默认头像
-        e.target.style.display = 'none';
-        e.target.nextSibling.style.display = 'flex';
-      }}
+      onError={() => setImageError(true)}
     />
   );
 }

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import api from './api';
 
-export default function Feedback() {
+export default function Feedback({ userInfo }) {
   const [content, setContent] = useState('');
-  const [contact, setContact] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,28 +14,25 @@ export default function Feedback() {
       return;
     }
 
+    if (!userInfo || !userInfo.name || !userInfo.class) {
+      setMsg('请先在个人信息页面填写姓名和班级信息！');
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          content: content.trim(),
-          contact: contact.trim() || '匿名'
-        })
+      await api.feedback.create({ 
+        content: content.trim(),
+        authorName: userInfo.name,
+        authorClass: userInfo.class,
+        authorAvatar: userInfo.avatar || ''
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setMsg('反馈提交成功，感谢您的建议！');
-        setContent('');
-        setContact('');
-      } else {
-        setMsg(data.error || '提交失败');
-      }
+      setMsg('反馈提交成功，感谢您的建议！');
+      setContent('');
     } catch (error) {
       console.error('提交反馈失败:', error);
-      setMsg('提交失败，请重试');
+      setMsg('提交失败：' + (error.message || '请重试'));
     } finally {
       setLoading(false);
     }
@@ -51,7 +48,7 @@ export default function Feedback() {
       boxShadow: '0 4px 20px rgba(0,0,0,0.1)' 
     }}>
       <h2 style={{ marginBottom: 25, color: '#2c3e50', textAlign: 'center' }}>
-        💬 意见反馈
+        意见反馈
       </h2>
       
       <form onSubmit={handleSubmit}>
@@ -76,24 +73,56 @@ export default function Feedback() {
           />
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-            联系方式（可选）
-          </label>
-          <input
-            type="text"
-            value={contact}
-            onChange={(e) => setContact(e.target.value)}
-            placeholder="请输入您的姓名或联系方式（可选）"
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              borderRadius: 8, 
-              border: '2px solid #ecf0f1',
-              fontSize: '14px'
-            }}
-          />
-        </div>
+        {/* 用户信息显示 */}
+        {userInfo && userInfo.name && userInfo.class ? (
+          <div style={{ 
+            marginBottom: 20, 
+            padding: '15px', 
+            backgroundColor: '#e8f5e8', 
+            borderRadius: 8,
+            border: '1px solid #c3e6c3'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                backgroundColor: '#3498db',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }}>
+                {userInfo?.name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+              <div>
+                <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{userInfo?.name || '未知用户'}</div>
+                <div style={{ fontSize: '14px', color: '#7f8c8d' }}>{userInfo?.class || '未知班级'}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#27ae60' }}>
+              ✓ 将以此身份提交反馈
+            </div>
+          </div>
+        ) : (
+          <div style={{ 
+            marginBottom: 20, 
+            padding: '15px', 
+            backgroundColor: '#fef9e7', 
+            borderRadius: 8,
+            border: '1px solid #f4d03f',
+            textAlign: 'center'
+          }}>
+            <div style={{ color: '#f39c12', fontWeight: 'bold', marginBottom: 5 }}>
+              请先设置个人信息
+            </div>
+            <div style={{ fontSize: '14px', color: '#7f8c8d' }}>
+              请先在个人信息页面填写姓名和班级信息
+            </div>
+          </div>
+        )}
 
         {msg && (
           <div style={{ 
@@ -149,7 +178,7 @@ export default function Feedback() {
         borderRadius: 8,
         border: '1px solid #e9ecef'
       }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>📝 反馈说明</h4>
+        <h4 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>反馈说明</h4>
         <ul style={{ margin: 0, paddingLeft: 20, color: '#6c757d', fontSize: '14px', lineHeight: '1.6' }}>
           <li>您的反馈对我们改进平台非常重要</li>
           <li>我们会认真阅读每一条反馈并持续优化</li>

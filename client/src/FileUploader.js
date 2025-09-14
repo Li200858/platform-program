@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import api from './api';
 
 export default function FileUploader({ onUpload }) {
   const fileInput = useRef();
@@ -44,22 +45,14 @@ export default function FileUploader({ onUpload }) {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      setUploading(false);
-      if (res.ok) {
-        onUpload(data.url);
-      } else {
-        alert(data.error || '上传失败');
-      }
+      formData.append('files', file);
+      const data = await api.upload(formData);
+      onUpload(data.urls[0]);
     } catch (error) {
       console.error('文件上传失败:', error);
+      alert('上传失败：' + (error.message || '请检查网络连接'));
+    } finally {
       setUploading(false);
-      alert('上传失败，请检查网络连接');
     }
   };
 
@@ -82,7 +75,7 @@ export default function FileUploader({ onUpload }) {
         支持图片、视频、音频、文档、文本、压缩文件，最大10MB
       </div>
       <div style={{ fontSize: '11px', color: '#ff6b6b', marginTop: '5px', padding: '5px', backgroundColor: '#fff5f5', borderRadius: '3px' }}>
-        ⚠️ 演示模式：当前使用演示文件，实际文件未保存
+        演示模式：当前使用演示文件，实际文件未保存
       </div>
     </div>
   );

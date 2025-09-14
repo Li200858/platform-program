@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Avatar from './Avatar';
 import config from './config';
+import api from './api';
 
-export default function Art() {
+export default function Art({ userInfo }) {
   const tabs = useMemo(() => [
-    { key: 'music', label: '🎵 音乐', dbValue: '音乐' },
-    { key: 'painting', label: '🎨 绘画', dbValue: '绘画' },
-    { key: 'dance', label: '💃 舞蹈', dbValue: '舞蹈' },
-    { key: 'writing', label: '✍️ 写作', dbValue: '写作' }
+    { key: 'music', label: '音乐', dbValue: '音乐' },
+    { key: 'painting', label: '绘画', dbValue: '绘画' },
+    { key: 'dance', label: '舞蹈', dbValue: '舞蹈' },
+    { key: 'writing', label: '写作', dbValue: '写作' },
+    { key: 'photography', label: '摄影', dbValue: '摄影' },
+    { key: 'sculpture', label: '雕塑', dbValue: '雕塑' },
+    { key: 'calligraphy', label: '书法', dbValue: '书法' },
+    { key: 'design', label: '设计', dbValue: '设计' },
+    { key: 'theater', label: '戏剧', dbValue: '戏剧' },
+    { key: 'film', label: '影视', dbValue: '影视' },
+    { key: 'craft', label: '手工艺', dbValue: '手工艺' },
+    { key: 'digital', label: '数字艺术', dbValue: '数字艺术' }
   ], []);
   
   const [tab, setTab] = useState('music');
@@ -23,27 +32,13 @@ export default function Art() {
     const saved = localStorage.getItem('favorite_art_ids');
     return saved ? JSON.parse(saved) : [];
   });
-  const [ratedIds, setRatedIds] = useState(() => {
-    const saved = localStorage.getItem('rated_art_ids');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [userId] = useState(() => {
-    // 生成临时用户ID
-    let id = localStorage.getItem('temp_user_id');
-    if (!id) {
-      id = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('temp_user_id', id);
-    }
-    return id;
-  });
   const [showComments, setShowComments] = useState({});
   const [commentForm, setCommentForm] = useState({ author: '', authorClass: '', content: '' });
 
   useEffect(() => {
     const currentTab = tabs.find(t => t.key === tab);
     const dbTab = currentTab ? currentTab.dbValue : tab;
-    fetch(`/api/art?tab=${encodeURIComponent(dbTab)}&sort=${sort === 'hot' ? 'hot' : ''}`)
-      .then(res => res.json())
+    api.art.getAll(dbTab, sort === 'hot' ? 'hot' : '')
       .then(data => {
         if (Array.isArray(data)) {
           setList(data);
@@ -51,82 +46,178 @@ export default function Art() {
           console.error('API返回的数据不是数组:', data);
           setList([]);
         }
+      })
+      .catch(error => {
+        console.error('加载失败:', error);
+        setList([]);
       });
   }, [tab, sort, tabs]);
 
+
   const handleLike = async (id) => {
-    const res = await fetch(`/api/art/${id}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setList(Array.isArray(list) ? list.map(item => item._id === id ? data : item) : []);
+    if (!userInfo || !userInfo.name) {
+      alert('请先完善个人信息');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/art/${id}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userInfo.name })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      setList(prev => Array.isArray(prev) ? prev.map(item => item._id === id ? data : item) : []);
+      // 根据服务器返回的数据更新本地状态
+      const isLiked = data.likedUsers && data.likedUsers.includes(userInfo.name);
       let newLiked;
-      if (likedIds.includes(id)) {
-        newLiked = likedIds.filter(_id => _id !== id);
+      if (isLiked) {
+        // 如果已点赞，添加到本地列表
+        newLiked = likedIds.includes(id) ? likedIds : [...likedIds, id];
       } else {
-        newLiked = [...likedIds, id];
+        // 如果未点赞，从本地列表移除
+        newLiked = likedIds.filter(_id => _id !== id);
       }
       setLikedIds(newLiked);
       localStorage.setItem('liked_art_ids', JSON.stringify(newLiked));
-    } else {
-      alert(data.error || '操作失败');
+    } catch (error) {
+      console.error('点赞失败:', error);
+      alert('操作失败，请重试');
     }
   };
 
   const handleFavorite = async (id) => {
-    const res = await fetch(`/api/art/${id}/favorite`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setList(Array.isArray(list) ? list.map(item => item._id === id ? data : item) : []);
+    if (!userInfo || !userInfo.name) {
+      alert('请先完善个人信息');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/art/${id}/favorite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userInfo.name })
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      setList(prev => Array.isArray(prev) ? prev.map(item => item._id === id ? data : item) : []);
+      // 根据服务器返回的数据更新本地状态
+      const isFavorited = data.favorites && data.favorites.includes(userInfo.name);
       let newFavorites;
-      if (favoriteIds.includes(id)) {
-        newFavorites = favoriteIds.filter(_id => _id !== id);
+      if (isFavorited) {
+        // 如果已收藏，添加到本地列表
+        newFavorites = favoriteIds.includes(id) ? favoriteIds : [...favoriteIds, id];
       } else {
-        newFavorites = [...favoriteIds, id];
+        // 如果未收藏，从本地列表移除
+        newFavorites = favoriteIds.filter(_id => _id !== id);
       }
       setFavoriteIds(newFavorites);
       localStorage.setItem('favorite_art_ids', JSON.stringify(newFavorites));
-    } else {
-      alert(data.error || '操作失败');
+    } catch (error) {
+      console.error('收藏失败:', error);
+      alert('操作失败，请重试');
     }
   };
 
-  const handleRate = async (id, rating) => {
-    const res = await fetch(`/api/art/${id}/rate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, rating })
+
+  // 删除作品
+  const handleDeleteArt = async (id) => {
+    if (!userInfo || !userInfo.name) {
+      alert('请先登录');
+      return;
+    }
+
+    if (!window.confirm('确定要删除这个作品吗？此操作不可恢复。')) {
+      return;
+    }
+
+    try {
+    const res = await fetch(`http://localhost:5000/api/art/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
+      method: 'DELETE'
     });
-    const data = await res.json();
-    if (res.ok) {
-      setList(Array.isArray(list) ? list.map(item => item._id === id ? data : item) : []);
-      if (!ratedIds.includes(id)) {
-        const newRated = [...ratedIds, id];
-        setRatedIds(newRated);
-        localStorage.setItem('rated_art_ids', JSON.stringify(newRated));
+      
+      if (res.ok) {
+        // 从列表中移除删除的作品
+        setList(prev => prev.filter(item => item._id !== id));
+        alert('作品已删除');
+      } else {
+        const data = await res.json();
+        alert(data.error || '删除失败');
       }
-    } else {
-      alert(data.error || '评分失败');
+    } catch (error) {
+      console.error('删除作品失败:', error);
+      alert('删除失败，请重试');
+    }
+  };
+
+  // 删除评论
+  const handleDeleteComment = async (artId, commentId) => {
+    if (!userInfo || !userInfo.name) {
+      alert('请先登录');
+      return;
+    }
+
+    if (!window.confirm('确定要删除这条评论吗？')) {
+      return;
+    }
+
+    try {
+    const res = await fetch(`http://localhost:5000/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
+      method: 'DELETE'
+    });
+      
+      if (res.ok) {
+        // 更新作品列表，移除删除的评论
+        setList(prev => prev.map(item => {
+          if (item._id === artId) {
+            return {
+              ...item,
+              comments: item.comments.filter(comment => comment.id !== commentId)
+            };
+          }
+          return item;
+        }));
+        alert('评论已删除');
+      } else {
+        const data = await res.json();
+        alert(data.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除评论失败:', error);
+      alert('删除失败，请重试');
     }
   };
 
   const handleComment = async (id) => {
-    if (!commentForm.author || !commentForm.authorClass || !commentForm.content) {
-      alert('请填写完整信息');
+    if (!commentForm.content.trim()) {
+      alert('请输入评论内容');
       return;
     }
 
-    const res = await fetch(`/api/art/${id}/comment`, {
+    if (!userInfo || !userInfo.name || !userInfo.class) {
+      alert('请先在个人信息页面填写姓名和班级信息');
+      return;
+    }
+
+    const commentData = {
+      author: userInfo.name,
+      authorClass: userInfo.class,
+      content: commentForm.content.trim()
+    };
+
+    const res = await fetch(`http://localhost:5000/api/art/${id}/comment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(commentForm)
+      body: JSON.stringify(commentData)
     });
     const data = await res.json();
     if (res.ok) {
@@ -137,9 +228,10 @@ export default function Art() {
     }
   };
 
-  const handleView = async (id) => {
-    fetch(`/api/art/${id}/view`, { method: 'POST' });
-  };
+  // 浏览功能（暂时保留，可能后续使用）
+  // const handleView = async (id) => {
+  //   fetch(`/api/art/${id}/view`, { method: 'POST' });
+  // };
 
   const renderMedia = (urls) => (
     <div style={{ marginTop: 8 }}>
@@ -185,13 +277,13 @@ export default function Art() {
   );
 
   if (showPublish) {
-    return <PublishForm onBack={() => setShowPublish(false)} />;
+    return <PublishForm onBack={() => setShowPublish(false)} userInfo={userInfo} />;
   }
 
   return (
     <div style={{ maxWidth: 800, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 }}>
-        <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '28px' }}>🎨 艺术作品展示</h2>
+        <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '28px' }}>艺术作品展示</h2>
         <button 
           onClick={() => setShowPublish(true)}
           style={{ 
@@ -283,14 +375,45 @@ export default function Art() {
                   {item.authorName || item.author}
                 </div>
                 <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>🏫 {item.authorClass}</span>
-                  <span>📅 {new Date(item.createdAt).toLocaleString()}</span>
-                  <span>👁️ {item.views || 0} 次浏览</span>
+                  <span>班级: {item.authorClass}</span>
+                  <span>日期: {new Date(item.createdAt).toLocaleString()}</span>
+                  <span>浏览 {item.views || 0} 次</span>
                 </div>
               </div>
             </div>
             <div style={{ marginBottom: 15 }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '20px', color: '#2c3e50' }}>{item.title}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '20px', color: '#2c3e50', flex: 1 }}>{item.title}</h3>
+                {/* 删除按钮 - 只有作者可以删除自己的作品 */}
+                {userInfo && userInfo.name && (item.authorName === userInfo.name || item.author === userInfo.name) && (
+                  <button
+                    onClick={() => handleDeleteArt(item._id)}
+                    style={{
+                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '20px',
+                      padding: '8px 16px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      transition: 'all 0.3s ease',
+                      marginLeft: '10px',
+                      boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.4)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 107, 0.3)';
+                    }}
+                  >
+                    删除作品
+                  </button>
+                )}
+              </div>
               <p style={{ margin: 0, lineHeight: 1.6, color: '#34495e', fontSize: '15px' }}>{item.content}</p>
             </div>
             {renderMedia(item.media)}
@@ -321,7 +444,7 @@ export default function Art() {
                   }}
                 >
                   <span style={{ fontSize: '16px' }}>
-                    {likedIds.includes(item._id) ? '❤️' : '🤍'}
+                    {likedIds.includes(item._id) ? '已喜欢' : '喜欢'}
                   </span>
                   <span>{item.likes || 0}</span>
                 </button>
@@ -344,9 +467,9 @@ export default function Art() {
                   }}
                 >
                   <span style={{ fontSize: '16px' }}>
-                    {favoriteIds.includes(item._id) ? '⭐' : '☆'}
+                    {favoriteIds.includes(item._id) ? '已收藏' : '收藏'}
                   </span>
-                  <span>收藏</span>
+                  <span>{item.favorites?.length || 0}</span>
                 </button>
 
                 <button
@@ -366,33 +489,9 @@ export default function Art() {
                     fontWeight: '600'
                   }}
                 >
-                  <span style={{ fontSize: '16px' }}>💬</span>
                   <span>评论 ({item.comments?.length || 0})</span>
                 </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '13px', color: '#7f8c8d' }}>评分:</span>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      onClick={() => handleRate(item._id, star)}
-                      disabled={ratedIds.includes(item._id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: ratedIds.includes(item._id) ? 'not-allowed' : 'pointer',
-                        fontSize: '18px',
-                        color: star <= (item.rating?.average || 0) ? '#f39c12' : '#ddd',
-                        opacity: ratedIds.includes(item._id) ? 0.5 : 1
-                      }}
-                    >
-                      ⭐
-                    </button>
-                  ))}
-                  <span style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                    ({item.rating?.average?.toFixed(1) || 0})
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -405,48 +504,60 @@ export default function Art() {
                 borderRadius: 8,
                 border: '1px solid #e9ecef'
               }}>
-                <h4 style={{ margin: '0 0 15px 0', color: '#2c3e50' }}>💬 评论</h4>
+                <h4 style={{ margin: '0 0 15px 0', color: '#2c3e50' }}>评论</h4>
                 
                 {/* 评论表单 */}
-                <div style={{ marginBottom: 15, padding: '10px', backgroundColor: '#fff', borderRadius: 6 }}>
-                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                    <input
-                      type="text"
-                      placeholder="您的姓名"
-                      value={commentForm.author}
-                      onChange={(e) => setCommentForm(prev => ({ ...prev, author: e.target.value }))}
-                      style={{ flex: 1, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}
+                <div style={{ marginBottom: 15, padding: '15px', backgroundColor: '#f8f9fa', borderRadius: 8, border: '1px solid #e9ecef' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <Avatar 
+                      src={userInfo?.avatar} 
+                      name={userInfo?.name || '用户'} 
+                      size={32}
                     />
-                    <input
-                      type="text"
-                      placeholder="班级"
-                      value={commentForm.authorClass}
-                      onChange={(e) => setCommentForm(prev => ({ ...prev, authorClass: e.target.value }))}
-                      style={{ flex: 1, padding: '8px', borderRadius: 4, border: '1px solid #ddd' }}
-                    />
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#2c3e50' }}>
+                        {userInfo?.name || '未登录用户'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6c757d' }}>
+                        {userInfo?.class || '请先完善个人信息'}
+                      </div>
+                    </div>
                   </div>
                   <textarea
                     placeholder="写下您的评论..."
                     value={commentForm.content}
                     onChange={(e) => setCommentForm(prev => ({ ...prev, content: e.target.value }))}
-                    style={{ width: '100%', padding: '8px', borderRadius: 4, border: '1px solid #ddd', resize: 'vertical' }}
-                    rows={2}
-                  />
-                  <button
-                    onClick={() => handleComment(item._id)}
-                    style={{
-                      marginTop: '8px',
-                      padding: '6px 12px',
-                      backgroundColor: '#3498db',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      fontSize: '12px'
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      borderRadius: 6, 
+                      border: '1px solid #ddd', 
+                      resize: 'vertical',
+                      fontSize: '14px',
+                      fontFamily: 'inherit'
                     }}
-                  >
-                    发表评论
-                  </button>
+                    rows={3}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                    <button
+                      onClick={() => handleComment(item._id)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                      onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+                    >
+                      发表评论
+                    </button>
+                  </div>
                 </div>
 
                 {/* 评论列表 */}
@@ -455,16 +566,48 @@ export default function Art() {
                     item.comments.map(comment => (
                       <div key={comment.id} style={{ 
                         marginBottom: '10px', 
-                        padding: '8px', 
+                        padding: '12px', 
                         backgroundColor: '#fff', 
-                        borderRadius: 6,
-                        border: '1px solid #e9ecef'
+                        borderRadius: 8,
+                        border: '1px solid #e9ecef',
+                        transition: 'all 0.2s ease'
                       }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                          <strong style={{ fontSize: '13px', color: '#2c3e50' }}>{comment.author}</strong>
-                          <span style={{ fontSize: '11px', color: '#7f8c8d' }}>
-                            {comment.authorClass} · {new Date(comment.createdAt).toLocaleString()}
-                          </span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <strong style={{ fontSize: '13px', color: '#2c3e50' }}>{comment.author}</strong>
+                            <span style={{ fontSize: '11px', color: '#7f8c8d', background: '#f8f9fa', padding: '2px 6px', borderRadius: '10px' }}>
+                              {comment.authorClass}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: '#7f8c8d' }}>
+                              {new Date(comment.createdAt).toLocaleString()}
+                            </span>
+                            {/* 删除评论按钮 - 只有评论作者可以删除自己的评论 */}
+                            {userInfo && userInfo.name && comment.author === userInfo.name && (
+                              <button
+                                onClick={() => handleDeleteComment(item._id, comment.id)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#dc3545',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseOver={(e) => {
+                                  e.target.style.backgroundColor = '#f8d7da';
+                                }}
+                                onMouseOut={(e) => {
+                                  e.target.style.backgroundColor = 'transparent';
+                                }}
+                              >
+                                删除
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div style={{ fontSize: '13px', color: '#34495e', lineHeight: '1.4' }}>
                           {comment.content}
@@ -513,13 +656,28 @@ export default function Art() {
 }
 
 // 发布表单组件
-function PublishForm({ onBack }) {
+function PublishForm({ onBack, userInfo }) {
+    const tabs = [
+      { key: 'music', label: '音乐', dbValue: '音乐' },
+      { key: 'painting', label: '绘画', dbValue: '绘画' },
+      { key: 'dance', label: '舞蹈', dbValue: '舞蹈' },
+      { key: 'writing', label: '写作', dbValue: '写作' },
+      { key: 'photography', label: '摄影', dbValue: '摄影' },
+      { key: 'sculpture', label: '雕塑', dbValue: '雕塑' },
+      { key: 'calligraphy', label: '书法', dbValue: '书法' },
+      { key: 'design', label: '设计', dbValue: '设计' },
+      { key: 'theater', label: '戏剧', dbValue: '戏剧' },
+      { key: 'film', label: '影视', dbValue: '影视' },
+      { key: 'craft', label: '手工艺', dbValue: '手工艺' },
+      { key: 'digital', label: '数字艺术', dbValue: '数字艺术' }
+    ];
+
   const [formData, setFormData] = useState({
     tab: '音乐',
     title: '',
     content: '',
-    authorName: '',
-    authorClass: '',
+    authorName: userInfo?.name || '',
+    authorClass: userInfo?.class || '',
     media: []
   });
   const [uploading, setUploading] = useState(false);
@@ -527,27 +685,27 @@ function PublishForm({ onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.content || !formData.authorName || !formData.authorClass) {
-      alert('请填写完整信息！');
+    if (!formData.title || !formData.content) {
+      alert('请填写标题和内容！');
+      return;
+    }
+
+    if (!userInfo || !userInfo.name || !userInfo.class) {
+      alert('请先在个人信息页面填写姓名和班级信息！');
       return;
     }
 
     try {
-      const res = await fetch('/api/art', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      await api.art.create({
+        ...formData,
+        authorName: userInfo.name,
+        authorClass: userInfo.class
       });
       
-      if (res.ok) {
-        alert('发布成功！');
-        onBack();
-      } else {
-        const error = await res.json();
-        alert(error.error || '发布失败');
-      }
+      alert('发布成功！');
+      onBack();
     } catch (error) {
-      alert('发布失败，请重试');
+      alert('发布失败：' + (error.message || '请重试'));
     }
   };
 
@@ -560,16 +718,8 @@ function PublishForm({ onBack }) {
     Array.from(files).forEach(file => formData.append('files', file));
 
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
-      } else {
-        alert('文件上传失败');
-      }
+      const data = await api.upload(formData);
+      setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
     } catch (error) {
       alert('文件上传失败');
     } finally {
@@ -591,10 +741,11 @@ function PublishForm({ onBack }) {
             onChange={(e) => setFormData(prev => ({ ...prev, tab: e.target.value }))}
             style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px solid #ecf0f1' }}
           >
-            <option value="音乐">🎵 音乐</option>
-            <option value="绘画">🎨 绘画</option>
-            <option value="舞蹈">💃 舞蹈</option>
-            <option value="写作">✍️ 写作</option>
+            {tabs.map(tabItem => (
+              <option key={tabItem.key} value={tabItem.dbValue}>
+                {tabItem.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -624,32 +775,43 @@ function PublishForm({ onBack }) {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-              姓名 *
-            </label>
-            <input
-              type="text"
-              value={formData.authorName}
-              onChange={(e) => setFormData(prev => ({ ...prev, authorName: e.target.value }))}
-              placeholder="请输入您的姓名"
-              style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px solid #ecf0f1' }}
-            />
+        {/* 用户信息显示 */}
+        {userInfo && userInfo.name && userInfo.class ? (
+          <div style={{ 
+            marginBottom: 20, 
+            padding: '15px', 
+            backgroundColor: '#e8f5e8', 
+            borderRadius: 8,
+            border: '1px solid #c3e6c3'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <Avatar src={userInfo.avatar} name={userInfo.name} size={40} />
+              <div>
+                <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{userInfo.name}</div>
+                <div style={{ fontSize: '14px', color: '#7f8c8d' }}>{userInfo.class}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#27ae60' }}>
+              ✓ 将以此身份发布作品
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-              班级 *
-            </label>
-            <input
-              type="text"
-              value={formData.authorClass}
-              onChange={(e) => setFormData(prev => ({ ...prev, authorClass: e.target.value }))}
-              placeholder="请输入您的班级"
-              style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px solid #ecf0f1' }}
-            />
+        ) : (
+          <div style={{ 
+            marginBottom: 20, 
+            padding: '15px', 
+            backgroundColor: '#fef9e7', 
+            borderRadius: 8,
+            border: '1px solid #f4d03f',
+            textAlign: 'center'
+          }}>
+            <div style={{ color: '#f39c12', fontWeight: 'bold', marginBottom: 5 }}>
+              请先设置个人信息
+            </div>
+            <div style={{ fontSize: '14px', color: '#7f8c8d' }}>
+              请先在个人信息页面填写姓名和班级信息
+            </div>
           </div>
-        </div>
+        )}
 
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
