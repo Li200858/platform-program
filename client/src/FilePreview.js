@@ -26,10 +26,6 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
   };
 
   const handlePreview = (url, fileType) => {
-    console.log('预览文件:', url, '类型:', fileType);
-    const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
-    console.log('完整URL:', fullUrl);
-    
     setPreviewFile(url);
     if (fileType.isImage) {
       setPreviewType('image');

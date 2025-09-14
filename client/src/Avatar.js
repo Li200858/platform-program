@@ -24,9 +24,11 @@ export default function Avatar({
   }
 
   // 有有效头像URL时显示真实头像
+  const imageUrl = src.startsWith('http') ? src : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${src}`;
+  
   return (
     <img
-      src={src}
+      src={imageUrl}
       alt={alt}
       style={{
         width: size,

@@ -175,7 +175,11 @@ export default function UserProfile({ onBack }) {
   };
 
   const handleAvatarUpload = (url) => {
-    setUserInfo(prev => ({ ...prev, avatar: url }));
+    const updatedUserInfo = { ...userInfo, avatar: url };
+    setUserInfo(updatedUserInfo);
+    // 立即保存头像到localStorage
+    UserManager.saveUserProfile(updatedUserInfo);
+    setMsg('头像上传成功！');
   };
 
   const handleDownloadData = () => {
