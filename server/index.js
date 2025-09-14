@@ -961,6 +961,16 @@ app.post('/api/report-impersonation', async (req, res) => {
   }
 });
 
+// 健康检查端点
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    message: '艺术平台API服务运行正常',
+    timestamp: new Date().toISOString(),
+    version: '2.0.0'
+  });
+});
+
 // 根路径
 app.get('/', (req, res) => {
   res.json({ 
