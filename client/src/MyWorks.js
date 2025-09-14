@@ -71,6 +71,8 @@ export default function MyWorks({ userInfo, onBack }) {
   const renderMedia = (urls) => (
     <div style={{ marginTop: 8 }}>
       {urls && urls.map((url, idx) => {
+        if (!url || url.trim() === '') return null;
+        
         const ext = url.split('.').pop().toLowerCase();
         if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
           return (
@@ -163,19 +165,21 @@ export default function MyWorks({ userInfo, onBack }) {
         {activity.title}
       </h3>
 
-      <div style={{ marginBottom: 15 }}>
-        <img 
-          src={activity.image} 
-          alt={activity.title}
-          style={{ 
-            width: '100%', 
-            height: 200, 
-            objectFit: 'cover', 
-            borderRadius: 8,
-            border: '1px solid #e9ecef'
-          }} 
-        />
-      </div>
+      {activity.image && (
+        <div style={{ marginBottom: 15 }}>
+          <img 
+            src={activity.image} 
+            alt={activity.title}
+            style={{ 
+              width: '100%', 
+              height: 200, 
+              objectFit: 'cover', 
+              borderRadius: 8,
+              border: '1px solid #e9ecef'
+            }} 
+          />
+        </div>
+      )}
 
       <p style={{
         color: '#6c757d',

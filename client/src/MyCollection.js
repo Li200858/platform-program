@@ -122,6 +122,8 @@ export default function MyCollection({ userInfo, onBack }) {
   const renderMedia = (urls) => (
     <div style={{ marginTop: 8 }}>
       {urls && urls.map((url, idx) => {
+        if (!url || url.trim() === '') return null;
+        
         const ext = url.split('.').pop().toLowerCase();
         if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
           return (
