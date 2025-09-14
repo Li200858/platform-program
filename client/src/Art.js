@@ -160,7 +160,7 @@ export default function Art({ userInfo }) {
     }
 
     try {
-    const res = await fetch(`http://localhost:5000/api/art/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
+    const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
       method: 'DELETE'
     });
       
@@ -190,7 +190,7 @@ export default function Art({ userInfo }) {
     }
 
     try {
-    const res = await fetch(`http://localhost:5000/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
+    const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
       method: 'DELETE'
     });
       
@@ -233,7 +233,7 @@ export default function Art({ userInfo }) {
       content: commentForm.content.trim()
     };
 
-    const res = await fetch(`http://localhost:5000/api/art/${id}/comment`, {
+    const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}/comment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(commentData)

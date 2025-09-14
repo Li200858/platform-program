@@ -19,7 +19,7 @@ export default function Activity({ userInfo, onBack }) {
   const loadActivities = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/activities');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities`);
       const data = await res.json();
       setActivities(data || []);
     } catch (error) {
@@ -43,7 +43,7 @@ export default function Activity({ userInfo, onBack }) {
     }
     
     try {
-      const res = await fetch(`http://localhost:5000/api/activities/${id}/like`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities/${id}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userInfo.name })
@@ -80,7 +80,7 @@ export default function Activity({ userInfo, onBack }) {
     }
     
     try {
-      const res = await fetch(`http://localhost:5000/api/activities/${id}/favorite`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities/${id}/favorite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userInfo.name })
@@ -117,7 +117,7 @@ export default function Activity({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/activities/${id}/comment`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities/${id}/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ export default function Activity({ userInfo, onBack }) {
     if (!confirm('确定要删除这个活动吗？')) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
         method: 'DELETE'
       });
 
@@ -194,7 +194,7 @@ export default function Activity({ userInfo, onBack }) {
 
       try {
         setSubmitting(true);
-        const res = await fetch('http://localhost:5000/api/activities', {
+        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
