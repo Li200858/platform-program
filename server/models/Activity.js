@@ -6,6 +6,7 @@ const ActivitySchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   image: { type: String, default: '' },
+  media: { type: [String], default: [] },
   author: { type: String, required: true },
   authorName: { type: String, default: '' },
   authorClass: { type: String, default: '' },

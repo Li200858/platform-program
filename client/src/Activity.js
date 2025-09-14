@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import FileUploader from './FileUploader';
+import FilePreview from './FilePreview';
 
 export default function Activity({ userInfo, onBack }) {
   const [activities, setActivities] = useState([]);
@@ -175,9 +176,33 @@ export default function Activity({ userInfo, onBack }) {
       description: '',
       startDate: '',
       endDate: '',
-      image: ''
+      image: '',
+      media: []
     });
     const [submitting, setSubmitting] = useState(false);
+    const [uploading, setUploading] = useState(false);
+
+    const handleFileUpload = async (e) => {
+      const files = e.target.files;
+      if (!files.length) return;
+
+      setUploading(true);
+      const formData = new FormData();
+      Array.from(files).forEach(file => formData.append('files', file));
+
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
+      } catch (error) {
+        alert('文件上传失败');
+      } finally {
+        setUploading(false);
+      }
+    };
 
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -208,7 +233,7 @@ export default function Activity({ userInfo, onBack }) {
         if (res.ok) {
           const newActivity = await res.json();
           setActivities(prev => [newActivity, ...prev]);
-          setFormData({ title: '', description: '', startDate: '', endDate: '', image: '' });
+          setFormData({ title: '', description: '', startDate: '', endDate: '', image: '', media: [] });
           setShowCreateForm(false);
           alert('活动创建成功！');
         } else {
@@ -396,6 +421,68 @@ export default function Activity({ userInfo, onBack }) {
               </div>
             </div>
 
+            {/* 媒体文件上传 */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                附加文件（可选）
+              </label>
+              <div style={{ 
+                padding: '15px',
+                border: '2px dashed #ecf0f1',
+                borderRadius: 8,
+                backgroundColor: '#f8f9fa'
+              }}>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    borderRadius: 6, 
+                    border: '1px solid #ddd',
+                    marginBottom: '10px'
+                  }}
+                />
+                {uploading && <div style={{ color: '#3498db', marginBottom: '10px' }}>上传中...</div>}
+                
+                {formData.media.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px', color: '#2c3e50' }}>
+                      已上传文件：
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {formData.media.map((url, idx) => (
+                        <div key={idx} style={{ 
+                          padding: '6px 10px', 
+                          background: '#e9ecef', 
+                          borderRadius: 5, 
+                          fontSize: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}>
+                          <span>📎</span>
+                          <span>{url.split('/').pop()}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ 
+                              ...prev, 
+                              media: prev.media.filter((_, i) => i !== idx) 
+                            }))}
+                            style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: 15, justifyContent: 'center' }}>
               <button
                 type="button"
@@ -477,19 +564,29 @@ export default function Activity({ userInfo, onBack }) {
         {activity.title}
       </h3>
 
-      <div style={{ marginBottom: 15 }}>
-        <img 
-          src={activity.image} 
-          alt={activity.title}
-          style={{ 
-            width: '100%', 
-            height: 200, 
-            objectFit: 'cover', 
-            borderRadius: 8,
-            border: '1px solid #e9ecef'
-          }} 
-        />
-      </div>
+      {/* 显示活动图片或媒体文件 */}
+      {(activity.image || (activity.media && activity.media.length > 0)) && (
+        <div style={{ marginBottom: 15 }}>
+          {activity.image ? (
+            <img 
+              src={activity.image} 
+              alt={activity.title}
+              style={{ 
+                width: '100%', 
+                height: 200, 
+                objectFit: 'cover', 
+                borderRadius: 8,
+                border: '1px solid #e9ecef'
+              }} 
+            />
+          ) : (
+            <FilePreview 
+              urls={activity.media} 
+              apiBaseUrl={process.env.REACT_APP_API_URL || 'http://localhost:5000'} 
+            />
+          )}
+        </div>
+      )}
 
       <p style={{
         color: '#6c757d',

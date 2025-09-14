@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Avatar from './Avatar';
+import FilePreview from './FilePreview';
 import config from './config';
 import api from './api';
 
@@ -253,46 +254,10 @@ export default function Art({ userInfo }) {
   // };
 
   const renderMedia = (urls) => (
-    <div style={{ marginTop: 8 }}>
-      {urls && urls.map((url, idx) => {
-        const ext = url.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
-          return (
-            <img 
-              key={idx} 
-              src={`${config.API_BASE_URL}${url}`} 
-              alt="" 
-              style={{ maxWidth: 120, marginRight: 8, cursor: 'pointer' }} 
-              onClick={() => setSelectedImage(`${config.API_BASE_URL}${url}`)}
-            />
-          );
-        }
-        if (['mp4', 'webm', 'ogg'].includes(ext)) {
-          return <video key={idx} src={`${config.API_BASE_URL}${url}`} controls style={{ maxWidth: 180, marginRight: 8 }} />;
-        }
-        return (
-          <a 
-            key={idx} 
-            href={`${config.API_BASE_URL}${url}`} 
-            download 
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ 
-              marginRight: 8, 
-              color: '#007bff', 
-              textDecoration: 'underline',
-              display: 'inline-block',
-              padding: '4px 8px',
-              border: '1px solid #007bff',
-              borderRadius: '4px',
-              fontSize: '12px'
-            }}
-          >
-            下载文件{idx + 1}
-          </a>
-        );
-      })}
-    </div>
+    <FilePreview 
+      urls={urls} 
+      apiBaseUrl={process.env.REACT_APP_API_URL || 'http://localhost:5000'} 
+    />
   );
 
   if (showPublish) {
