@@ -5,6 +5,7 @@ import api from './api';
 
 export default function Art({ userInfo }) {
   const tabs = useMemo(() => [
+    { key: 'all', label: '全部', dbValue: '' },
     { key: 'music', label: '音乐', dbValue: '音乐' },
     { key: 'painting', label: '绘画', dbValue: '绘画' },
     { key: 'dance', label: '舞蹈', dbValue: '舞蹈' },
@@ -19,7 +20,7 @@ export default function Art({ userInfo }) {
     { key: 'digital', label: '数字艺术', dbValue: '数字艺术' }
   ], []);
   
-  const [tab, setTab] = useState('music');
+  const [tab, setTab] = useState('all');
   const [list, setList] = useState([]);
   const [sort, setSort] = useState('time');
   const [showPublish, setShowPublish] = useState(false);
@@ -37,20 +38,38 @@ export default function Art({ userInfo }) {
 
   useEffect(() => {
     const currentTab = tabs.find(t => t.key === tab);
-    const dbTab = currentTab ? currentTab.dbValue : tab;
-    api.art.getAll(dbTab, sort === 'hot' ? 'hot' : '')
-      .then(data => {
-        if (Array.isArray(data)) {
-          setList(data);
-        } else {
-          console.error('API返回的数据不是数组:', data);
+    const dbTab = currentTab ? currentTab.dbValue : '';
+    
+    // 如果是"全部"分类，不传递分类参数
+    if (tab === 'all') {
+      api.art.getAll('', sort === 'hot' ? 'hot' : '')
+        .then(data => {
+          if (Array.isArray(data)) {
+            setList(data);
+          } else {
+            console.error('API返回的数据不是数组:', data);
+            setList([]);
+          }
+        })
+        .catch(error => {
+          console.error('加载失败:', error);
           setList([]);
-        }
-      })
-      .catch(error => {
-        console.error('加载失败:', error);
-        setList([]);
-      });
+        });
+    } else {
+      api.art.getAll(dbTab, sort === 'hot' ? 'hot' : '')
+        .then(data => {
+          if (Array.isArray(data)) {
+            setList(data);
+          } else {
+            console.error('API返回的数据不是数组:', data);
+            setList([]);
+          }
+        })
+        .catch(error => {
+          console.error('加载失败:', error);
+          setList([]);
+        });
+    }
   }, [tab, sort, tabs]);
 
 
