@@ -182,7 +182,7 @@ export default function Activity({ userInfo, onBack }) {
     const handleSubmit = async (e) => {
       e.preventDefault();
       
-      if (!formData.title || !formData.description || !formData.startDate || !formData.endDate || !formData.image) {
+      if (!formData.title || !formData.description || !formData.startDate || !formData.endDate) {
         alert('请填写所有必要信息');
         return;
       }
@@ -328,26 +328,72 @@ export default function Activity({ userInfo, onBack }) {
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-                活动配图 *
+                活动配图（可选）
               </label>
-              <FileUploader
-                onUpload={(url) => setFormData(prev => ({ ...prev, image: url }))}
-                accept="image/*"
-              />
-              {formData.image && (
-                <div style={{ marginTop: 10 }}>
-                  <img 
-                    src={formData.image} 
-                    alt="活动配图" 
-                    style={{ 
-                      maxWidth: '100%', 
-                      maxHeight: 200, 
-                      borderRadius: 8,
-                      border: '2px solid #ecf0f1'
-                    }} 
-                  />
-                </div>
-              )}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: 20, 
+                marginBottom: 15,
+                padding: '20px',
+                border: '2px dashed #ecf0f1',
+                borderRadius: 8,
+                backgroundColor: '#f8f9fa'
+              }}>
+                {formData.image ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <img 
+                      src={formData.image} 
+                      alt="活动配图" 
+                      style={{ 
+                        maxWidth: '200px', 
+                        maxHeight: 150, 
+                        borderRadius: 8,
+                        border: '2px solid #e9ecef',
+                        marginBottom: '10px'
+                      }} 
+                    />
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '10px' }}>
+                      点击下方按钮更换图片
+                    </div>
+                    <FileUploader 
+                      onUpload={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                      accept="image/*"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                      style={{
+                        marginTop: '10px',
+                        padding: '6px 12px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      移除图片
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', color: '#6c757d', marginBottom: '10px' }}>📷</div>
+                    <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+                      点击下方按钮上传活动配图
+                    </div>
+                    <FileUploader 
+                      onUpload={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                      accept="image/*"
+                    />
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '10px' }}>
+                      支持 JPG、PNG、GIF 格式，建议尺寸 800x600
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 15, justifyContent: 'center' }}>

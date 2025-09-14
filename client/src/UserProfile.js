@@ -9,7 +9,8 @@ export default function UserProfile({ onBack }) {
     name: '',
     class: '',
     avatar: '',
-    userId: ''
+    userId: '',
+    isAdmin: false
   });
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,8 +34,23 @@ export default function UserProfile({ onBack }) {
       // 检查姓名是否已锁定
       const nameLocked = localStorage.getItem('name_locked') === 'true';
       setNameLocked(nameLocked);
+      
+      // 检查管理员状态
+      if (savedUserInfo.name) {
+        checkAdminStatus(savedUserInfo.name);
+      }
     }
   }, []);
+
+  // 检查管理员状态
+  const checkAdminStatus = async (userName) => {
+    try {
+      const response = await api.admin.check(userName);
+      setUserInfo(prev => ({ ...prev, isAdmin: response.isAdmin }));
+    } catch (error) {
+      console.error('检查管理员状态失败:', error);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

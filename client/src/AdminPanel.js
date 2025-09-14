@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from './api';
+import FileUploader from './FileUploader';
 
 export default function AdminPanel({ userInfo, onBack }) {
   const [activeTab, setActiveTab] = useState('feedback');
@@ -11,6 +12,8 @@ export default function AdminPanel({ userInfo, onBack }) {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [showCreateActivity, setShowCreateActivity] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'feedback') {
@@ -19,6 +22,8 @@ export default function AdminPanel({ userInfo, onBack }) {
       loadAdminUsers();
     } else if (activeTab === 'maintenance') {
       loadMaintenanceStatus();
+    } else if (activeTab === 'activities') {
+      loadActivities();
     }
   }, [activeTab]);
 
@@ -57,6 +62,42 @@ export default function AdminPanel({ userInfo, onBack }) {
       console.error('加载维护状态失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadActivities = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/activities');
+      const data = await res.json();
+      setActivities(data || []);
+    } catch (error) {
+      console.error('加载活动失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteActivity = async (id) => {
+    if (!window.confirm('确定要删除这个活动吗？')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=true`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setActivities(prev => prev.filter(item => item._id !== id));
+        alert('活动删除成功！');
+      } else {
+        const error = await res.json();
+        alert(error.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败');
     }
   };
 
@@ -462,6 +503,21 @@ export default function AdminPanel({ userInfo, onBack }) {
           👥 管理员管理 ({adminUsers.length})
         </button>
         <button
+          onClick={() => setActiveTab('activities')}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: activeTab === 'activities' ? '#e74c3c' : '#f8f9fa',
+            color: activeTab === 'activities' ? 'white' : '#6c757d',
+            border: 'none',
+            borderRadius: '8px 8px 0 0',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          🎯 设计活动 ({activities.length})
+        </button>
+        <button
           onClick={() => setActiveTab('maintenance')}
           style={{
             padding: '12px 24px',
@@ -491,6 +547,132 @@ export default function AdminPanel({ userInfo, onBack }) {
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
                   <div>暂无用户反馈</div>
+                </div>
+              )}
+            </div>
+          ) : activeTab === 'activities' ? (
+            <div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                marginBottom: 20 
+              }}>
+                <h3 style={{ margin: 0, color: '#2c3e50' }}>活动管理</h3>
+                <button
+                  onClick={() => setShowCreateActivity(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.transform = 'scale(1.05)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = 'scale(1)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  ➕ 创建活动
+                </button>
+              </div>
+
+              {activities.length > 0 ? (
+                <div>
+                  {activities.map(activity => (
+                    <div key={activity._id} style={{
+                      background: '#fff',
+                      borderRadius: 12,
+                      padding: 20,
+                      marginBottom: 15,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      border: '1px solid #e9ecef'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
+                        <div>
+                          <h4 style={{ margin: '0 0 8px 0', color: '#2c3e50', fontSize: '18px' }}>
+                            {activity.title}
+                          </h4>
+                          <div style={{ fontSize: '14px', color: '#7f8c8d', marginBottom: 10 }}>
+                            创建者: {activity.authorName} ({activity.authorClass})
+                          </div>
+                          <div style={{ fontSize: '14px', color: '#6c757d' }}>
+                            时间: {new Date(activity.startDate).toLocaleString()} - {new Date(activity.endDate).toLocaleString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => deleteActivity(activity._id)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f8d7da',
+                            border: '1px solid #f5c6cb',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#721c24'
+                          }}
+                        >
+                          删除
+                        </button>
+                      </div>
+                      
+                      {activity.image && (
+                        <div style={{ marginBottom: 15 }}>
+                          <img 
+                            src={activity.image} 
+                            alt={activity.title}
+                            style={{ 
+                              width: '100%', 
+                              height: 200, 
+                              objectFit: 'cover', 
+                              borderRadius: 8,
+                              border: '1px solid #e9ecef'
+                            }} 
+                          />
+                        </div>
+                      )}
+
+                      <div style={{
+                        color: '#6c757d',
+                        lineHeight: '1.6',
+                        marginBottom: 15,
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {activity.description}
+                      </div>
+
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingTop: 15,
+                        borderTop: '1px solid #e9ecef',
+                        fontSize: '14px',
+                        color: '#6c757d'
+                      }}>
+                        <div>
+                          点赞: {activity.likes || 0} | 收藏: {activity.favorites?.length || 0} | 评论: {activity.comments?.length || 0}
+                        </div>
+                        <span>{new Date(activity.createdAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎯</div>
+                  <div>暂无活动</div>
+                  <div style={{ fontSize: '14px', marginTop: '10px' }}>
+                    点击"创建活动"按钮开始设计第一个活动
+                  </div>
                 </div>
               )}
             </div>
@@ -651,6 +833,275 @@ export default function AdminPanel({ userInfo, onBack }) {
           )}
         </div>
       )}
+
+      {/* 创建活动表单 */}
+      {showCreateActivity && <CreateActivityForm />}
     </div>
   );
+
+  // 创建活动表单组件
+  function CreateActivityForm() {
+    const [formData, setFormData] = useState({
+      title: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      image: ''
+    });
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      
+      if (!formData.title || !formData.description || !formData.startDate || !formData.endDate) {
+        alert('请填写所有必要信息');
+        return;
+      }
+
+      if (!userInfo || !userInfo.name || !userInfo.class) {
+        alert('用户信息不完整，无法创建活动');
+        return;
+      }
+
+      try {
+        setSubmitting(true);
+        const res = await fetch('http://localhost:5000/api/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            authorName: userInfo.name,
+            authorClass: userInfo.class,
+            authorAvatar: userInfo.avatar || ''
+          })
+        });
+
+        if (res.ok) {
+          const newActivity = await res.json();
+          setActivities(prev => [newActivity, ...prev]);
+          setFormData({ title: '', description: '', startDate: '', endDate: '', image: '' });
+          setShowCreateActivity(false);
+          alert('活动创建成功！');
+        } else {
+          const error = await res.json();
+          alert(error.error || '创建失败');
+        }
+      } catch (error) {
+        console.error('创建失败:', error);
+        alert('创建失败');
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: 15,
+          padding: 30,
+          maxWidth: 600,
+          width: '90%',
+          maxHeight: '90%',
+          overflowY: 'auto'
+        }}>
+          <h3 style={{ marginBottom: 20, color: '#2c3e50', textAlign: 'center' }}>
+            创建活动
+          </h3>
+          
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                活动名称 *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="请输入活动名称"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '2px solid #ecf0f1',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                活动详细介绍 *
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="请输入活动详细介绍"
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '2px solid #ecf0f1',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 15, marginBottom: 20 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                  开始时间 *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: 8,
+                    border: '2px solid #ecf0f1',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                  结束时间 *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: 8,
+                    border: '2px solid #ecf0f1',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                活动配图（可选）
+              </label>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: 20, 
+                marginBottom: 15,
+                padding: '20px',
+                border: '2px dashed #ecf0f1',
+                borderRadius: 8,
+                backgroundColor: '#f8f9fa'
+              }}>
+                {formData.image ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <img 
+                      src={formData.image} 
+                      alt="活动配图" 
+                      style={{ 
+                        maxWidth: '200px', 
+                        maxHeight: 150, 
+                        borderRadius: 8,
+                        border: '2px solid #e9ecef',
+                        marginBottom: '10px'
+                      }} 
+                    />
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginBottom: '10px' }}>
+                      点击下方按钮更换图片
+                    </div>
+                    <FileUploader 
+                      onUpload={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                      accept="image/*"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                      style={{
+                        marginTop: '10px',
+                        padding: '6px 12px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      移除图片
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', color: '#6c757d', marginBottom: '10px' }}>📷</div>
+                    <div style={{ fontSize: '14px', color: '#6c757d', marginBottom: '15px' }}>
+                      点击下方按钮上传活动配图
+                    </div>
+                    <FileUploader 
+                      onUpload={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                      accept="image/*"
+                    />
+                    <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '10px' }}>
+                      支持 JPG、PNG、GIF 格式，建议尺寸 800x600
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 15, justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowCreateActivity(false)}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: submitting ? '#bdc3c7' : '#3498db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {submitting ? '创建中...' : '创建活动'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 }
