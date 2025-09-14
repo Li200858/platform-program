@@ -26,6 +26,10 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
   };
 
   const handlePreview = (url, fileType) => {
+    console.log('预览文件:', url, '类型:', fileType);
+    const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+    console.log('完整URL:', fullUrl);
+    
     setPreviewFile(url);
     if (fileType.isImage) {
       setPreviewType('image');
@@ -34,7 +38,14 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
     } else if (fileType.isAudio) {
       setPreviewType('audio');
     } else if (fileType.isDocument) {
-      setPreviewType('document');
+      // 对于文档类型，检查是否支持在线预览
+      const ext = url.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        setPreviewType('document');
+      } else {
+        // Word、Excel等文档不支持在线预览，直接显示下载选项
+        setPreviewType('download');
+      }
     } else {
       setPreviewType('download');
     }
@@ -42,7 +53,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    link.href = `${apiBaseUrl}${url}`;
+    link.href = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
     link.download = filename || url.split('/').pop();
     link.target = '_blank';
     document.body.appendChild(link);
@@ -89,8 +100,9 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                 {filename}
               </span>
               
-              {/* 预览按钮 */}
-              {(fileType.isImage || fileType.isVideo || fileType.isAudio || fileType.isDocument) && (
+              {/* 预览按钮 - 只对支持预览的文件类型显示 */}
+              {(fileType.isImage || fileType.isVideo || fileType.isAudio || 
+                (fileType.isDocument && url.split('.').pop().toLowerCase() === 'pdf')) && (
                 <button
                   onClick={() => handlePreview(url, fileType)}
                   style={{
@@ -183,7 +195,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {/* 预览内容 */}
             {previewType === 'image' && (
               <img 
-                src={`${apiBaseUrl}${previewFile}`} 
+                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
                 alt="预览" 
                 style={{ 
                   maxWidth: '100%', 
@@ -192,12 +204,16 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                   display: 'block'
                 }}
                 onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  console.error('图片加载失败:', e.target.src);
+                  e.target.style.display = 'none';
+                }}
               />
             )}
             
             {previewType === 'video' && (
               <video 
-                src={`${apiBaseUrl}${previewFile}`} 
+                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
                 controls 
                 style={{ 
                   maxWidth: '100%', 
@@ -205,15 +221,21 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                   display: 'block'
                 }}
                 onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  console.error('视频加载失败:', e.target.src);
+                }}
               />
             )}
             
             {previewType === 'audio' && (
               <div style={{ padding: '40px', textAlign: 'center' }}>
                 <audio 
-                  src={`${apiBaseUrl}${previewFile}`} 
+                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
                   controls 
                   style={{ width: '100%', maxWidth: '400px' }}
+                  onError={(e) => {
+                    console.error('音频加载失败:', e.target.src);
+                  }}
                 />
               </div>
             )}
@@ -221,9 +243,12 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {previewType === 'document' && (
               <div style={{ width: '800px', height: '600px' }}>
                 <iframe
-                  src={`${apiBaseUrl}${previewFile}`}
+                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   title="文档预览"
+                  onError={(e) => {
+                    console.error('文档加载失败:', e.target.src);
+                  }}
                 />
               </div>
             )}
