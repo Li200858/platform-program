@@ -478,7 +478,7 @@ app.get('/api/activities', async (req, res) => {
 app.post('/api/activities', async (req, res) => {
   const { title, description, startDate, endDate, image, authorName, authorClass, authorAvatar } = req.body;
   
-  if (!title || !description || !startDate || !endDate || !image) {
+  if (!title || !description || !startDate || !endDate) {
     return res.status(400).json({ error: '请填写所有必要信息' });
   }
 

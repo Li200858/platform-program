@@ -5,7 +5,7 @@ const ActivitySchema = new mongoose.Schema({
   description: { type: String, required: true },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
-  image: { type: String, required: true },
+  image: { type: String, default: '' },
   author: { type: String, required: true },
   authorName: { type: String, default: '' },
   authorClass: { type: String, default: '' },
