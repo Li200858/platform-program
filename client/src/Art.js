@@ -80,7 +80,7 @@ export default function Art({ userInfo }) {
     }
     
     try {
-      const res = await fetch(`http://localhost:5000/api/art/${id}/like`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userInfo.name })
@@ -117,7 +117,7 @@ export default function Art({ userInfo }) {
     }
     
     try {
-      const res = await fetch(`http://localhost:5000/api/art/${id}/favorite`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}/favorite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userInfo.name })
