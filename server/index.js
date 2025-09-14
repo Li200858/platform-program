@@ -735,9 +735,8 @@ app.get('/api/admin/check', async (req, res) => {
   }
 
   try {
-    // 检查是否是初始管理员（可以通过环境变量设置）
-    const initialAdmin = process.env.INITIAL_ADMIN || 'admin';
-    if (userName === initialAdmin) {
+    // 检查是否是李昌轩（固定管理员）
+    if (userName === '李昌轩') {
       return res.json({ isAdmin: true, isInitial: true });
     }
 
@@ -810,7 +809,7 @@ app.post('/api/admin/add-admin', async (req, res) => {
   try {
     // 检查添加者是否有权限
     const adder = await User.findOne({ name: addedBy, role: 'admin' });
-    if (!adder && addedBy !== process.env.INITIAL_ADMIN) {
+    if (!adder && addedBy !== '李昌轩') {
       return res.status(403).json({ error: '无权限添加管理员' });
     }
 
@@ -846,7 +845,7 @@ app.post('/api/admin/remove-admin', async (req, res) => {
   try {
     // 检查移除者是否有权限
     const remover = await User.findOne({ name: removedBy, role: 'admin' });
-    if (!remover && removedBy !== process.env.INITIAL_ADMIN) {
+    if (!remover && removedBy !== '李昌轩') {
       return res.status(403).json({ error: '无权限移除管理员' });
     }
 
@@ -883,7 +882,7 @@ app.post('/api/admin/maintenance/toggle', async (req, res) => {
   
   // 检查管理员权限
   const admin = await User.findOne({ name: adminName, role: 'admin' });
-  if (!admin && adminName !== process.env.INITIAL_ADMIN) {
+  if (!admin && adminName !== '李昌轩') {
     return res.status(403).json({ error: '无权限操作维护模式' });
   }
 
@@ -909,16 +908,17 @@ app.post('/api/verify-identity', async (req, res) => {
   }
 
   try {
-    // 检查是否有相同姓名但不同班级的用户
-    const existingUsers = await Art.distinct('authorClass', { authorName });
-    const feedbackUsers = await Feedback.distinct('authorClass', { authorName });
+    // 检查是否有相同姓名的用户（任何班级都不允许重名）
+    const existingArtUsers = await Art.distinct('authorClass', { authorName });
+    const existingFeedbackUsers = await Feedback.distinct('authorClass', { authorName });
+    const existingDbUsers = await User.distinct('class', { name: authorName });
     
-    const allClasses = [...new Set([...existingUsers, ...feedbackUsers])];
+    const allClasses = [...new Set([...existingArtUsers, ...existingFeedbackUsers, ...existingDbUsers])];
     
-    if (allClasses.length > 0 && !allClasses.includes(authorClass)) {
+    if (allClasses.length > 0) {
       return res.status(409).json({ 
-        error: '身份冲突',
-        message: `检测到姓名"${authorName}"已存在于其他班级: ${allClasses.join(', ')}`,
+        error: '姓名已被使用',
+        message: `姓名"${authorName}"已被其他用户使用，每个姓名只能注册一个账号`,
         existingClasses: allClasses
       });
     }
@@ -978,12 +978,14 @@ async function initializeAdmin() {
       await User.create({
         name: '李昌轩',
         class: 'NEE4',
+        role: 'admin',
         isAdmin: true,
         createdAt: new Date()
       });
       console.log('默认管理员已创建：李昌轩');
-    } else if (!adminUser.isAdmin) {
+    } else if (!adminUser.isAdmin || adminUser.role !== 'admin') {
       adminUser.isAdmin = true;
+      adminUser.role = 'admin';
       await adminUser.save();
       console.log('用户李昌轩已设置为管理员');
     }
