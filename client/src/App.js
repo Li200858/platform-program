@@ -7,6 +7,7 @@ import MyCollection from './MyCollection';
 import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import ErrorBoundary from './ErrorBoundary';
+import TestAPI from './TestAPI';
 import api from './api';
 import './App.css';
 
@@ -64,7 +65,12 @@ function MainApp() {
   let content = null;
   try {
     if (section === 'art') {
-      content = <Art userInfo={userInfo} />;
+      content = (
+        <div>
+          <TestAPI />
+          <Art userInfo={userInfo} />
+        </div>
+      );
     } else if (section === 'activity') {
       content = <Activity userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'feedback') {
