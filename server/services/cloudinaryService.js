@@ -37,8 +37,22 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
       },
       filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-        cb(null, `${uniqueSuffix}-${cleanName}`);
+        
+        // 确保有原始文件名
+        let originalName = file.originalname || 'file';
+        
+        // 获取文件扩展名
+        const ext = originalName.split('.').pop();
+        const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
+        
+        // 清理文件名，保留扩展名
+        const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
+        
+        // 确保有扩展名
+        const finalName = cleanExt ? `${cleanName}.${cleanExt}` : `${cleanName}.bin`;
+        
+        cb(null, `${uniqueSuffix}-${finalName}`);
       }
     });
   }
@@ -58,8 +72,22 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-      cb(null, `${uniqueSuffix}-${cleanName}`);
+      
+      // 确保有原始文件名
+      let originalName = file.originalname || 'file';
+      
+      // 获取文件扩展名
+      const ext = originalName.split('.').pop();
+      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
+      
+      // 清理文件名，保留扩展名
+      const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
+      
+      // 确保有扩展名
+      const finalName = cleanExt ? `${cleanName}.${cleanExt}` : `${cleanName}.bin`;
+      
+      cb(null, `${uniqueSuffix}-${finalName}`);
     }
   });
 }
