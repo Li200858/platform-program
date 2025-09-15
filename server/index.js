@@ -3,17 +3,56 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-// 导入数据模型
-const Art = require('./models/Art');
-const Activity = require('./models/Activity');
-const Feedback = require('./models/Feedback');
-const User = require('./models/User');
-
 const app = express();
 
 // 中间件
 app.use(cors());
 app.use(express.json());
+
+// 立即添加健康检查端点，不依赖任何其他模块
+app.get('/api/health', (req, res) => {
+  const mongodbStatus = mongoose.connection.readyState;
+  const mongodbStatusText = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  }[mongodbStatus] || 'unknown';
+  
+  res.status(200).json({ 
+    status: 'OK',
+    message: '艺术平台API服务运行正常',
+    timestamp: new Date().toISOString(),
+    version: '2.0.0',
+    mongodb: {
+      status: mongodbStatusText,
+      readyState: mongodbStatus
+    },
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      port: process.env.PORT
+    }
+  });
+});
+
+// 根路径
+app.get('/', (req, res) => {
+  res.json({ 
+    message: '艺术平台API服务运行中',
+    status: 'OK'
+  });
+});
+
+// 导入数据模型（延迟加载）
+let Art, Activity, Feedback, User;
+try {
+  Art = require('./models/Art');
+  Activity = require('./models/Activity');
+  Feedback = require('./models/Feedback');
+  User = require('./models/User');
+} catch (error) {
+  console.error('模型加载失败:', error);
+}
 
 // 导入文件上传服务
 const cloudinaryService = require('./services/cloudinaryService');
@@ -97,16 +136,7 @@ app.get('/uploads/*', (req, res) => {
   }
 });
 
-// 健康检查端点
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK',
-    message: '艺术平台API服务运行正常',
-    timestamp: new Date().toISOString(),
-    version: '2.0.0',
-    file: 'index-test.js'
-  });
-});
+// 健康检查端点已在上面定义
 
 // 测试端点
 app.get('/api/test', (req, res) => {
@@ -544,12 +574,42 @@ app.post('/api/feedback', async (req, res) => {
   }
 });
 
-// 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-program')
-  .then(() => console.log('MongoDB连接成功'))
-  .catch(err => console.error('MongoDB连接失败:', err));
-
 const PORT = process.env.PORT || 5000;
+
+// 启动服务器
 app.listen(PORT, () => {
-  console.log('艺术平台服务器运行在端口', PORT);
+  console.log('🚀 艺术平台服务器运行在端口', PORT);
+  console.log('✅ 健康检查端点: /api/health');
+  console.log('📊 环境信息:');
+  console.log('- NODE_ENV:', process.env.NODE_ENV);
+  console.log('- PORT:', PORT);
+  console.log('- MONGODB_URI:', process.env.MONGODB_URI ? '已设置' : '未设置');
+  
+  // 连接MongoDB
+  if (process.env.MONGODB_URI) {
+    console.log('🔗 正在连接MongoDB...');
+    mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000, // 10秒超时
+      socketTimeoutMS: 45000, // 45秒超时
+    })
+    .then(() => {
+      console.log('✅ MongoDB连接成功');
+      console.log('📊 数据库状态:', mongoose.connection.readyState);
+    })
+    .catch(err => {
+      console.error('❌ MongoDB连接失败:', err.message);
+      console.log('⚠️  服务器将继续运行，但数据库功能可能不可用');
+      console.log('💡 请检查MONGODB_URI环境变量是否正确设置');
+    });
+  } else {
+    console.log('⚠️  未设置MONGODB_URI环境变量，使用本地数据库');
+    mongoose.connect('mongodb://localhost:27017/platform-program')
+      .then(() => console.log('✅ 本地MongoDB连接成功'))
+      .catch(err => {
+        console.error('❌ 本地MongoDB连接失败:', err.message);
+        console.log('⚠️  服务器将继续运行，但数据库功能可能不可用');
+      });
+  }
 });
