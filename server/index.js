@@ -88,8 +88,8 @@ const upload = multer({
     }
   }),
   limits: { 
-    fileSize: 10 * 1024 * 1024, // 减少到10MB，提高上传速度
-    files: 5 // 限制同时上传文件数量
+    fileSize: 5 * 1024 * 1024, // 减少到5MB，大幅提高上传速度
+    files: 3 // 限制同时上传文件数量
   },
   fileFilter: (req, file, cb) => {
     cb(null, true); // 允许所有文件类型
@@ -247,7 +247,7 @@ app.post('/api/art/:id/like', async (req, res) => {
 });
 
 // 文件上传API
-app.post('/api/upload', upload.array('files', 10), (req, res) => {
+app.post('/api/upload', upload.array('files', 3), (req, res) => {
   try {
     console.log('文件上传请求开始...');
     console.log('上传文件数量:', req.files ? req.files.length : 0);
@@ -256,13 +256,19 @@ app.post('/api/upload', upload.array('files', 10), (req, res) => {
       return res.status(400).json({ error: '没有上传文件' });
     }
     
+    // 记录文件信息
+    req.files.forEach(file => {
+      console.log(`文件: ${file.originalname}, 大小: ${file.size} bytes, 类型: ${file.mimetype}`);
+    });
+    
     const urls = req.files.map(file => `/uploads/${file.filename}`);
     console.log('文件上传成功，URLs:', urls);
     
-    res.json({ 
-      urls: urls, 
+    res.json({
+      urls: urls,
       storage: 'local',
-      message: `成功上传 ${req.files.length} 个文件`
+      message: `成功上传 ${req.files.length} 个文件`,
+      totalSize: req.files.reduce((sum, file) => sum + file.size, 0)
     });
   } catch (error) {
     console.error('文件上传错误:', error);

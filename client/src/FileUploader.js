@@ -49,18 +49,18 @@ export default function FileUploader({ onUpload }) {
     const file = fileInput.current.files[0];
     if (!file) return;
     
-    // 文件大小检查 (10MB限制)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('文件大小不能超过10MB');
+    // 文件大小检查 (5MB限制)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('文件大小不能超过5MB，请压缩后上传');
       return;
     }
     
     // 如果是图片，尝试压缩
     let fileToUpload = file;
-    if (file.type.startsWith('image/') && file.size > 1024 * 1024) { // 大于1MB的图片
+    if (file.type.startsWith('image/') && file.size > 512 * 1024) { // 大于512KB的图片就压缩
       try {
-        fileToUpload = await compressImage(file);
-        console.log(`图片压缩: ${file.size} -> ${fileToUpload.size} bytes`);
+        fileToUpload = await compressImage(file, 0.7, 1200); // 更激进的压缩
+        console.log(`图片压缩: ${file.size} -> ${fileToUpload.size} bytes (${Math.round((1 - fileToUpload.size/file.size) * 100)}% 减少)`);
       } catch (error) {
         console.warn('图片压缩失败，使用原文件:', error);
       }
@@ -102,11 +102,15 @@ export default function FileUploader({ onUpload }) {
       // 使用XMLHttpRequest来监控上传进度
       const xhr = new XMLHttpRequest();
       
+      // 设置超时时间
+      xhr.timeout = 60000; // 60秒超时
+      
       const uploadPromise = new Promise((resolve, reject) => {
         xhr.upload.addEventListener('progress', (e) => {
           if (e.lengthComputable) {
             const percentComplete = (e.loaded / e.total) * 100;
             setUploadProgress(Math.round(percentComplete));
+            console.log(`上传进度: ${Math.round(percentComplete)}% (${e.loaded}/${e.total} bytes)`);
           }
         });
         
@@ -114,17 +118,26 @@ export default function FileUploader({ onUpload }) {
           if (xhr.status === 200) {
             try {
               const data = JSON.parse(xhr.responseText);
+              console.log('上传成功:', data);
               resolve(data);
             } catch (e) {
+              console.error('响应解析失败:', e);
               reject(new Error('响应解析失败'));
             }
           } else {
+            console.error(`上传失败: ${xhr.status}`, xhr.responseText);
             reject(new Error(`上传失败: ${xhr.status}`));
           }
         });
         
-        xhr.addEventListener('error', () => {
+        xhr.addEventListener('error', (e) => {
+          console.error('网络错误:', e);
           reject(new Error('网络错误'));
+        });
+        
+        xhr.addEventListener('timeout', () => {
+          console.error('上传超时');
+          reject(new Error('上传超时，请重试'));
         });
         
         xhr.open('POST', `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/upload`);
