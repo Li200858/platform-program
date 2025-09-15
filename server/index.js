@@ -15,6 +15,7 @@ const fs = require('fs');
 // 导入云存储服务
 const s3Service = require('./services/s3Service');
 const gcsService = require('./services/gcsService');
+const cloudinaryService = require('./services/cloudinaryService');
 
 // 维护模式状态
 let maintenanceMode = false;
@@ -131,7 +132,9 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-
 
 // 检测存储配置
 const getStorageConfig = () => {
-  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_NAME) {
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+    return 'cloudinary';
+  } else if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_NAME) {
     return 's3';
   } else if (process.env.GCS_BUCKET_NAME && process.env.GCS_ACCESS_TOKEN) {
     return 'gcs';
@@ -146,7 +149,22 @@ app.post('/api/upload', async (req, res) => {
     const storageType = getStorageConfig();
     console.log('使用存储类型:', storageType);
     
-    if (storageType === 's3') {
+    if (storageType === 'cloudinary') {
+      // 使用Cloudinary存储
+      cloudinaryService.upload.array('files', 10)(req, res, async (err) => {
+        if (err) {
+          console.error('Cloudinary上传错误:', err);
+          return res.status(500).json({ error: '文件上传失败' });
+        }
+        
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ error: '没有上传文件' });
+        }
+        
+        const fileUrls = req.files.map(file => cloudinaryService.getFileUrl(file.public_id));
+        res.json({ urls: fileUrls, storage: 'cloudinary' });
+      });
+    } else if (storageType === 's3') {
       // 使用S3存储
       s3Service.upload.array('files', 10)(req, res, async (err) => {
         if (err) {
@@ -909,6 +927,10 @@ app.get('/api/storage-config', (req, res) => {
   const storageType = getStorageConfig();
   const config = {
     storageType,
+    cloudinary: {
+      configured: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET),
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME
+    },
     s3: {
       configured: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_NAME),
       bucket: process.env.AWS_S3_BUCKET_NAME,
