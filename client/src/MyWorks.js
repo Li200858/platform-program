@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import api from './api';
+import { buildApiUrl } from './utils/apiUrl';
 
 export default function MyWorks({ userInfo, onBack }) {
   const [works, setWorks] = useState([]);
@@ -21,7 +22,7 @@ export default function MyWorks({ userInfo, onBack }) {
         setWorks(artData || []);
         
         // 加载活动设计
-        const activityRes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities/my-activities?authorName=${encodeURIComponent(userInfo.name)}`);
+        const activityRes = await fetch(buildApiUrl(`/api/activities/my-activities?authorName=${encodeURIComponent(userInfo.name)}`));
         const activityData = await activityRes.json();
         console.log('我的活动数据:', activityData);
         setActivities(activityData || []);
@@ -52,7 +53,7 @@ export default function MyWorks({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
+      const res = await fetch(buildApiUrl(`/api/art/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`), {
         method: 'DELETE'
       });
       

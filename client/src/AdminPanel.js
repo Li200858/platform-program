@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+
 import api from './api';
 import FileUploader from './FileUploader';
 
@@ -30,7 +31,7 @@ export default function AdminPanel({ userInfo, onBack }) {
   const loadFeedbacks = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/feedback`);
+      const res = await fetch(buildApiUrl('/api/admin/feedback'));
       const data = await res.json();
       setFeedbacks(data || []);
     } catch (error) {
@@ -68,7 +69,7 @@ export default function AdminPanel({ userInfo, onBack }) {
   const loadActivities = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities`);
+      const res = await fetch(buildApiUrl('/api/activities'));
       const data = await res.json();
       setActivities(data || []);
     } catch (error) {
@@ -84,7 +85,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=true`, {
+      const res = await fetch(buildApiUrl('/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=true'), {
         method: 'DELETE'
       });
 
@@ -110,7 +111,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     console.log(`🔍 前端开始搜索用户: "${searchQuery}"`);
     
     try {
-      const apiUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/search-users?q=${encodeURIComponent(searchQuery)}`;
+      const apiUrl = buildApiUrl('/api/admin/search-users?q=${encodeURIComponent(searchQuery)}');
       console.log(`📡 请求URL: ${apiUrl}`);
       
       const res = await fetch(apiUrl);
@@ -138,7 +139,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/add-admin`, {
+      const res = await fetch(buildApiUrl('/api/admin/add-admin'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -172,7 +173,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/remove-admin`, {
+      const res = await fetch(buildApiUrl('/api/admin/remove-admin'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -201,7 +202,7 @@ export default function AdminPanel({ userInfo, onBack }) {
 
     setMaintenanceLoading(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/maintenance/toggle`, {
+      const res = await fetch(buildApiUrl('/api/admin/maintenance/toggle'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -880,7 +881,7 @@ export default function AdminPanel({ userInfo, onBack }) {
 
       try {
         setSubmitting(true);
-        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/activities`, {
+        const res = await fetch(buildApiUrl('/api/activities'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

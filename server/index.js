@@ -6,7 +6,17 @@ require('dotenv').config();
 const app = express();
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://platform-program.vercel.app',
+    'https://platform-program-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:5000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 app.use(express.json());
 
 // 立即添加健康检查端点，不依赖任何其他模块

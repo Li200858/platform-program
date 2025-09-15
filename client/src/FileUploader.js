@@ -1,4 +1,5 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+
 import api from './api';
 
 // 图片压缩函数
@@ -140,7 +141,7 @@ export default function FileUploader({ onUpload }) {
           reject(new Error('上传超时，请重试'));
         });
         
-        xhr.open('POST', `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/upload`);
+        xhr.open('POST', buildApiUrl('/api/upload'));
         xhr.send(formData);
       });
       

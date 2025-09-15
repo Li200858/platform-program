@@ -1,8 +1,7 @@
+import { getApiUrl } from './utils/apiUrl';
+
 // API工具函数
-const API_BASE_URL = process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://platform-program-production.up.railway.app'  // 生产环境使用Railway URL
-    : 'http://localhost:5000');  // 开发环境使用本地URL
+const API_BASE_URL = getApiUrl();
 
 export const api = {
   // 通用fetch函数

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { buildFileUrl } from './utils/apiUrl';
 
 const FilePreview = ({ urls, apiBaseUrl }) => {
   const [previewFile, setPreviewFile] = useState(null);
@@ -17,9 +18,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
   };
 
   const buildUrl = (url) => {
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return `${apiBaseUrl}${url}`;
-    return `${apiBaseUrl}/${url}`;
+    return buildFileUrl(url);
   };
 
   const getFileIcon = (fileType) => {

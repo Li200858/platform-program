@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+
 import Avatar from './Avatar';
 import api from './api';
 import FileUploader from './FileUploader';
@@ -29,7 +30,8 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   // 保存用户数据到云端
   const saveUserToCloud = async (userData) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/user`, {
+      // API URL now handled by buildApiUrl()
+      const response = await fetch(`${apiUrl}/api/user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +153,8 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
       setLoading(true);
       
       // 从服务器获取用户数据
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/user/${importUserId}`);
+      // API URL now handled by buildApiUrl()
+      const response = await fetch(`${apiUrl}/api/user/${importUserId}`);
       
       if (!response.ok) {
         if (response.status === 404) {

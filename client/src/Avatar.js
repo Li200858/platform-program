@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DefaultAvatar from './DefaultAvatar';
+import { buildFileUrl } from './utils/apiUrl';
 
 export default function Avatar({ 
   src, 
@@ -24,7 +25,7 @@ export default function Avatar({
   }
 
   // 有有效头像URL时显示真实头像
-  const imageUrl = src.startsWith('http') ? src : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${src}`;
+  const imageUrl = buildFileUrl(src);
   
   return (
     <img
