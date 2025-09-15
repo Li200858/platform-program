@@ -475,7 +475,7 @@ app.get('/api/admin/debug-users', async (req, res) => {
     }
     
     const users = await User.find({})
-      .select('name email class role isAdmin createdAt')
+      .select('userId name class role isAdmin createdAt')
       .sort({ createdAt: -1 })
       .limit(50);
     
@@ -484,8 +484,8 @@ app.get('/api/admin/debug-users', async (req, res) => {
     res.json({
       count: users.length,
       users: users.map(user => ({
+        userId: user.userId || '',
         name: user.name,
-        email: user.email || '',
         class: user.class || '未知',
         role: user.role || 'user',
         isAdmin: user.isAdmin || false,
@@ -527,18 +527,18 @@ app.get('/api/admin/search-users', async (req, res) => {
     const users = await User.find({
       $or: [
         { name: searchRegex },
-        { email: searchRegex }
+        { userId: searchRegex }
       ]
     })
-    .select('name email class role isAdmin createdAt')
+    .select('userId name class role isAdmin createdAt')
     .limit(20)
     .sort({ createdAt: -1 }); // 按创建时间倒序
     
     console.log(`📊 数据库查询完成，找到 ${users.length} 个用户`);
     
     const result = users.map(user => ({
+      userId: user.userId || '',
       name: user.name,
-      email: user.email || '',
       class: user.class || '未知',
       role: user.role || 'user',
       isAdmin: user.isAdmin || false,

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
+  userId: { type: String, unique: true, sparse: true }, // 用户唯一ID
   email: { type: String, unique: true, sparse: true },
   password: { type: String },
   role: { type: String, default: 'user', enum: ['founder', 'admin', 'user'] }, // 创始人、管理员、用户
