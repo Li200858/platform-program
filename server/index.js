@@ -12,6 +12,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// 导入云存储服务
+const s3Service = require('./services/s3Service');
+const gcsService = require('./services/gcsService');
+
 // 维护模式状态
 let maintenanceMode = false;
 let maintenanceMessage = '网站正在维护中，请稍后再试...';
@@ -125,15 +129,81 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-
   .then(() => console.log('MongoDB连接成功'))
   .catch(err => console.error('MongoDB连接失败:', err));
 
-// 文件上传API
-app.post('/api/upload', upload.array('files', 10), (req, res) => {
+// 检测存储配置
+const getStorageConfig = () => {
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_NAME) {
+    return 's3';
+  } else if (process.env.GCS_BUCKET_NAME && process.env.GCS_ACCESS_TOKEN) {
+    return 'gcs';
+  } else {
+    return 'local';
+  }
+};
+
+// 文件上传API - 支持多种存储方式
+app.post('/api/upload', async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: '没有上传文件' });
-    }
+    const storageType = getStorageConfig();
+    console.log('使用存储类型:', storageType);
     
-    const fileUrls = req.files.map(file => `/uploads/${file.filename}`);
-    res.json({ urls: fileUrls });
+    if (storageType === 's3') {
+      // 使用S3存储
+      s3Service.upload.array('files', 10)(req, res, async (err) => {
+        if (err) {
+          console.error('S3上传错误:', err);
+          return res.status(500).json({ error: '文件上传失败' });
+        }
+        
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ error: '没有上传文件' });
+        }
+        
+        const fileUrls = req.files.map(file => s3Service.getFileUrl(file.key));
+        res.json({ urls: fileUrls, storage: 's3' });
+      });
+    } else if (storageType === 'gcs') {
+      // 使用GCS存储
+      gcsService.upload.array('files', 10)(req, res, async (err) => {
+        if (err) {
+          console.error('GCS上传错误:', err);
+          return res.status(500).json({ error: '文件上传失败' });
+        }
+        
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ error: '没有上传文件' });
+        }
+        
+        // 上传到GCS
+        const uploadPromises = req.files.map(async (file) => {
+          const result = await gcsService.uploadToGCS(file.path, file.filename);
+          return result.success ? result.url : null;
+        });
+        
+        const fileUrls = await Promise.all(uploadPromises);
+        const validUrls = fileUrls.filter(url => url !== null);
+        
+        if (validUrls.length === 0) {
+          return res.status(500).json({ error: '所有文件上传失败' });
+        }
+        
+        res.json({ urls: validUrls, storage: 'gcs' });
+      });
+    } else {
+      // 使用本地存储
+      upload.array('files', 10)(req, res, (err) => {
+        if (err) {
+          console.error('本地上传错误:', err);
+          return res.status(500).json({ error: '文件上传失败' });
+        }
+        
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ error: '没有上传文件' });
+        }
+        
+        const fileUrls = req.files.map(file => `/uploads/${file.filename}`);
+        res.json({ urls: fileUrls, storage: 'local' });
+      });
+    }
   } catch (error) {
     console.error('文件上传错误:', error);
     res.status(500).json({ error: '文件上传失败' });
@@ -832,6 +902,29 @@ app.get('/api/files', (req, res) => {
     console.error('获取文件列表失败:', error);
     res.status(500).json({ error: '获取文件列表失败', details: error.message });
   }
+});
+
+// 存储配置检查API
+app.get('/api/storage-config', (req, res) => {
+  const storageType = getStorageConfig();
+  const config = {
+    storageType,
+    s3: {
+      configured: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_S3_BUCKET_NAME),
+      bucket: process.env.AWS_S3_BUCKET_NAME,
+      region: process.env.AWS_REGION || 'us-east-1'
+    },
+    gcs: {
+      configured: !!(process.env.GCS_BUCKET_NAME && process.env.GCS_ACCESS_TOKEN),
+      bucket: process.env.GCS_BUCKET_NAME
+    },
+    local: {
+      configured: true,
+      path: path.join(__dirname, 'uploads')
+    }
+  };
+  
+  res.json(config);
 });
 
 // 管理员相关API
