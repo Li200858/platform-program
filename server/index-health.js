@@ -37,6 +37,20 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// 环境变量检查端点
+app.get('/api/env-check', (req, res) => {
+  res.json({
+    message: '环境变量检查',
+    timestamp: new Date().toISOString(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.PORT,
+      MONGODB_URI: process.env.MONGODB_URI ? '已设置' : '未设置',
+      MONGODB_URI_LENGTH: process.env.MONGODB_URI ? process.env.MONGODB_URI.length : 0
+    }
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
