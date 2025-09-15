@@ -87,7 +87,10 @@ const upload = multer({
       cb(null, `${uniqueSuffix}-${finalName}`);
     }
   }),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { 
+    fileSize: 10 * 1024 * 1024, // 减少到10MB，提高上传速度
+    files: 5 // 限制同时上传文件数量
+  },
   fileFilter: (req, file, cb) => {
     cb(null, true); // 允许所有文件类型
   }

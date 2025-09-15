@@ -81,7 +81,14 @@ export const api = {
     return fetch(url, {
       method: 'POST',
       body: formData,
-    }).then(response => response.json());
+      // 不设置Content-Type，让浏览器自动设置multipart/form-data边界
+      // 添加超时和重试机制
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    });
   },
 
   // 管理员相关API

@@ -4,6 +4,7 @@ import api from './api';
 export default function FileUploader({ onUpload }) {
   const fileInput = useRef();
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleUpload = async () => {
     const file = fileInput.current.files[0];
@@ -43,16 +44,51 @@ export default function FileUploader({ onUpload }) {
     }
     
     setUploading(true);
+    setUploadProgress(0);
     try {
       const formData = new FormData();
       formData.append('files', file);
-      const data = await api.upload(formData);
+      
+      // 使用XMLHttpRequest来监控上传进度
+      const xhr = new XMLHttpRequest();
+      
+      const uploadPromise = new Promise((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            setUploadProgress(Math.round(percentComplete));
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status === 200) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              resolve(data);
+            } catch (e) {
+              reject(new Error('响应解析失败'));
+            }
+          } else {
+            reject(new Error(`上传失败: ${xhr.status}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => {
+          reject(new Error('网络错误'));
+        });
+        
+        xhr.open('POST', `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/upload`);
+        xhr.send(formData);
+      });
+      
+      const data = await uploadPromise;
       onUpload(data.urls[0]);
     } catch (error) {
       console.error('文件上传失败:', error);
       alert('上传失败：' + (error.message || '请检查网络连接'));
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -67,8 +103,24 @@ export default function FileUploader({ onUpload }) {
         disabled={uploading}
       />
       {uploading && (
-        <div style={{ color: '#007bff', fontSize: '14px', marginBottom: '5px' }}>
-          上传中...
+        <div style={{ marginBottom: '10px' }}>
+          <div style={{ color: '#007bff', fontSize: '14px', marginBottom: '5px' }}>
+            上传中... {uploadProgress}%
+          </div>
+          <div style={{ 
+            width: '100%', 
+            height: '8px', 
+            backgroundColor: '#e9ecef', 
+            borderRadius: '4px',
+            overflow: 'hidden'
+          }}>
+            <div style={{ 
+              width: `${uploadProgress}%`, 
+              height: '100%', 
+              backgroundColor: '#007bff',
+              transition: 'width 0.3s ease'
+            }}></div>
+          </div>
         </div>
       )}
       <div style={{ fontSize: '12px', color: '#666' }}>
