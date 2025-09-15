@@ -557,10 +557,7 @@ app.get('/api/admin/search-users', async (req, res) => {
     const searchRegex = new RegExp(q.trim(), 'i');
     
     const users = await User.find({
-      $or: [
-        { name: searchRegex },
-        { userId: searchRegex }
-      ]
+      name: searchRegex
     })
     .select('userId name class role isAdmin createdAt')
     .limit(20)
