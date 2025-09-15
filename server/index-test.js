@@ -48,6 +48,55 @@ const upload = multer({
 // 静态文件服务
 app.use(express.static('uploads'));
 
+// 添加静态文件服务路由，处理URL编码的文件名
+app.get('/uploads/*', (req, res) => {
+  const filePath = req.path;
+  const decodedPath = decodeURIComponent(filePath);
+  const fs = require('fs');
+  const path = require('path');
+  
+  console.log('请求文件路径:', filePath);
+  console.log('解码后路径:', decodedPath);
+  
+  // 构建实际文件路径
+  const actualPath = path.join(__dirname, decodedPath);
+  console.log('实际文件路径:', actualPath);
+  
+  // 检查文件是否存在
+  if (fs.existsSync(actualPath)) {
+    console.log('文件存在，开始发送文件');
+    // 设置正确的Content-Type
+    const ext = path.extname(actualPath).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.ogg': 'video/ogg',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.pdf': 'application/pdf',
+      '.txt': 'text/plain'
+    };
+    
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.sendFile(actualPath);
+  } else {
+    console.log('文件不存在');
+    res.status(404).json({ 
+      error: '文件不存在',
+      requestedPath: filePath,
+      decodedPath: decodedPath,
+      actualPath: actualPath
+    });
+  }
+});
+
 // 健康检查端点
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
@@ -245,6 +294,243 @@ app.get('/api/art/my-works', async (req, res) => {
   } catch (error) {
     console.error('获取我的作品失败:', error);
     res.status(500).json({ error: '获取作品失败' });
+  }
+});
+
+// 管理员相关API
+// 检查管理员状态
+app.get('/api/admin/check', async (req, res) => {
+  const { userName } = req.query;
+  
+  if (!userName) {
+    return res.status(400).json({ error: '缺少用户名参数' });
+  }
+
+  try {
+    // 检查是否是李昌轩（固定管理员）
+    if (userName === '李昌轩') {
+      return res.json({ isAdmin: true, isInitial: true });
+    }
+
+    // 检查数据库中是否有该用户的管理员记录
+    const user = await User.findOne({ name: userName, role: 'admin' });
+    res.json({ isAdmin: !!user, isInitial: false });
+  } catch (error) {
+    console.error('检查管理员状态失败:', error);
+    res.status(500).json({ error: '检查失败' });
+  }
+});
+
+// 获取所有反馈（管理员功能）
+app.get('/api/admin/feedback', async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find().sort({ createdAt: -1 });
+    res.json(feedbacks);
+  } catch (error) {
+    console.error('获取反馈失败:', error);
+    res.status(500).json({ error: '获取反馈失败' });
+  }
+});
+
+// 获取所有管理员用户
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).sort({ createdAt: -1 });
+    res.json(admins);
+  } catch (error) {
+    console.error('获取管理员失败:', error);
+    res.status(500).json({ error: '获取管理员失败' });
+  }
+});
+
+// 搜索用户
+app.get('/api/admin/search-users', async (req, res) => {
+  const { q } = req.query;
+  
+  if (!q) {
+    return res.json([]);
+  }
+
+  try {
+    // 从艺术作品和反馈中搜索用户
+    const artUsers = await Art.distinct('authorName', { 
+      authorName: { $regex: q, $options: 'i' } 
+    });
+    const feedbackUsers = await Feedback.distinct('authorName', { 
+      authorName: { $regex: q, $options: 'i' } 
+    });
+    
+    const allUsers = [...new Set([...artUsers, ...feedbackUsers])];
+    const users = allUsers.map(name => ({ name, class: '未知' }));
+    
+    res.json(users);
+  } catch (error) {
+    console.error('搜索用户失败:', error);
+    res.status(500).json({ error: '搜索失败' });
+  }
+});
+
+// 添加管理员
+app.post('/api/admin/add-admin', async (req, res) => {
+  const { userName, addedBy } = req.body;
+  
+  if (!userName || !addedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    // 检查添加者是否有权限
+    const adder = await User.findOne({ name: addedBy, role: 'admin' });
+    if (!adder && addedBy !== '李昌轩') {
+      return res.status(403).json({ error: '无权限添加管理员' });
+    }
+
+    // 查找或创建用户
+    let user = await User.findOne({ name: userName });
+    if (!user) {
+      user = await User.create({
+        email: `${userName}@temp.com`, // 临时邮箱
+        password: 'temp', // 临时密码
+        name: userName,
+        role: 'admin'
+      });
+    } else {
+      user.role = 'admin';
+      await user.save();
+    }
+
+    res.json({ message: '管理员添加成功', user });
+  } catch (error) {
+    console.error('添加管理员失败:', error);
+    res.status(500).json({ error: '添加失败' });
+  }
+});
+
+// 移除管理员
+app.post('/api/admin/remove-admin', async (req, res) => {
+  const { userName, removedBy } = req.body;
+  
+  if (!userName || !removedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    // 检查移除者是否有权限
+    const remover = await User.findOne({ name: removedBy, role: 'admin' });
+    if (!remover && removedBy !== '李昌轩') {
+      return res.status(403).json({ error: '无权限移除管理员' });
+    }
+
+    // 不能移除自己
+    if (userName === removedBy) {
+      return res.status(400).json({ error: '不能移除自己的管理员权限' });
+    }
+
+    const user = await User.findOne({ name: userName });
+    if (user) {
+      user.role = 'user';
+      await user.save();
+    }
+
+    res.json({ message: '管理员移除成功' });
+  } catch (error) {
+    console.error('移除管理员失败:', error);
+    res.status(500).json({ error: '移除失败' });
+  }
+});
+
+// 用户管理API
+// 获取用户数据（通过用户ID）
+app.get('/api/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // 从User集合中查找用户
+    const user = await User.findOne({ userId });
+    
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
+    }
+    
+    // 返回用户数据（不包含敏感信息）
+    res.json({
+      userId: user.userId,
+      name: user.name,
+      class: user.class,
+      avatar: user.avatar,
+      isAdmin: user.isAdmin || false,
+      createdAt: user.createdAt
+    });
+  } catch (error) {
+    console.error('获取用户数据失败:', error);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
+// 保存用户数据到云端
+app.post('/api/user', async (req, res) => {
+  try {
+    const { userId, name, class: userClass, avatar, isAdmin } = req.body;
+    
+    if (!userId || !name || !userClass) {
+      return res.status(400).json({ error: '缺少必要字段' });
+    }
+    
+    // 查找或创建用户
+    const existingUser = await User.findOne({ userId });
+    
+    if (existingUser) {
+      // 更新现有用户
+      existingUser.name = name;
+      existingUser.class = userClass;
+      existingUser.avatar = avatar || '';
+      existingUser.isAdmin = isAdmin || false;
+      await existingUser.save();
+    } else {
+      // 创建新用户
+      await User.create({
+        userId,
+        name,
+        class: userClass,
+        avatar: avatar || '',
+        isAdmin: isAdmin || false
+      });
+    }
+    
+    res.json({ message: '用户数据保存成功' });
+  } catch (error) {
+    console.error('保存用户数据失败:', error);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
+// 反馈功能
+app.post('/api/feedback', async (req, res) => {
+  const { content, category, authorName, authorClass, authorAvatar } = req.body;
+  
+  if (!content) {
+    return res.status(400).json({ error: '请填写反馈内容' });
+  }
+
+  if (!authorName || !authorClass) {
+    return res.status(400).json({ error: '请先在个人信息页面填写姓名和班级信息' });
+  }
+  
+  try {
+    const feedback = await Feedback.create({
+      content,
+      category: category || '其他',
+      author: authorName,
+      authorName,
+      authorClass,
+      authorAvatar: authorAvatar || '',
+      createdAt: new Date()
+    });
+    
+    res.json(feedback);
+  } catch (error) {
+    console.error('反馈提交失败:', error);
+    res.status(500).json({ error: '反馈提交失败' });
   }
 });
 
