@@ -470,18 +470,56 @@ app.get('/api/admin/search-users', async (req, res) => {
   }
 
   try {
-    // 从艺术作品和反馈中搜索用户
+    // 从多个数据源搜索用户
+    const searchRegex = new RegExp(q, 'i');
+    
+    // 1. 从User集合中搜索
+    const dbUsers = await User.find({
+      $or: [
+        { name: searchRegex },
+        { email: searchRegex }
+      ]
+    }).select('name email class').limit(10);
+    
+    // 2. 从艺术作品中搜索
     const artUsers = await Art.distinct('authorName', { 
-      authorName: { $regex: q, $options: 'i' } 
+      authorName: searchRegex 
     });
+    
+    // 3. 从反馈中搜索
     const feedbackUsers = await Feedback.distinct('authorName', { 
-      authorName: { $regex: q, $options: 'i' } 
+      authorName: searchRegex 
     });
     
-    const allUsers = [...new Set([...artUsers, ...feedbackUsers])];
-    const users = allUsers.map(name => ({ name, class: '未知' }));
+    // 4. 从活动中搜索
+    const activityUsers = await Activity.distinct('authorName', { 
+      authorName: searchRegex 
+    });
     
-    res.json(users);
+    // 合并所有用户
+    const allUserNames = [
+      ...dbUsers.map(u => u.name),
+      ...artUsers,
+      ...feedbackUsers,
+      ...activityUsers
+    ];
+    
+    // 去重并创建用户对象
+    const uniqueUsers = [...new Set(allUserNames)]
+      .filter(name => name && name.trim())
+      .map(name => {
+        // 尝试从数据库用户中找到匹配的用户信息
+        const dbUser = dbUsers.find(u => u.name === name);
+        return {
+          name,
+          class: dbUser?.class || '未知',
+          email: dbUser?.email || ''
+        };
+      })
+      .slice(0, 20); // 限制返回数量
+    
+    console.log(`搜索 "${q}" 找到 ${uniqueUsers.length} 个用户:`, uniqueUsers.map(u => u.name));
+    res.json(uniqueUsers);
   } catch (error) {
     console.error('搜索用户失败:', error);
     res.status(500).json({ error: '搜索失败' });
