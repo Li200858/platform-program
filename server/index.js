@@ -552,9 +552,15 @@ app.get('/api/admin/search-users', async (req, res) => {
     }
     
     console.log(`✅ 数据库连接正常，开始搜索用户: "${q}"`);
+    console.log(`🔍 搜索查询长度: ${q.length}, 编码: ${Buffer.from(q, 'utf8').toString('hex')}`);
     
     // 只从User集合中搜索注册用户
     const searchRegex = new RegExp(q.trim(), 'i');
+    console.log(`🔍 搜索正则表达式: ${searchRegex}`);
+    
+    // 先获取所有用户进行调试
+    const allUsers = await User.find({}).select('name').limit(5);
+    console.log(`📊 数据库中前5个用户:`, allUsers.map(u => u.name));
     
     const users = await User.find({
       name: searchRegex
@@ -564,6 +570,7 @@ app.get('/api/admin/search-users', async (req, res) => {
     .sort({ createdAt: -1 }); // 按创建时间倒序
     
     console.log(`📊 数据库查询完成，找到 ${users.length} 个用户`);
+    console.log(`📊 搜索结果:`, users.map(u => u.name));
     
     const result = users.map(user => ({
       userId: user.userId || '',
