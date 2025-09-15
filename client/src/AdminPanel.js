@@ -123,12 +123,12 @@ export default function AdminPanel({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/set-admin`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/add-admin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userId: userName,
-          adminName: userInfo.name 
+          userName: userName,
+          addedBy: userInfo.name 
         })
       });
       

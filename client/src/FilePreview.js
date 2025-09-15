@@ -16,6 +16,12 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
     };
   };
 
+  const buildUrl = (url) => {
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/')) return `${apiBaseUrl}${url}`;
+    return `${apiBaseUrl}/${url}`;
+  };
+
   const getFileIcon = (fileType) => {
     if (fileType.isImage) return '🖼️';
     if (fileType.isVideo) return '🎥';
@@ -49,8 +55,9 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    // 确保URL正确构建，处理相对路径
-    const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+    const fullUrl = buildUrl(url);
+    
+    console.log('下载文件URL:', fullUrl);
     link.href = fullUrl;
     link.download = filename || url.split('/').pop();
     link.target = '_blank';
@@ -98,27 +105,24 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                 {filename}
               </span>
               
-              {/* 预览按钮 - 只对支持预览的文件类型显示 */}
-              {(fileType.isImage || fileType.isVideo || fileType.isAudio || 
-                (fileType.isDocument && url.split('.').pop().toLowerCase() === 'pdf')) && (
-                <button
-                  onClick={() => handlePreview(url, fileType)}
-                  style={{
-                    background: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-                >
-                  预览
-                </button>
-              )}
+              {/* 预览按钮 - 所有文件类型都显示预览按钮 */}
+              <button
+                onClick={() => handlePreview(url, fileType)}
+                style={{
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+              >
+                预览
+              </button>
               
               {/* 下载按钮 */}
               <button
@@ -193,7 +197,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {/* 预览内容 */}
             {previewType === 'image' && (
               <img 
-                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
+                src={buildUrl(previewFile)} 
                 alt="预览" 
                 style={{ 
                   maxWidth: '100%', 
@@ -219,7 +223,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             
             {previewType === 'video' && (
               <video 
-                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
+                src={buildUrl(previewFile)} 
                 controls 
                 style={{ 
                   maxWidth: '100%', 
@@ -244,7 +248,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {previewType === 'audio' && (
               <div style={{ padding: '40px', textAlign: 'center' }}>
                 <audio 
-                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
+                  src={buildUrl(previewFile)} 
                   controls 
                   style={{ width: '100%', maxWidth: '400px' }}
                   onError={(e) => {
@@ -264,7 +268,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {previewType === 'document' && (
               <div style={{ width: '800px', height: '600px' }}>
                 <iframe
-                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`}
+                  src={buildUrl(previewFile)}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   title="文档预览"
                   onError={(e) => {

@@ -55,7 +55,6 @@ try {
 }
 
 // 导入文件上传服务
-const cloudinaryService = require('./services/cloudinaryService');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -94,12 +93,11 @@ const upload = multer({
   }
 });
 
-// 检查Cloudinary配置状态
-const isCloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
-console.log('Cloudinary配置状态:', isCloudinaryConfigured);
+// 使用本地存储
+console.log('使用本地文件存储');
 
 // 静态文件服务
-app.use(express.static('uploads'));
+app.use('/uploads', express.static('uploads'));
 
 // 添加静态文件服务路由，处理URL编码的文件名
 app.get('/uploads/*', (req, res) => {
@@ -138,6 +136,7 @@ app.get('/uploads/*', (req, res) => {
     
     const contentType = mimeTypes[ext] || 'application/octet-stream';
     res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 缓存1年
     res.sendFile(actualPath);
   } else {
     console.log('文件不存在');
@@ -244,18 +243,24 @@ app.post('/api/art/:id/like', async (req, res) => {
   }
 });
 
-// 临时文件上传API - 返回模拟数据
-app.post('/api/upload', (req, res) => {
+// 文件上传API
+app.post('/api/upload', upload.array('files', 10), (req, res) => {
   try {
     console.log('文件上传请求开始...');
-    console.log('请求头:', req.headers);
-    console.log('请求体长度:', req.headers['content-length']);
+    console.log('上传文件数量:', req.files ? req.files.length : 0);
     
-    // 暂时返回模拟数据，让前端可以正常工作
-    const mockUrls = [`/uploads/mock-${Date.now()}.png`];
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: '没有上传文件' });
+    }
     
-    console.log('返回模拟文件URLs:', mockUrls);
-    res.json({ urls: mockUrls, storage: 'local' });
+    const urls = req.files.map(file => `/uploads/${file.filename}`);
+    console.log('文件上传成功，URLs:', urls);
+    
+    res.json({ 
+      urls: urls, 
+      storage: 'local',
+      message: `成功上传 ${req.files.length} 个文件`
+    });
   } catch (error) {
     console.error('文件上传错误:', error);
     res.status(500).json({ error: '文件上传失败: ' + error.message });
@@ -264,14 +269,8 @@ app.post('/api/upload', (req, res) => {
 
 // 存储配置检查API
 app.get('/api/storage-config', (req, res) => {
-  const isCloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
-  
   const config = {
-    storageType: isCloudinaryConfigured ? 'cloudinary' : 'local',
-    cloudinary: {
-      configured: isCloudinaryConfigured,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME
-    },
+    storageType: 'local',
     local: {
       configured: true,
       path: path.join(__dirname, 'uploads')
@@ -346,6 +345,70 @@ app.get('/api/art/my-works', async (req, res) => {
   } catch (error) {
     console.error('获取我的作品失败:', error);
     res.status(500).json({ error: '获取作品失败' });
+  }
+});
+
+// 获取收藏的艺术作品
+app.get('/api/art/favorites', async (req, res) => {
+  const { authorName } = req.query;
+  
+  if (!authorName) {
+    return res.status(400).json({ error: '缺少作者姓名参数' });
+  }
+
+  try {
+    const works = await Art.find({ 
+      favorites: { $in: [authorName] } 
+    }).sort({ createdAt: -1 });
+    res.json(works);
+  } catch (error) {
+    console.error('获取收藏作品失败:', error);
+    res.status(500).json({ error: '获取收藏作品失败' });
+  }
+});
+
+// 获取喜欢的艺术作品
+app.get('/api/art/likes', async (req, res) => {
+  const { authorName } = req.query;
+  
+  if (!authorName) {
+    return res.status(400).json({ error: '缺少作者姓名参数' });
+  }
+
+  try {
+    const works = await Art.find({ 
+      likedUsers: { $in: [authorName] } 
+    }).sort({ createdAt: -1 });
+    res.json(works);
+  } catch (error) {
+    console.error('获取喜欢作品失败:', error);
+    res.status(500).json({ error: '获取喜欢作品失败' });
+  }
+});
+
+// 收藏/取消收藏艺术作品
+app.post('/api/art/:id/favorite', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  
+  try {
+    const art = await Art.findById(id);
+    if (!art) return res.status(404).json({ error: '作品不存在' });
+    
+    if (!art.favorites) art.favorites = [];
+    const idx = art.favorites.indexOf(userId);
+    
+    if (idx !== -1) {
+      art.favorites.splice(idx, 1);
+    } else {
+      art.favorites.push(userId);
+    }
+    
+    await art.save();
+    res.json(art);
+  } catch (error) {
+    console.error('收藏操作失败:', error);
+    res.status(500).json({ error: '操作失败' });
   }
 });
 
@@ -458,6 +521,42 @@ app.post('/api/admin/add-admin', async (req, res) => {
   }
 });
 
+// 设置管理员（兼容旧API）
+app.post('/api/admin/set-admin', async (req, res) => {
+  const { userId, adminName } = req.body;
+  
+  if (!userId || !adminName) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    // 检查操作者是否有权限
+    const adder = await User.findOne({ name: adminName, role: 'admin' });
+    if (!adder && adminName !== '李昌轩') {
+      return res.status(403).json({ error: '无权限添加管理员' });
+    }
+
+    // 查找或创建用户
+    let user = await User.findOne({ name: userId });
+    if (!user) {
+      user = await User.create({
+        email: `${userId}@temp.com`,
+        password: 'temp',
+        name: userId,
+        role: 'admin'
+      });
+    } else {
+      user.role = 'admin';
+      await user.save();
+    }
+
+    res.json({ message: '管理员设置成功', user });
+  } catch (error) {
+    console.error('设置管理员失败:', error);
+    res.status(500).json({ error: '设置失败' });
+  }
+});
+
 // 移除管理员
 app.post('/api/admin/remove-admin', async (req, res) => {
   const { userName, removedBy } = req.body;
@@ -556,6 +655,219 @@ app.post('/api/user', async (req, res) => {
   }
 });
 
+// 活动相关API
+// 获取所有活动
+app.get('/api/activities', async (req, res) => {
+  try {
+    const activities = await Activity.find().sort({ createdAt: -1 });
+    res.json(activities);
+  } catch (error) {
+    console.error('获取活动失败:', error);
+    res.status(500).json({ error: '获取活动失败' });
+  }
+});
+
+// 创建活动
+app.post('/api/activities', async (req, res) => {
+  const { title, description, startDate, endDate, image, media, authorName, authorClass, authorAvatar } = req.body;
+  
+  if (!title || !description || !startDate || !endDate) {
+    return res.status(400).json({ error: '请填写完整信息：标题、描述、开始时间、结束时间' });
+  }
+
+  if (!authorName || !authorClass) {
+    return res.status(400).json({ error: '请先在个人信息页面填写姓名和班级信息' });
+  }
+  
+  try {
+    const activity = await Activity.create({
+      title,
+      description,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      image: image || '',
+      media: media || [],
+      author: authorName,
+      authorName,
+      authorClass,
+      authorAvatar: authorAvatar || '',
+      likes: 0,
+      likedUsers: [],
+      favorites: [],
+      comments: []
+    });
+    
+    res.json(activity);
+  } catch (error) {
+    console.error('创建活动失败:', error);
+    res.status(500).json({ error: '创建活动失败' });
+  }
+});
+
+// 活动点赞/取消点赞
+app.post('/api/activities/:id/like', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  
+  try {
+    const activity = await Activity.findById(id);
+    if (!activity) return res.status(404).json({ error: '活动不存在' });
+    
+    if (!activity.likedUsers) activity.likedUsers = [];
+    const idx = activity.likedUsers.indexOf(userId);
+    
+    if (idx !== -1) {
+      activity.likedUsers.splice(idx, 1);
+      activity.likes = Math.max((activity.likes || 1) - 1, 0);
+    } else {
+      activity.likedUsers.push(userId);
+      activity.likes = (activity.likes || 0) + 1;
+    }
+    
+    await activity.save();
+    res.json(activity);
+  } catch (error) {
+    console.error('点赞失败:', error);
+    res.status(500).json({ error: '操作失败' });
+  }
+});
+
+// 活动收藏/取消收藏
+app.post('/api/activities/:id/favorite', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  
+  try {
+    const activity = await Activity.findById(id);
+    if (!activity) return res.status(404).json({ error: '活动不存在' });
+    
+    if (!activity.favorites) activity.favorites = [];
+    const idx = activity.favorites.indexOf(userId);
+    
+    if (idx !== -1) {
+      activity.favorites.splice(idx, 1);
+    } else {
+      activity.favorites.push(userId);
+    }
+    
+    await activity.save();
+    res.json(activity);
+  } catch (error) {
+    console.error('收藏操作失败:', error);
+    res.status(500).json({ error: '操作失败' });
+  }
+});
+
+// 活动评论
+app.post('/api/activities/:id/comment', async (req, res) => {
+  const { id } = req.params;
+  const { author, authorClass, content, authorAvatar } = req.body;
+  
+  if (!author || !authorClass || !content) {
+    return res.status(400).json({ error: '请填写完整信息' });
+  }
+  
+  try {
+    const activity = await Activity.findById(id);
+    if (!activity) return res.status(404).json({ error: '活动不存在' });
+    
+    const comment = {
+      id: Date.now().toString(),
+      author,
+      authorClass,
+      content,
+      authorAvatar: authorAvatar || '',
+      createdAt: new Date()
+    };
+    
+    if (!activity.comments) activity.comments = [];
+    activity.comments.push(comment);
+    await activity.save();
+    
+    res.json(activity);
+  } catch (error) {
+    console.error('添加评论失败:', error);
+    res.status(500).json({ error: '添加评论失败' });
+  }
+});
+
+// 删除活动
+app.delete('/api/activities/:id', async (req, res) => {
+  const { id } = req.params;
+  const { authorName, isAdmin } = req.query;
+  
+  try {
+    const activity = await Activity.findById(id);
+    if (!activity) return res.status(404).json({ error: '活动不存在' });
+    
+    // 检查权限：只有作者或管理员可以删除
+    if (activity.authorName !== authorName && isAdmin !== 'true') {
+      return res.status(403).json({ error: '无权限删除此活动' });
+    }
+    
+    await Activity.findByIdAndDelete(id);
+    res.json({ message: '活动删除成功' });
+  } catch (error) {
+    console.error('删除活动失败:', error);
+    res.status(500).json({ error: '删除活动失败' });
+  }
+});
+
+// 获取我的活动
+app.get('/api/activities/my-activities', async (req, res) => {
+  const { authorName } = req.query;
+  
+  if (!authorName) {
+    return res.status(400).json({ error: '缺少作者姓名参数' });
+  }
+
+  try {
+    const activities = await Activity.find({ authorName }).sort({ createdAt: -1 });
+    res.json(activities);
+  } catch (error) {
+    console.error('获取我的活动失败:', error);
+    res.status(500).json({ error: '获取活动失败' });
+  }
+});
+
+// 获取收藏的活动
+app.get('/api/activities/favorites', async (req, res) => {
+  const { authorName } = req.query;
+  
+  if (!authorName) {
+    return res.status(400).json({ error: '缺少作者姓名参数' });
+  }
+
+  try {
+    const activities = await Activity.find({ 
+      favorites: { $in: [authorName] } 
+    }).sort({ createdAt: -1 });
+    res.json(activities);
+  } catch (error) {
+    console.error('获取收藏活动失败:', error);
+    res.status(500).json({ error: '获取收藏活动失败' });
+  }
+});
+
+// 获取喜欢的活动
+app.get('/api/activities/likes', async (req, res) => {
+  const { authorName } = req.query;
+  
+  if (!authorName) {
+    return res.status(400).json({ error: '缺少作者姓名参数' });
+  }
+
+  try {
+    const activities = await Activity.find({ 
+      likedUsers: { $in: [authorName] } 
+    }).sort({ createdAt: -1 });
+    res.json(activities);
+  } catch (error) {
+    console.error('获取喜欢活动失败:', error);
+    res.status(500).json({ error: '获取喜欢活动失败' });
+  }
+});
+
 // 反馈功能
 app.post('/api/feedback', async (req, res) => {
   const { content, category, authorName, authorClass, authorAvatar } = req.body;
@@ -583,6 +895,50 @@ app.post('/api/feedback', async (req, res) => {
   } catch (error) {
     console.error('反馈提交失败:', error);
     res.status(500).json({ error: '反馈提交失败' });
+  }
+});
+
+// 维护模式相关API
+// 获取维护状态
+app.get('/api/admin/maintenance/status', async (req, res) => {
+  try {
+    // 这里可以从数据库或环境变量读取维护状态
+    // 暂时返回默认状态
+    res.json({
+      maintenanceMode: false,
+      maintenanceMessage: ''
+    });
+  } catch (error) {
+    console.error('获取维护状态失败:', error);
+    res.status(500).json({ error: '获取维护状态失败' });
+  }
+});
+
+// 切换维护模式
+app.post('/api/admin/maintenance/toggle', async (req, res) => {
+  const { enabled, message, adminName } = req.body;
+  
+  if (!adminName) {
+    return res.status(400).json({ error: '缺少管理员信息' });
+  }
+
+  try {
+    // 检查操作者是否有权限
+    const admin = await User.findOne({ name: adminName, role: 'admin' });
+    if (!admin && adminName !== '李昌轩') {
+      return res.status(403).json({ error: '无权限操作维护模式' });
+    }
+
+    // 这里可以将维护状态保存到数据库
+    // 暂时返回成功状态
+    res.json({
+      maintenanceMode: enabled,
+      maintenanceMessage: message || '',
+      message: enabled ? '维护模式已开启' : '维护模式已关闭'
+    });
+  } catch (error) {
+    console.error('切换维护模式失败:', error);
+    res.status(500).json({ error: '操作失败' });
   }
 });
 
