@@ -1,7 +1,7 @@
 // API工具函数
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? ''  // 生产环境使用相对路径
+    ? 'https://platform-program-production.up.railway.app'  // 生产环境使用Railway
     : 'http://localhost:5000');  // 开发环境使用完整URL
 
 export const api = {
