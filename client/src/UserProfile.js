@@ -4,7 +4,7 @@ import api from './api';
 import FileUploader from './FileUploader';
 import UserManager from './UserManager';
 
-export default function UserProfile({ onBack }) {
+export default function UserProfile({ onBack, onUserInfoUpdate }) {
   const [userInfo, setUserInfo] = useState({
     name: '',
     class: '',
@@ -114,6 +114,12 @@ export default function UserProfile({ onBack }) {
         
         setMsg('用户信息保存成功！');
       }
+      
+      // 通知父组件更新用户信息
+      if (onUserInfoUpdate) {
+        onUserInfoUpdate();
+      }
+      
       setTimeout(() => {
         onBack();
       }, 1500);
@@ -178,6 +184,11 @@ export default function UserProfile({ onBack }) {
       // 检查管理员状态
       if (importedUserInfo.name) {
         checkAdminStatus(importedUserInfo.name);
+      }
+      
+      // 通知父组件更新用户信息
+      if (onUserInfoUpdate) {
+        onUserInfoUpdate();
       }
       
       // 清空输入框

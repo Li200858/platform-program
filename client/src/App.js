@@ -19,11 +19,15 @@ function MainApp() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   // 加载用户信息
-  useEffect(() => {
+  const loadUserInfo = () => {
     const savedUserInfo = localStorage.getItem('user_profile');
     if (savedUserInfo) {
       setUserInfo(JSON.parse(savedUserInfo));
     }
+  };
+
+  useEffect(() => {
+    loadUserInfo();
   }, []);
 
   const checkAdminStatus = React.useCallback(async () => {
@@ -70,7 +74,7 @@ function MainApp() {
     } else if (section === 'feedback') {
       content = <Feedback userInfo={userInfo} />;
     } else if (section === 'profile') {
-      content = <UserProfile onBack={() => setSection('art')} />;
+      content = <UserProfile onBack={() => setSection('art')} onUserInfoUpdate={loadUserInfo} />;
     } else if (section === 'collection') {
       content = <MyCollection userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'myworks') {
