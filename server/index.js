@@ -461,6 +461,38 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
+// 手动创建用户（用于测试）
+app.post('/api/admin/create-user', async (req, res) => {
+  try {
+    const { name, class: userClass } = req.body;
+    
+    if (!name || !userClass) {
+      return res.status(400).json({ error: '缺少必要字段' });
+    }
+    
+    // 检查用户是否已存在
+    const existingUser = await User.findOne({ name });
+    if (existingUser) {
+      return res.json({ message: '用户已存在', user: existingUser });
+    }
+    
+    // 创建新用户
+    const user = await User.create({
+      userId: name, // 使用姓名作为userId
+      name: name,
+      class: userClass,
+      role: 'user',
+      isAdmin: false
+    });
+    
+    console.log(`✅ 手动创建用户成功: ${name}`);
+    res.json({ message: '用户创建成功', user });
+  } catch (error) {
+    console.error('❌ 创建用户失败:', error);
+    res.status(500).json({ error: '创建用户失败', details: error.message });
+  }
+});
+
 // 测试端点：获取所有用户（用于调试）
 app.get('/api/admin/debug-users', async (req, res) => {
   try {
@@ -577,6 +609,7 @@ app.post('/api/admin/add-admin', async (req, res) => {
     let user = await User.findOne({ name: userName });
     if (!user) {
       user = await User.create({
+        userId: userName, // 使用用户名作为userId
         email: `${userName}@temp.com`, // 临时邮箱
         password: 'temp', // 临时密码
         name: userName,
@@ -613,6 +646,7 @@ app.post('/api/admin/set-admin', async (req, res) => {
     let user = await User.findOne({ name: userId });
     if (!user) {
       user = await User.create({
+        userId: userId, // 设置userId字段
         email: `${userId}@temp.com`,
         password: 'temp',
         name: userId,
