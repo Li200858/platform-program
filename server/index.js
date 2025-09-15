@@ -470,56 +470,31 @@ app.get('/api/admin/search-users', async (req, res) => {
   }
 
   try {
-    // 从多个数据源搜索用户
+    console.log(`开始搜索用户: "${q}"`);
+    
+    // 只从User集合中搜索注册用户
     const searchRegex = new RegExp(q, 'i');
     
-    // 1. 从User集合中搜索
-    const dbUsers = await User.find({
+    const users = await User.find({
       $or: [
         { name: searchRegex },
         { email: searchRegex }
       ]
-    }).select('name email class').limit(10);
+    })
+    .select('name email class role isAdmin')
+    .limit(20)
+    .sort({ createdAt: -1 }); // 按创建时间倒序
     
-    // 2. 从艺术作品中搜索
-    const artUsers = await Art.distinct('authorName', { 
-      authorName: searchRegex 
-    });
+    const result = users.map(user => ({
+      name: user.name,
+      email: user.email || '',
+      class: user.class || '未知',
+      role: user.role || 'user',
+      isAdmin: user.isAdmin || false
+    }));
     
-    // 3. 从反馈中搜索
-    const feedbackUsers = await Feedback.distinct('authorName', { 
-      authorName: searchRegex 
-    });
-    
-    // 4. 从活动中搜索
-    const activityUsers = await Activity.distinct('authorName', { 
-      authorName: searchRegex 
-    });
-    
-    // 合并所有用户
-    const allUserNames = [
-      ...dbUsers.map(u => u.name),
-      ...artUsers,
-      ...feedbackUsers,
-      ...activityUsers
-    ];
-    
-    // 去重并创建用户对象
-    const uniqueUsers = [...new Set(allUserNames)]
-      .filter(name => name && name.trim())
-      .map(name => {
-        // 尝试从数据库用户中找到匹配的用户信息
-        const dbUser = dbUsers.find(u => u.name === name);
-        return {
-          name,
-          class: dbUser?.class || '未知',
-          email: dbUser?.email || ''
-        };
-      })
-      .slice(0, 20); // 限制返回数量
-    
-    console.log(`搜索 "${q}" 找到 ${uniqueUsers.length} 个用户:`, uniqueUsers.map(u => u.name));
-    res.json(uniqueUsers);
+    console.log(`搜索 "${q}" 找到 ${result.length} 个注册用户:`, result.map(u => u.name));
+    res.json(result);
   } catch (error) {
     console.error('搜索用户失败:', error);
     res.status(500).json({ error: '搜索失败' });
