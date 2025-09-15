@@ -103,7 +103,17 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     message: '艺术平台API服务运行正常',
     timestamp: new Date().toISOString(),
-    version: '2.0.0'
+    version: '2.0.0',
+    file: 'index-test.js'
+  });
+});
+
+// 测试端点
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: '测试端点工作正常',
+    timestamp: new Date().toISOString(),
+    file: 'index-test.js'
   });
 });
 
