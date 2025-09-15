@@ -16,6 +16,8 @@ export const getApiUrl = () => {
 
 // 构建完整的API URL
 export const buildApiUrl = (endpoint) => {
+  if (!endpoint) return getApiUrl();
+  
   const baseUrl = getApiUrl();
   if (endpoint.startsWith('/')) {
     return `${baseUrl}${endpoint}`;

@@ -30,8 +30,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   // 保存用户数据到云端
   const saveUserToCloud = async (userData) => {
     try {
-      // API URL now handled by buildApiUrl()
-      const response = await fetch(`${apiUrl}/api/user`, {
+      const response = await fetch(buildApiUrl('/api/user'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,8 +152,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
       setLoading(true);
       
       // 从服务器获取用户数据
-      // API URL now handled by buildApiUrl()
-      const response = await fetch(`${apiUrl}/api/user/${importUserId}`);
+      const response = await fetch(buildApiUrl(`/api/user/${importUserId}`));
       
       if (!response.ok) {
         if (response.status === 404) {

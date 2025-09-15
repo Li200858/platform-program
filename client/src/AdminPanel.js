@@ -85,7 +85,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(buildApiUrl('/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=true'), {
+      const res = await fetch(buildApiUrl(`/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=true`), {
         method: 'DELETE'
       });
 
@@ -111,7 +111,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     console.log(`🔍 前端开始搜索用户: "${searchQuery}"`);
     
     try {
-      const apiUrl = buildApiUrl('/api/admin/search-users?q=${encodeURIComponent(searchQuery)}');
+      const apiUrl = buildApiUrl(`/api/admin/search-users?q=${encodeURIComponent(searchQuery)}`);
       console.log(`📡 请求URL: ${apiUrl}`);
       
       const res = await fetch(apiUrl);
