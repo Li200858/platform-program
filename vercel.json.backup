@@ -11,15 +11,11 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://platform-program-production.up.railway.app/api/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/client/build/index.html"
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://platform-program-production.up.railway.app"
+    "NODE_ENV": "production"
   }
 }
