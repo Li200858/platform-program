@@ -15,18 +15,33 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
 let storage;
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
   console.log('配置Cloudinary存储...');
-  storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: 'platform-program',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'ogg', 'mp3', 'wav', 'pdf', 'txt'],
-      transformation: [
-        { quality: 'auto' }, // 自动优化质量
-        { fetch_format: 'auto' } // 自动选择最佳格式
-      ]
-    }
-  });
-  console.log('Cloudinary存储配置完成');
+  try {
+    storage = new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: 'platform-program',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'ogg', 'mp3', 'wav', 'pdf', 'txt']
+      }
+    });
+    console.log('✅ Cloudinary存储配置完成');
+  } catch (error) {
+    console.error('❌ Cloudinary存储配置失败:', error.message);
+    console.log('回退到本地存储...');
+    storage = multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = 'uploads';
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        cb(null, `${uniqueSuffix}-${cleanName}`);
+      }
+    });
+  }
 } else {
   console.log('使用本地存储...');
   // 回退到本地存储
