@@ -247,12 +247,29 @@ app.post('/api/upload', upload.array('files', 10), (req, res) => {
       return res.status(400).json({ error: '没有上传文件' });
     }
     
+    console.log('文件上传请求:', {
+      filesCount: req.files.length,
+      isCloudinaryConfigured,
+      firstFile: req.files[0] ? {
+        filename: req.files[0].filename,
+        secure_url: req.files[0].secure_url,
+        path: req.files[0].path
+      } : null
+    });
+    
     const fileUrls = req.files.map(file => {
       // 如果是Cloudinary，使用secure_url；如果是本地，使用filename
-      return file.secure_url || `/uploads/${file.filename}`;
+      if (file.secure_url) {
+        console.log('使用Cloudinary URL:', file.secure_url);
+        return file.secure_url;
+      } else {
+        console.log('使用本地路径:', `/uploads/${file.filename}`);
+        return `/uploads/${file.filename}`;
+      }
     });
     
     const storageType = isCloudinaryConfigured ? 'cloudinary' : 'local';
+    console.log('返回存储类型:', storageType);
     res.json({ urls: fileUrls, storage: storageType });
   } catch (error) {
     console.error('文件上传错误:', error);
