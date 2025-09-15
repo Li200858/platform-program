@@ -60,33 +60,41 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 暂时使用本地存储，避免Cloudinary配置问题
-const localUpload = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    cb(null, `${uniqueSuffix}-${cleanName}`);
-  }
-});
-
-const upload = multer({
-  storage: localUpload,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-  fileFilter: (req, file, cb) => {
-    cb(null, true); // 允许所有文件类型
-  }
-});
-
-// 检查Cloudinary配置状态
+// 动态选择存储方式
 const isCloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
-console.log('Cloudinary配置状态:', isCloudinaryConfigured);
+
+let upload;
+if (isCloudinaryConfigured) {
+  console.log('✅ 使用Cloudinary存储');
+  // 使用Cloudinary存储
+  const cloudinaryService = require('./services/cloudinaryService');
+  upload = cloudinaryService.upload;
+} else {
+  console.log('⚠️  使用本地存储（建议配置Cloudinary）');
+  // 使用本地存储
+  const localUpload = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = 'uploads';
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      cb(null, `${uniqueSuffix}-${cleanName}`);
+    }
+  });
+
+  upload = multer({
+    storage: localUpload,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    fileFilter: (req, file, cb) => {
+      cb(null, true); // 允许所有文件类型
+    }
+  });
+}
 
 // 静态文件服务
 app.use(express.static('uploads'));
@@ -246,22 +254,26 @@ app.post('/api/upload', upload.array('files', 10), (req, res) => {
       isCloudinaryConfigured,
       firstFile: req.files[0] ? {
         filename: req.files[0].filename,
+        secure_url: req.files[0].secure_url,
         path: req.files[0].path
       } : null
     });
     
-    // 使用本地存储，返回相对路径
     const fileUrls = req.files.map(file => {
-      console.log('文件信息:', {
-        filename: file.filename,
-        path: file.path,
-        originalname: file.originalname
-      });
-      return `/uploads/${file.filename}`;
+      if (isCloudinaryConfigured && file.secure_url) {
+        // 使用Cloudinary URL
+        console.log('使用Cloudinary URL:', file.secure_url);
+        return file.secure_url;
+      } else {
+        // 使用本地路径
+        console.log('使用本地路径:', `/uploads/${file.filename}`);
+        return `/uploads/${file.filename}`;
+      }
     });
     
-    console.log('返回文件URLs:', fileUrls);
-    res.json({ urls: fileUrls, storage: 'local' });
+    const storageType = isCloudinaryConfigured ? 'cloudinary' : 'local';
+    console.log('返回存储类型:', storageType);
+    res.json({ urls: fileUrls, storage: storageType });
   } catch (error) {
     console.error('文件上传错误:', error);
     res.status(500).json({ error: '文件上传失败' });
