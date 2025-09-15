@@ -26,6 +26,31 @@ export default function UserProfile({ onBack }) {
     return `U${timestamp}${randomStr}`.toUpperCase();
   };
 
+  // 保存用户数据到云端
+  const saveUserToCloud = async (userData) => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userData.userId,
+          name: userData.name,
+          class: userData.class,
+          avatar: userData.avatar,
+          isAdmin: userData.isAdmin || false
+        })
+      });
+      
+      if (!response.ok) {
+        console.error('保存用户数据到云端失败');
+      }
+    } catch (error) {
+      console.error('保存用户数据到云端失败:', error);
+    }
+  };
+
   // 从localStorage加载用户信息
   useEffect(() => {
     const savedUserInfo = UserManager.getUserProfile();
@@ -73,10 +98,20 @@ export default function UserProfile({ onBack }) {
         const updatedUserInfo = { ...userInfo, userId: newUserId };
         setUserInfo(updatedUserInfo);
         UserManager.saveUserProfile(updatedUserInfo);
+        
+        // 保存到云端数据库
+        await saveUserToCloud(updatedUserInfo);
+        
         setMsg(`用户信息保存成功！您的用户ID是：${newUserId}`);
       } else {
         // 保存到localStorage
         UserManager.saveUserProfile(userInfo);
+        
+        // 如果有用户ID，也保存到云端
+        if (userInfo.userId) {
+          await saveUserToCloud(userInfo);
+        }
+        
         setMsg('用户信息保存成功！');
       }
       setTimeout(() => {
@@ -99,39 +134,60 @@ export default function UserProfile({ onBack }) {
     }
   };
 
-  // 导入用户数据
-  const handleImportData = () => {
+  // 通过用户ID导入数据（跨设备同步）
+  const handleImportData = async () => {
     if (!importUserId.trim()) {
       setMsg('请输入用户ID');
       return;
     }
 
     try {
-      const importedData = localStorage.getItem(`user_data_${importUserId}`);
-      if (importedData) {
-        const parsedData = JSON.parse(importedData);
-        
-        // 如果导入的数据包含用户信息，直接使用
-        if (parsedData.name && parsedData.class) {
-          setUserInfo(parsedData);
-          UserManager.saveUserProfile(parsedData);
-          setMsg(`用户数据导入成功！已导入用户：${parsedData.name} (${parsedData.class})`);
-        } else if (parsedData.profile) {
-          // 如果导入的数据包含profile字段，使用profile数据
-          setUserInfo(parsedData.profile);
-          UserManager.saveUserProfile(parsedData.profile);
-          setMsg(`用户数据导入成功！已导入用户：${parsedData.profile.name} (${parsedData.profile.class})`);
+      setLoading(true);
+      
+      // 从服务器获取用户数据
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/user/${importUserId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          setMsg('用户ID不存在，请检查输入');
         } else {
-          setMsg('导入的数据格式不正确');
-          return;
+          setMsg('获取用户数据失败');
         }
-        
-        setImportUserId('');
-      } else {
-        setMsg('未找到该用户ID对应的数据');
+        return;
       }
+      
+      const userData = await response.json();
+      
+      // 设置用户信息
+      const importedUserInfo = {
+        name: userData.name || '',
+        class: userData.class || '',
+        avatar: userData.avatar || '',
+        userId: importUserId,
+        isAdmin: userData.isAdmin || false
+      };
+      
+      setUserInfo(importedUserInfo);
+      UserManager.saveUserProfile(importedUserInfo);
+      
+      // 保存用户ID到localStorage
+      localStorage.setItem('user_id', importUserId);
+      
+      setMsg(`用户数据导入成功！欢迎回来，${importedUserInfo.name}！`);
+      
+      // 检查管理员状态
+      if (importedUserInfo.name) {
+        checkAdminStatus(importedUserInfo.name);
+      }
+      
+      // 清空输入框
+      setImportUserId('');
+      
     } catch (error) {
-      setMsg('导入数据失败，请检查用户ID是否正确');
+      console.error('导入用户数据失败:', error);
+      setMsg('导入失败：网络错误或用户ID无效');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -450,7 +506,7 @@ export default function UserProfile({ onBack }) {
             margin: 0,
             lineHeight: '1.4'
           }}>
-            如果您之前保存过用户ID，可以在这里输入ID来导入您的所有数据。
+            输入您的用户ID即可在任何设备上恢复您的所有数据（姓名、班级、头像、管理员状态等）。
           </p>
         </div>
 
