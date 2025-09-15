@@ -1062,7 +1062,7 @@ app.post('/api/admin/maintenance/toggle', async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // 启动服务器
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('🚀 艺术平台服务器运行在端口', PORT);
   console.log('✅ 健康检查端点: /api/health');
   console.log('📊 环境信息:');
@@ -1098,3 +1098,6 @@ app.listen(PORT, () => {
       });
   }
 });
+
+// 导出app用于Vercel
+module.exports = app;
