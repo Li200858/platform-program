@@ -247,7 +247,7 @@ app.post('/api/art/:id/like', async (req, res) => {
 });
 
 // 文件上传API
-app.post('/api/upload', upload.array('files', 3), (req, res) => {
+app.post('/api/upload', upload.array('files', 1), (req, res) => {
   try {
     console.log('文件上传请求开始...');
     console.log('上传文件数量:', req.files ? req.files.length : 0);
