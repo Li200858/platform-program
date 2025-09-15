@@ -147,14 +147,7 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// 根路径
-app.get('/', (req, res) => {
-  res.json({ 
-    message: '艺术平台API服务运行中',
-    version: '2.0.0',
-    status: 'OK'
-  });
-});
+// 根路径已在上面定义
 
 // 获取艺术作品
 app.get('/api/art', async (req, res) => {

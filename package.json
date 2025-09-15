@@ -4,11 +4,11 @@
   "description": "校园平台项目",
   "main": "server/index.js",
   "scripts": {
-    "start": "node server/index.js",
+    "start": "cd server && npm start",
     "dev": "cd server && npm run dev",
     "build": "cd client && npm run build",
     "vercel-build": "npm install && cd client && npm install && npm run build",
-    "install-deps": "npm install && cd client && npm install && cd ../server && npm install"
+    "install-deps": "npm install && cd client && npm install && cd server && npm install"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
