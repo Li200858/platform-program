@@ -14,6 +14,7 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
 // 配置multer用于Cloudinary上传
 let storage;
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  console.log('配置Cloudinary存储...');
   storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
@@ -25,7 +26,9 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
       ]
     }
   });
+  console.log('Cloudinary存储配置完成');
 } else {
+  console.log('使用本地存储...');
   // 回退到本地存储
   const path = require('path');
   const fs = require('fs');
