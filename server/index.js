@@ -88,8 +88,8 @@ const upload = multer({
     }
   }),
   limits: { 
-    fileSize: 5 * 1024 * 1024, // 减少到5MB，大幅提高上传速度
-    files: 3 // 限制同时上传文件数量
+    fileSize: 2 * 1024 * 1024, // 进一步减少到2MB，极大提高上传速度
+    files: 1 // 限制同时上传1个文件
   },
   fileFilter: (req, file, cb) => {
     cb(null, true); // 允许所有文件类型
@@ -431,17 +431,91 @@ app.get('/api/admin/check', async (req, res) => {
   }
 
   try {
-    // 检查是否是李昌轩（固定管理员）
-    if (userName === '李昌轩') {
-      return res.json({ isAdmin: true, isInitial: true });
+    console.log(`🔍 检查管理员状态: "${userName}"`);
+    
+    // 检查是否是李昌轩（固定管理员）- 支持多种格式
+    const isLiChangxuan = userName === '李昌轩' || userName === '李昌轩' || userName.includes('李昌轩');
+    if (isLiChangxuan) {
+      console.log('✅ 识别为固定管理员: 李昌轩');
+      return res.json({ isAdmin: true, isInitial: true, name: '李昌轩' });
     }
 
     // 检查数据库中是否有该用户的管理员记录
-    const user = await User.findOne({ name: userName, role: 'admin' });
-    res.json({ isAdmin: !!user, isInitial: false });
+    const user = await User.findOne({ 
+      $or: [
+        { name: userName },
+        { userId: userName }
+      ],
+      role: 'admin' 
+    });
+    
+    if (user) {
+      console.log(`✅ 找到管理员用户: ${user.name} (${user.userId})`);
+      return res.json({ 
+        isAdmin: true, 
+        isInitial: false, 
+        name: user.name,
+        userId: user.userId,
+        class: user.class
+      });
+    }
+    
+    console.log(`❌ 用户 "${userName}" 不是管理员`);
+    res.json({ isAdmin: false, isInitial: false });
   } catch (error) {
-    console.error('检查管理员状态失败:', error);
+    console.error('❌ 检查管理员状态失败:', error);
     res.status(500).json({ error: '检查失败' });
+  }
+});
+
+// 用户身份映射API - 根据姓名获取用户信息
+app.get('/api/user/identity', async (req, res) => {
+  const { name } = req.query;
+  
+  if (!name) {
+    return res.status(400).json({ error: '缺少姓名参数' });
+  }
+
+  try {
+    console.log(`🔍 查找用户身份: "${name}"`);
+    
+    // 检查是否是李昌轩（固定管理员）
+    if (name === '李昌轩' || name.includes('李昌轩')) {
+      return res.json({
+        userId: '李昌轩',
+        name: '李昌轩',
+        class: 'NEE4',
+        role: 'admin',
+        isAdmin: true,
+        isInitial: true
+      });
+    }
+    
+    // 从数据库查找用户
+    const user = await User.findOne({ 
+      $or: [
+        { name: name },
+        { userId: name }
+      ]
+    });
+    
+    if (user) {
+      console.log(`✅ 找到用户: ${user.name} (${user.userId})`);
+      return res.json({
+        userId: user.userId || user.name,
+        name: user.name,
+        class: user.class || '未知',
+        role: user.role || 'user',
+        isAdmin: user.isAdmin || user.role === 'admin',
+        isInitial: false
+      });
+    }
+    
+    console.log(`❌ 用户 "${name}" 不存在`);
+    res.status(404).json({ error: '用户不存在' });
+  } catch (error) {
+    console.error('❌ 查找用户身份失败:', error);
+    res.status(500).json({ error: '查找失败' });
   }
 });
 

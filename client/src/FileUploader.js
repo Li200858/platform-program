@@ -49,17 +49,17 @@ export default function FileUploader({ onUpload }) {
     const file = fileInput.current.files[0];
     if (!file) return;
     
-    // 文件大小检查 (5MB限制)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('文件大小不能超过5MB，请压缩后上传');
+    // 文件大小检查 (2MB限制)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('文件大小不能超过2MB，请压缩后上传');
       return;
     }
     
     // 如果是图片，尝试压缩
     let fileToUpload = file;
-    if (file.type.startsWith('image/') && file.size > 512 * 1024) { // 大于512KB的图片就压缩
+    if (file.type.startsWith('image/') && file.size > 256 * 1024) { // 大于256KB的图片就压缩
       try {
-        fileToUpload = await compressImage(file, 0.7, 1200); // 更激进的压缩
+        fileToUpload = await compressImage(file, 0.6, 800); // 更激进的压缩
         console.log(`图片压缩: ${file.size} -> ${fileToUpload.size} bytes (${Math.round((1 - fileToUpload.size/file.size) * 100)}% 减少)`);
       } catch (error) {
         console.warn('图片压缩失败，使用原文件:', error);

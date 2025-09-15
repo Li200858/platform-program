@@ -33,11 +33,21 @@ function MainApp() {
   const checkAdminStatus = React.useCallback(async () => {
     try {
       if (userInfo && userInfo.name) {
+        console.log(`🔍 检查管理员状态: ${userInfo.name}`);
         const data = await api.admin.check(userInfo.name);
+        console.log('管理员状态检查结果:', data);
         setIsAdmin(data.isAdmin || false);
+        
+        // 更新用户信息
+        if (data.name && data.name !== userInfo.name) {
+          const updatedUserInfo = { ...userInfo, ...data };
+          setUserInfo(updatedUserInfo);
+          localStorage.setItem('user_profile', JSON.stringify(updatedUserInfo));
+        }
       }
     } catch (error) {
       console.error('检查管理员状态失败:', error);
+      setIsAdmin(false);
     }
   }, [userInfo]);
 
