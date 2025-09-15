@@ -60,19 +60,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 动态选择存储方式
-const isCloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+// 暂时使用最简单的本地存储配置
+console.log('⚠️  使用简化的本地存储配置');
 
-let upload;
-if (isCloudinaryConfigured) {
-  console.log('✅ 使用Cloudinary存储');
-  // 使用Cloudinary存储
-  const cloudinaryService = require('./services/cloudinaryService');
-  upload = cloudinaryService.upload;
-} else {
-  console.log('⚠️  使用本地存储（建议配置Cloudinary）');
-  // 使用本地存储
-  const localUpload = multer.diskStorage({
+const upload = multer({
+  storage: multer.diskStorage({
     destination: (req, file, cb) => {
       const uploadDir = 'uploads';
       if (!fs.existsSync(uploadDir)) {
@@ -82,40 +74,29 @@ if (isCloudinaryConfigured) {
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const originalName = file.originalname || 'file';
       
-      // 确保有原始文件名
-      let originalName = file.originalname || 'file';
-      
-      // 获取文件扩展名
-      const ext = originalName.split('.').pop();
-      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
-      
-      // 清理文件名，保留扩展名
+      // 简单处理文件名
+      const ext = originalName.split('.').pop() || 'bin';
+      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '') || 'file';
       const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9.-]/g, '_');
       const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
       
-      // 确保有扩展名
-      const finalName = cleanExt ? `${cleanName}.${cleanExt}` : `${cleanName}.bin`;
-      
-      console.log('文件名生成:', {
-        original: file.originalname,
-        cleanName,
-        cleanExt,
-        finalName
-      });
+      const finalName = `${cleanName}.${cleanExt}`;
+      console.log('文件名生成:', { original: file.originalname, finalName });
       
       cb(null, `${uniqueSuffix}-${finalName}`);
     }
-  });
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  fileFilter: (req, file, cb) => {
+    cb(null, true); // 允许所有文件类型
+  }
+});
 
-  upload = multer({
-    storage: localUpload,
-    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-    fileFilter: (req, file, cb) => {
-      cb(null, true); // 允许所有文件类型
-    }
-  });
-}
+// 检查Cloudinary配置状态
+const isCloudinaryConfigured = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+console.log('Cloudinary配置状态:', isCloudinaryConfigured);
 
 // 静态文件服务
 app.use(express.static('uploads'));
@@ -266,38 +247,34 @@ app.post('/api/art/:id/like', async (req, res) => {
 // 文件上传API
 app.post('/api/upload', upload.array('files', 10), (req, res) => {
   try {
+    console.log('文件上传请求开始...');
+    
     if (!req.files || req.files.length === 0) {
+      console.log('没有上传文件');
       return res.status(400).json({ error: '没有上传文件' });
     }
     
-    console.log('文件上传请求:', {
+    console.log('文件上传成功:', {
       filesCount: req.files.length,
-      isCloudinaryConfigured,
       firstFile: req.files[0] ? {
         filename: req.files[0].filename,
-        secure_url: req.files[0].secure_url,
+        originalname: req.files[0].originalname,
         path: req.files[0].path
       } : null
     });
     
+    // 使用本地存储，返回相对路径
     const fileUrls = req.files.map(file => {
-      if (isCloudinaryConfigured && file.secure_url) {
-        // 使用Cloudinary URL
-        console.log('使用Cloudinary URL:', file.secure_url);
-        return file.secure_url;
-      } else {
-        // 使用本地路径
-        console.log('使用本地路径:', `/uploads/${file.filename}`);
-        return `/uploads/${file.filename}`;
-      }
+      const url = `/uploads/${file.filename}`;
+      console.log('生成文件URL:', url);
+      return url;
     });
     
-    const storageType = isCloudinaryConfigured ? 'cloudinary' : 'local';
-    console.log('返回存储类型:', storageType);
-    res.json({ urls: fileUrls, storage: storageType });
+    console.log('返回文件URLs:', fileUrls);
+    res.json({ urls: fileUrls, storage: 'local' });
   } catch (error) {
     console.error('文件上传错误:', error);
-    res.status(500).json({ error: '文件上传失败' });
+    res.status(500).json({ error: '文件上传失败: ' + error.message });
   }
 });
 
