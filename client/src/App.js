@@ -8,6 +8,7 @@ import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import ErrorBoundary from './ErrorBoundary';
 import api from './api';
+import { checkEnvironment, testApiConnection } from './utils/envCheck';
 import './App.css';
 
 function MainApp() {
@@ -28,6 +29,11 @@ function MainApp() {
 
   useEffect(() => {
     loadUserInfo();
+    
+    // 检查环境配置和API连接
+    console.log('🚀 应用启动，开始环境检查...');
+    checkEnvironment();
+    testApiConnection();
   }, []);
 
   const checkAdminStatus = React.useCallback(async () => {

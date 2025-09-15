@@ -18,7 +18,13 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
   };
 
   const buildUrl = (url) => {
-    return buildFileUrl(url);
+    if (!url) {
+      console.warn('FilePreview: 尝试构建空URL');
+      return '';
+    }
+    const fullUrl = buildFileUrl(url);
+    console.log('FilePreview: 构建文件URL:', { original: url, full: fullUrl });
+    return fullUrl;
   };
 
   const getFileIcon = (fileType) => {
@@ -207,6 +213,21 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                 onClick={(e) => e.stopPropagation()}
                 onError={(e) => {
                   console.error('图片加载失败:', e.target.src);
+                  
+                  // 尝试直接访问文件URL进行诊断
+                  fetch(e.target.src)
+                    .then(response => {
+                      console.log('文件访问诊断:', {
+                        url: e.target.src,
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Object.fromEntries(response.headers.entries())
+                      });
+                    })
+                    .catch(fetchError => {
+                      console.error('文件访问失败:', fetchError);
+                    });
+                  
                   e.target.style.display = 'none';
                   // 显示错误信息
                   const errorDiv = document.createElement('div');
