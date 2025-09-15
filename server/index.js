@@ -461,19 +461,68 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
+// 测试端点：获取所有用户（用于调试）
+app.get('/api/admin/debug-users', async (req, res) => {
+  try {
+    console.log('🔍 调试：获取所有用户');
+    
+    // 检查数据库连接
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(500).json({ 
+        error: '数据库未连接', 
+        status: mongoose.connection.readyState 
+      });
+    }
+    
+    const users = await User.find({})
+      .select('name email class role isAdmin createdAt')
+      .sort({ createdAt: -1 })
+      .limit(50);
+    
+    console.log(`📊 找到 ${users.length} 个用户`);
+    
+    res.json({
+      count: users.length,
+      users: users.map(user => ({
+        name: user.name,
+        email: user.email || '',
+        class: user.class || '未知',
+        role: user.role || 'user',
+        isAdmin: user.isAdmin || false,
+        createdAt: user.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('❌ 调试获取用户失败:', error);
+    res.status(500).json({ 
+      error: '获取用户失败', 
+      details: error.message 
+    });
+  }
+});
+
 // 搜索用户
 app.get('/api/admin/search-users', async (req, res) => {
   const { q } = req.query;
   
-  if (!q) {
+  console.log(`🔍 收到搜索请求: "${q}"`);
+  
+  if (!q || q.trim().length === 0) {
+    console.log('❌ 搜索查询为空，返回空结果');
     return res.json([]);
   }
 
   try {
-    console.log(`开始搜索用户: "${q}"`);
+    // 检查数据库连接状态
+    if (mongoose.connection.readyState !== 1) {
+      console.error('❌ 数据库未连接，状态:', mongoose.connection.readyState);
+      return res.status(500).json({ error: '数据库连接失败' });
+    }
+    
+    console.log(`✅ 数据库连接正常，开始搜索用户: "${q}"`);
     
     // 只从User集合中搜索注册用户
-    const searchRegex = new RegExp(q, 'i');
+    const searchRegex = new RegExp(q.trim(), 'i');
     
     const users = await User.find({
       $or: [
@@ -481,23 +530,31 @@ app.get('/api/admin/search-users', async (req, res) => {
         { email: searchRegex }
       ]
     })
-    .select('name email class role isAdmin')
+    .select('name email class role isAdmin createdAt')
     .limit(20)
     .sort({ createdAt: -1 }); // 按创建时间倒序
+    
+    console.log(`📊 数据库查询完成，找到 ${users.length} 个用户`);
     
     const result = users.map(user => ({
       name: user.name,
       email: user.email || '',
       class: user.class || '未知',
       role: user.role || 'user',
-      isAdmin: user.isAdmin || false
+      isAdmin: user.isAdmin || false,
+      createdAt: user.createdAt
     }));
     
-    console.log(`搜索 "${q}" 找到 ${result.length} 个注册用户:`, result.map(u => u.name));
+    console.log(`✅ 搜索 "${q}" 成功，返回 ${result.length} 个结果:`, result.map(u => `${u.name}(${u.role})`));
     res.json(result);
   } catch (error) {
-    console.error('搜索用户失败:', error);
-    res.status(500).json({ error: '搜索失败' });
+    console.error('❌ 搜索用户失败:', error);
+    console.error('错误详情:', error.message);
+    res.status(500).json({ 
+      error: '搜索失败', 
+      details: error.message,
+      query: q 
+    });
   }
 });
 

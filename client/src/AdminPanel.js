@@ -107,12 +107,27 @@ export default function AdminPanel({ userInfo, onBack }) {
       return;
     }
 
+    console.log(`🔍 前端开始搜索用户: "${searchQuery}"`);
+    
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/search-users?q=${encodeURIComponent(searchQuery)}`);
+      const apiUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/admin/search-users?q=${encodeURIComponent(searchQuery)}`;
+      console.log(`📡 请求URL: ${apiUrl}`);
+      
+      const res = await fetch(apiUrl);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error('❌ 搜索请求失败:', res.status, errorData);
+        alert(`搜索失败: ${errorData.error || '未知错误'}`);
+        return;
+      }
+      
       const data = await res.json();
+      console.log(`✅ 搜索成功，收到 ${data.length} 个结果:`, data);
       setSearchResults(data || []);
     } catch (error) {
-      console.error('搜索用户失败:', error);
+      console.error('❌ 搜索用户失败:', error);
+      alert(`搜索失败: ${error.message}`);
     }
   };
 
