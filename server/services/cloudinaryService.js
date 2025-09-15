@@ -27,7 +27,6 @@ if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && proce
   });
 } else {
   // 回退到本地存储
-  const multer = require('multer');
   const path = require('path');
   const fs = require('fs');
   
