@@ -62,6 +62,26 @@ app.get('/uploads/*', (req, res) => {
   // 检查文件是否存在
   if (fs.existsSync(actualPath)) {
     console.log('文件存在，开始发送文件');
+    // 设置正确的Content-Type
+    const ext = path.extname(actualPath).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.ogg': 'video/ogg',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.pdf': 'application/pdf',
+      '.txt': 'text/plain'
+    };
+    
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
     res.sendFile(actualPath);
   } else {
     console.log('文件不存在');
@@ -85,7 +105,9 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    // 清理文件名，移除特殊字符
+    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    cb(null, uniqueSuffix + '-' + cleanName);
   }
 });
 
@@ -110,7 +132,7 @@ app.post('/api/upload', upload.array('files', 10), (req, res) => {
       return res.status(400).json({ error: '没有上传文件' });
     }
     
-    const fileUrls = req.files.map(file => `/${file.filename}`);
+    const fileUrls = req.files.map(file => `/uploads/${file.filename}`);
     res.json({ urls: fileUrls });
   } catch (error) {
     console.error('文件上传错误:', error);
@@ -755,6 +777,61 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+// 文件检查端点
+app.get('/api/check-file/:filename', (req, res) => {
+  const { filename } = req.params;
+  const fs = require('fs');
+  const path = require('path');
+  
+  const filePath = path.join(__dirname, 'uploads', filename);
+  const exists = fs.existsSync(filePath);
+  
+  let filesInUploads = [];
+  try {
+    filesInUploads = fs.readdirSync(path.join(__dirname, 'uploads'));
+  } catch (error) {
+    console.error('读取uploads目录失败:', error);
+  }
+  
+  res.json({
+    filename,
+    exists,
+    path: filePath,
+    uploadsDir: path.join(__dirname, 'uploads'),
+    filesInUploads,
+    environment: process.env.NODE_ENV,
+    platform: process.platform,
+    railway: !!process.env.RAILWAY_ENVIRONMENT
+  });
+});
+
+// 获取所有上传的文件列表
+app.get('/api/files', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  try {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    const files = fs.readdirSync(uploadsDir);
+    const fileList = files.map(file => ({
+      name: file,
+      path: `/uploads/${file}`,
+      fullPath: path.join(uploadsDir, file),
+      exists: fs.existsSync(path.join(uploadsDir, file))
+    }));
+    
+    res.json({
+      files: fileList,
+      count: files.length,
+      uploadsDir,
+      environment: process.env.NODE_ENV
+    });
+  } catch (error) {
+    console.error('获取文件列表失败:', error);
+    res.status(500).json({ error: '获取文件列表失败', details: error.message });
+  }
 });
 
 // 管理员相关API
