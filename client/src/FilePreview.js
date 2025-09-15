@@ -49,7 +49,9 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    link.href = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+    // 确保URL正确构建，处理相对路径
+    const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+    link.href = fullUrl;
     link.download = filename || url.split('/').pop();
     link.target = '_blank';
     document.body.appendChild(link);
@@ -203,6 +205,14 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                 onError={(e) => {
                   console.error('图片加载失败:', e.target.src);
                   e.target.style.display = 'none';
+                  // 显示错误信息
+                  const errorDiv = document.createElement('div');
+                  errorDiv.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+                  errorDiv.textContent = '图片加载失败，请检查文件是否存在';
+                  e.target.parentNode.appendChild(errorDiv);
+                }}
+                onLoad={(e) => {
+                  console.log('图片加载成功:', e.target.src);
                 }}
               />
             )}
@@ -219,6 +229,14 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                 onClick={(e) => e.stopPropagation()}
                 onError={(e) => {
                   console.error('视频加载失败:', e.target.src);
+                  e.target.style.display = 'none';
+                  const errorDiv = document.createElement('div');
+                  errorDiv.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+                  errorDiv.textContent = '视频加载失败，请检查文件是否存在';
+                  e.target.parentNode.appendChild(errorDiv);
+                }}
+                onLoad={(e) => {
+                  console.log('视频加载成功:', e.target.src);
                 }}
               />
             )}
@@ -231,6 +249,13 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                   style={{ width: '100%', maxWidth: '400px' }}
                   onError={(e) => {
                     console.error('音频加载失败:', e.target.src);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+                    errorDiv.textContent = '音频加载失败，请检查文件是否存在';
+                    e.target.parentNode.appendChild(errorDiv);
+                  }}
+                  onLoad={(e) => {
+                    console.log('音频加载成功:', e.target.src);
                   }}
                 />
               </div>
@@ -244,6 +269,13 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                   title="文档预览"
                   onError={(e) => {
                     console.error('文档加载失败:', e.target.src);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+                    errorDiv.textContent = '文档加载失败，请检查文件是否存在';
+                    e.target.parentNode.appendChild(errorDiv);
+                  }}
+                  onLoad={(e) => {
+                    console.log('文档加载成功:', e.target.src);
                   }}
                 />
               </div>

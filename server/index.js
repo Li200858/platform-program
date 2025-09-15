@@ -38,9 +38,41 @@ app.use((req, res, next) => {
 });
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: true, // 允许所有来源
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static('uploads'));
+
+// 添加静态文件服务路由，处理URL编码的文件名
+app.get('/uploads/*', (req, res) => {
+  const filePath = req.path;
+  const decodedPath = decodeURIComponent(filePath);
+  const fs = require('fs');
+  const path = require('path');
+  
+  console.log('请求文件路径:', filePath);
+  console.log('解码后路径:', decodedPath);
+  
+  // 构建实际文件路径
+  const actualPath = path.join(__dirname, decodedPath);
+  console.log('实际文件路径:', actualPath);
+  
+  // 检查文件是否存在
+  if (fs.existsSync(actualPath)) {
+    console.log('文件存在，开始发送文件');
+    res.sendFile(actualPath);
+  } else {
+    console.log('文件不存在');
+    res.status(404).json({ 
+      error: '文件不存在',
+      requestedPath: filePath,
+      decodedPath: decodedPath,
+      actualPath: actualPath
+    });
+  }
+});
 
 // 文件上传配置
 const storage = multer.diskStorage({
