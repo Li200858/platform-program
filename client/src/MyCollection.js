@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+import React, { useState, useEffect } from 'react';
+import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+import { useMessage } from './MessageContext';
 
 import Avatar from './Avatar';
+import FilePreview from './FilePreview';
 import api from './api';
 
 export default function MyCollection({ userInfo, onBack }) {
@@ -10,6 +13,7 @@ export default function MyCollection({ userInfo, onBack }) {
   const [activityFavorites, setActivityFavorites] = useState([]);
   const [activityLikes, setActivityLikes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { showSuccess, showError } = useMessage();
 
   const loadData = React.useCallback(async () => {
     if (!userInfo || !userInfo.name) {
@@ -22,7 +26,11 @@ export default function MyCollection({ userInfo, onBack }) {
       console.log('加载数据，用户:', userInfo.name, '标签:', activeTab);
       if (activeTab === 'favorites') {
         // 加载艺术作品收藏
-        const artData = await api.art.getFavorites(userInfo.name);
+        const artRes = await fetch(buildApiUrl(`/api/art/favorites?authorName=${encodeURIComponent(userInfo.name)}`));
+        if (!artRes.ok) {
+          throw new Error(`HTTP error! status: ${artRes.status}`);
+        }
+        const artData = await artRes.json();
         console.log('艺术作品收藏数据:', artData);
         
         // 加载活动收藏
@@ -40,7 +48,11 @@ export default function MyCollection({ userInfo, onBack }) {
         setFavorites([...artWithType, ...activityWithType]);
       } else {
         // 加载艺术作品喜欢
-        const artData = await api.art.getLikes(userInfo.name);
+        const artRes = await fetch(buildApiUrl(`/api/art/likes?authorName=${encodeURIComponent(userInfo.name)}`));
+        if (!artRes.ok) {
+          throw new Error(`HTTP error! status: ${artRes.status}`);
+        }
+        const artData = await artRes.json();
         console.log('艺术作品喜欢数据:', artData);
         
         // 加载活动喜欢
@@ -70,7 +82,7 @@ export default function MyCollection({ userInfo, onBack }) {
 
   const handleUnfavorite = async (id, type) => {
     if (!userInfo || !userInfo.name) {
-      alert('用户信息不完整，无法操作');
+      showError('用户信息不完整，无法操作');
       return;
     }
 
@@ -84,19 +96,19 @@ export default function MyCollection({ userInfo, onBack }) {
       
       if (res.ok) {
         setFavorites(prev => prev.filter(item => item._id !== id));
-        alert('已取消收藏');
+        showSuccess('已取消收藏');
       } else {
         const errorData = await res.json();
-        alert(errorData.error || '操作失败');
+        showError(errorData.error || '操作失败');
       }
     } catch (error) {
-      alert('操作失败');
+      showError('操作失败');
     }
   };
 
   const handleUnlike = async (id, type) => {
     if (!userInfo || !userInfo.name) {
-      alert('用户信息不完整，无法操作');
+      showError('用户信息不完整，无法操作');
       return;
     }
 
@@ -110,75 +122,25 @@ export default function MyCollection({ userInfo, onBack }) {
       
       if (res.ok) {
         setLikes(prev => prev.filter(item => item._id !== id));
-        alert('已取消喜欢');
+        showSuccess('已取消喜欢');
       } else {
         const errorData = await res.json();
-        alert(errorData.error || '操作失败');
+        showError(errorData.error || '操作失败');
       }
     } catch (error) {
-      alert('操作失败');
+      showError('操作失败');
     }
   };
 
-  const renderMedia = (urls) => (
-    <div style={{ marginTop: 8 }}>
-      {urls && urls.map((url, idx) => {
-        if (!url || url.trim() === '') return null;
-        
-        const ext = url.split('.').pop().toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
-          return (
-            <img
-              key={idx}
-              src={url}
-              alt={`媒体 ${idx + 1}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: 200,
-                borderRadius: 8,
-                marginRight: 8,
-                marginBottom: 8,
-                objectFit: 'cover'
-              }}
-            />
-          );
-        } else if (['mp4', 'webm', 'ogg', 'avi', 'mov'].includes(ext)) {
-          return (
-            <video
-              key={idx}
-              src={url}
-              controls
-              style={{
-                maxWidth: '100%',
-                maxHeight: 200,
-                borderRadius: 8,
-                marginRight: 8,
-                marginBottom: 8
-              }}
-            />
-          );
-        } else {
-          return (
-            <div
-              key={idx}
-              style={{
-                display: 'inline-block',
-                padding: '8px 12px',
-                backgroundColor: '#f8f9fa',
-                borderRadius: 8,
-                marginRight: 8,
-                marginBottom: 8,
-                fontSize: '14px',
-                color: '#6c757d'
-              }}
-            >
-              📎 {url.split('/').pop()}
-            </div>
-          );
-        }
-      })}
-    </div>
-  );
+  const renderMedia = (urls) => {
+    if (!urls || urls.length === 0) return null;
+    
+    // 过滤掉空URL
+    const validUrls = urls.filter(url => url && url.trim() !== '');
+    if (validUrls.length === 0) return null;
+    
+    return <FilePreview urls={validUrls} apiBaseUrl={buildApiUrl('')} />;
+  };
 
   const renderItem = (item, isFavorite = false) => (
     <div key={item._id} style={{

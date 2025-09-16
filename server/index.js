@@ -79,25 +79,30 @@ let cloudinaryStorage = null;
 
 if (cloudinaryConfigured) {
   cloudinaryStorage = new CloudinaryStorage();
-  console.log('✅ Cloudinary配置完成，使用云存储');
+  console.log('✅ Cloudinary配置完成，强制使用云存储');
 } else {
-  console.log('⚠️  Cloudinary配置不完整，使用本地存储');
+  console.log('❌ Cloudinary配置不完整，文件上传功能将不可用');
+  console.log('💡 请设置以下环境变量以启用文件上传:');
+  console.log('   - CLOUDINARY_CLOUD_NAME');
+  console.log('   - CLOUDINARY_API_KEY');
+  console.log('   - CLOUDINARY_API_SECRET');
 }
 
 // 配置multer - 使用内存存储以便上传到Cloudinary
 const upload = multer({
   storage: multer.memoryStorage(), // 使用内存存储
   limits: { 
-    fileSize: 10 * 1024 * 1024, // 增加到10MB，Cloudinary支持更大文件
-    files: 5 // 允许同时上传5个文件
+    fileSize: 50 * 1024 * 1024, // 增加到50MB，支持更大文件
+    files: 10 // 允许同时上传10个文件
   },
   fileFilter: (req, file, cb) => {
     // 允许所有文件类型，Cloudinary会自动处理
+    console.log(`📁 文件上传: ${file.originalname}, 类型: ${file.mimetype}, 大小: ${file.size} bytes`);
     cb(null, true);
   }
 });
 
-console.log(cloudinaryConfigured ? '使用Cloudinary云存储' : '使用本地文件存储');
+console.log(cloudinaryConfigured ? '✅ 强制使用Cloudinary云存储' : '❌ 文件存储服务不可用');
 
 // 静态文件服务
 app.use('/uploads', express.static('uploads'));
@@ -122,19 +127,53 @@ app.get('/uploads/*', (req, res) => {
     // 设置正确的Content-Type
     const ext = path.extname(actualPath).toLowerCase();
     const mimeTypes = {
+      // 图片格式
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
       '.png': 'image/png',
       '.gif': 'image/gif',
       '.webp': 'image/webp',
+      '.bmp': 'image/bmp',
       '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon',
+      // 视频格式
       '.mp4': 'video/mp4',
       '.webm': 'video/webm',
       '.ogg': 'video/ogg',
+      '.avi': 'video/x-msvideo',
+      '.mov': 'video/quicktime',
+      '.wmv': 'video/x-ms-wmv',
+      '.flv': 'video/x-flv',
+      // 音频格式
       '.mp3': 'audio/mpeg',
       '.wav': 'audio/wav',
+      '.ogg': 'audio/ogg',
+      '.aac': 'audio/aac',
+      '.flac': 'audio/flac',
+      '.m4a': 'audio/mp4',
+      // 文档格式
       '.pdf': 'application/pdf',
-      '.txt': 'text/plain'
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls': 'application/vnd.ms-excel',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.ppt': 'application/vnd.ms-powerpoint',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.txt': 'text/plain',
+      '.csv': 'text/csv',
+      '.rtf': 'application/rtf',
+      // 压缩文件
+      '.zip': 'application/zip',
+      '.rar': 'application/x-rar-compressed',
+      '.7z': 'application/x-7z-compressed',
+      '.tar': 'application/x-tar',
+      '.gz': 'application/gzip',
+      // 其他格式
+      '.json': 'application/json',
+      '.xml': 'application/xml',
+      '.html': 'text/html',
+      '.css': 'text/css',
+      '.js': 'application/javascript'
     };
     
     const contentType = mimeTypes[ext] || 'application/octet-stream';
@@ -288,21 +327,28 @@ app.post('/api/upload', upload.array('files', 5), async (req, res) => {
         const failedUploads = uploadResults.filter(result => !result.success);
         if (failedUploads.length > 0) {
           console.warn('⚠️  部分文件上传失败:', failedUploads);
+          // 如果有文件上传失败，返回错误
+          return res.status(500).json({ 
+            error: '部分文件上传失败', 
+            failedFiles: failedUploads.map(f => f.error),
+            successfulFiles: urls.length
+          });
         }
         
       } catch (cloudinaryError) {
         console.error('❌ Cloudinary上传失败:', cloudinaryError);
-        // 回退到本地存储
-        console.log('🔄 回退到本地存储...');
-        storageType = 'local';
-        urls = req.files.map(file => `/uploads/${Date.now()}-${file.originalname}`);
-        totalSize = req.files.reduce((sum, file) => sum + file.size, 0);
+        return res.status(500).json({ 
+          error: '文件上传失败: ' + cloudinaryError.message,
+          details: '请检查Cloudinary配置或稍后重试'
+        });
       }
     } else {
-      // 使用本地存储
-      console.log('💾 使用本地存储...');
-      urls = req.files.map(file => `/uploads/${Date.now()}-${file.originalname}`);
-      totalSize = req.files.reduce((sum, file) => sum + file.size, 0);
+      // Cloudinary未配置，拒绝上传
+      console.error('❌ Cloudinary未配置，拒绝文件上传');
+      return res.status(500).json({ 
+        error: '文件存储服务未配置',
+        details: '请联系管理员配置Cloudinary存储服务'
+      });
     }
     
     res.json({
@@ -323,14 +369,19 @@ app.post('/api/upload', upload.array('files', 5), async (req, res) => {
 app.get('/api/storage-config', async (req, res) => {
   try {
     const config = {
-      storageType: cloudinaryConfigured ? 'cloudinary' : 'local',
+      storageType: cloudinaryConfigured ? 'cloudinary' : 'none',
       cloudinary: {
         configured: cloudinaryConfigured,
-        connected: false
+        connected: false,
+        required: true // 标记为必需
       },
       local: {
-        configured: true,
-        path: path.join(__dirname, 'uploads')
+        configured: false, // 本地存储已禁用
+        enabled: false
+      },
+      policy: {
+        forceCloudinary: true,
+        fallbackDisabled: true
       }
     };
     
@@ -455,6 +506,28 @@ app.get('/api/art/likes', async (req, res) => {
   } catch (error) {
     console.error('获取喜欢作品失败:', error);
     res.status(500).json({ error: '获取喜欢作品失败' });
+  }
+});
+
+// 删除艺术作品
+app.delete('/api/art/:id', async (req, res) => {
+  const { id } = req.params;
+  const { authorName, isAdmin } = req.query;
+  
+  try {
+    const art = await Art.findById(id);
+    if (!art) return res.status(404).json({ error: '作品不存在' });
+    
+    // 检查权限：只有作者或管理员可以删除
+    if (art.authorName !== authorName && isAdmin !== 'true') {
+      return res.status(403).json({ error: '无权限删除此作品' });
+    }
+    
+    await Art.findByIdAndDelete(id);
+    res.json({ message: '作品删除成功' });
+  } catch (error) {
+    console.error('删除作品失败:', error);
+    res.status(500).json({ error: '删除作品失败' });
   }
 });
 
@@ -590,6 +663,29 @@ app.get('/api/admin/feedback', async (req, res) => {
   } catch (error) {
     console.error('获取反馈失败:', error);
     res.status(500).json({ error: '获取反馈失败' });
+  }
+});
+
+// 删除反馈（管理员功能）
+app.delete('/api/admin/feedback/:id', async (req, res) => {
+  const { id } = req.params;
+  const { adminName } = req.query;
+  
+  try {
+    // 检查管理员权限
+    const admin = await User.findOne({ name: adminName, role: 'admin' });
+    if (!admin && adminName !== '李昌轩') {
+      return res.status(403).json({ error: '无权限删除反馈' });
+    }
+    
+    const feedback = await Feedback.findById(id);
+    if (!feedback) return res.status(404).json({ error: '反馈不存在' });
+    
+    await Feedback.findByIdAndDelete(id);
+    res.json({ message: '反馈删除成功' });
+  } catch (error) {
+    console.error('删除反馈失败:', error);
+    res.status(500).json({ error: '删除反馈失败' });
   }
 });
 

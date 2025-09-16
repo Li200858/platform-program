@@ -34,7 +34,19 @@ export const buildFileUrl = (filePath) => {
     return filePath;
   }
   
-  // 构建完整URL
+  // 如果是Cloudinary的public_id，构建Cloudinary URL
+  if (filePath.startsWith('platform-program/')) {
+    return `https://res.cloudinary.com/dpilqeizp/image/upload/${filePath}`;
+  }
+  
+  // 如果是旧的本地路径，尝试从Cloudinary获取
+  if (filePath.startsWith('/uploads/')) {
+    // 提取文件名并尝试从Cloudinary获取
+    const fileName = filePath.split('/').pop();
+    return `https://res.cloudinary.com/dpilqeizp/image/upload/platform-program/${fileName}`;
+  }
+  
+  // 其他情况，构建完整URL
   const baseUrl = getApiUrl();
   if (filePath.startsWith('/')) {
     return `${baseUrl}${filePath}`;

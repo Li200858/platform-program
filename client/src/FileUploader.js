@@ -1,4 +1,6 @@
-import React, { useRef, useState } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+import React, { useRef, useState } from 'react';
+import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+import { useMessage } from './MessageContext';
 
 import api from './api';
 
@@ -45,14 +47,15 @@ export default function FileUploader({ onUpload }) {
   const fileInput = useRef();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { showError, showSuccess } = useMessage();
 
   const handleUpload = async () => {
     const file = fileInput.current.files[0];
     if (!file) return;
     
-    // 文件大小检查 (2MB限制)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('文件大小不能超过2MB，请压缩后上传');
+    // 文件大小检查 (50MB限制)
+    if (file.size > 50 * 1024 * 1024) {
+      showError('文件大小不能超过50MB，请压缩后上传');
       return;
     }
     
@@ -70,11 +73,11 @@ export default function FileUploader({ onUpload }) {
     // 文件类型检查
     const allowedTypes = [
       // 图片
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp',
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/x-icon',
       // 视频
-      'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov',
+      'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov', 'video/x-msvideo', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv',
       // 音频
-      'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg',
+      'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mpeg', 'audio/aac', 'audio/flac', 'audio/mp4',
       // 文档
       'application/pdf',
       'application/msword',
@@ -83,14 +86,17 @@ export default function FileUploader({ onUpload }) {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-powerpoint',
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/rtf',
       // 文本
-      'text/plain', 'text/csv',
+      'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript',
+      // 代码文件
+      'application/json', 'application/xml', 'application/javascript',
       // 压缩文件
-      'application/zip', 'application/x-rar-compressed'
+      'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip'
     ];
     
     if (!allowedTypes.includes(file.type)) {
-      alert('不支持的文件类型。支持：图片、视频、音频、文档、文本、压缩文件');
+      showError('不支持的文件类型。支持：图片、视频、音频、文档、文本、压缩文件');
       return;
     }
     
@@ -147,9 +153,19 @@ export default function FileUploader({ onUpload }) {
       
       const data = await uploadPromise;
       onUpload(data.urls[0]);
+      showSuccess('文件上传成功！');
     } catch (error) {
       console.error('文件上传失败:', error);
-      alert('上传失败：' + (error.message || '请检查网络连接'));
+      let errorMessage = '上传失败：' + (error.message || '请检查网络连接');
+      
+      // 如果是存储服务未配置的错误，提供更友好的提示
+      if (error.message && error.message.includes('文件存储服务未配置')) {
+        errorMessage = '文件存储服务未配置，请联系管理员';
+      } else if (error.message && error.message.includes('Cloudinary')) {
+        errorMessage = '云存储服务暂时不可用，请稍后重试';
+      }
+      
+      showError(errorMessage);
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -162,7 +178,7 @@ export default function FileUploader({ onUpload }) {
         type="file" 
         ref={fileInput} 
         onChange={handleUpload}
-        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar"
+        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.7z,.tar,.gz,.json,.xml,.html,.css,.js,.rtf"
         style={{ marginBottom: '10px' }}
         disabled={uploading}
       />
@@ -188,7 +204,9 @@ export default function FileUploader({ onUpload }) {
         </div>
       )}
       <div style={{ fontSize: '12px', color: '#666' }}>
-        支持图片、视频、音频、文档、文本、压缩文件，最大10MB
+        支持图片、视频、音频、文档、文本、代码、压缩文件，最大50MB
+        <br />
+        <span style={{ color: '#007bff' }}>☁️ 文件将上传到云存储服务</span>
       </div>
     </div>
   );

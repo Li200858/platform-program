@@ -32,7 +32,10 @@ export default function MessageToast({ message, type = 'info', duration = 3000, 
       boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
       transform: visible ? 'translateX(0)' : 'translateX(100%)',
       transition: 'transform 0.3s ease-in-out',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     };
 
     switch (type) {
@@ -48,9 +51,24 @@ export default function MessageToast({ message, type = 'info', duration = 3000, 
     }
   };
 
+  const getIcon = () => {
+    switch (type) {
+      case 'success':
+        return '✅';
+      case 'error':
+        return '❌';
+      case 'warning':
+        return '⚠️';
+      case 'info':
+      default:
+        return 'ℹ️';
+    }
+  };
+
   return (
     <div style={getStyle()} onClick={() => setVisible(false)}>
-      {message}
+      <span style={{ fontSize: '16px' }}>{getIcon()}</span>
+      <span>{message}</span>
     </div>
   );
 }

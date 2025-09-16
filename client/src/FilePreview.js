@@ -9,11 +9,12 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
     const ext = url.split('.').pop().toLowerCase();
     return {
       ext,
-      isImage: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext),
-      isVideo: ['mp4', 'webm', 'ogg', 'avi', 'mov', 'wmv'].includes(ext),
-      isAudio: ['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(ext),
-      isDocument: ['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(ext),
-      isArchive: ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)
+      isImage: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'].includes(ext),
+      isVideo: ['mp4', 'webm', 'ogg', 'avi', 'mov', 'wmv', 'flv'].includes(ext),
+      isAudio: ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'].includes(ext),
+      isDocument: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'rtf'].includes(ext),
+      isArchive: ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext),
+      isCode: ['js', 'html', 'css', 'json', 'xml'].includes(ext)
     };
   };
 
@@ -33,6 +34,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
     if (fileType.isAudio) return '🎵';
     if (fileType.isDocument) return '📄';
     if (fileType.isArchive) return '📦';
+    if (fileType.isCode) return '💻';
     return '📎';
   };
 
@@ -49,10 +51,14 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
       const ext = url.split('.').pop().toLowerCase();
       if (ext === 'pdf') {
         setPreviewType('document');
+      } else if (['txt', 'csv', 'json', 'xml', 'html', 'css', 'js'].includes(ext)) {
+        setPreviewType('text');
       } else {
         // Word、Excel等文档不支持在线预览，直接显示下载选项
         setPreviewType('download');
       }
+    } else if (fileType.isCode) {
+      setPreviewType('text');
     } else {
       setPreviewType('download');
     }
@@ -300,6 +306,26 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
                   }}
                   onLoad={(e) => {
                     console.log('文档加载成功:', e.target.src);
+                  }}
+                />
+              </div>
+            )}
+            
+            {previewType === 'text' && (
+              <div style={{ width: '800px', height: '600px', padding: '20px' }}>
+                <iframe
+                  src={buildUrl(previewFile)}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="文本预览"
+                  onError={(e) => {
+                    console.error('文本加载失败:', e.target.src);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'padding: 20px; text-align: center; color: #666;';
+                    errorDiv.textContent = '文本加载失败，请检查文件是否存在';
+                    e.target.parentNode.appendChild(errorDiv);
+                  }}
+                  onLoad={(e) => {
+                    console.log('文本加载成功:', e.target.src);
                   }}
                 />
               </div>

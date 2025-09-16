@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+import React, { useState, useEffect } from 'react';
+import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
 
 import api from './api';
 import FileUploader from './FileUploader';
@@ -76,6 +77,30 @@ export default function AdminPanel({ userInfo, onBack }) {
       console.error('加载活动失败:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteFeedback = async (id) => {
+    if (!userInfo || !userInfo.name) {
+      alert('用户信息不完整，无法操作');
+      return;
+    }
+
+    try {
+      const res = await fetch(buildApiUrl(`/api/admin/feedback/${id}?adminName=${encodeURIComponent(userInfo.name)}`), {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        setFeedbacks(prev => prev.filter(item => item._id !== id));
+        alert('反馈删除成功！');
+      } else {
+        const error = await res.json();
+        alert(error.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除失败:', error);
+      alert('删除失败');
     }
   };
 
@@ -284,8 +309,7 @@ export default function AdminPanel({ userInfo, onBack }) {
         <button
           onClick={() => {
             if (window.confirm('确定要删除这条反馈吗？')) {
-              // 这里可以添加删除反馈的API调用
-              alert('删除功能待实现');
+              deleteFeedback(feedback._id);
             }
           }}
           style={{
@@ -851,12 +875,19 @@ export default function AdminPanel({ userInfo, onBack }) {
       )}
 
       {/* 创建活动表单 */}
-      {showCreateActivity && <CreateActivityForm />}
+      {showCreateActivity && <CreateActivityForm 
+        userInfo={userInfo}
+        onClose={() => setShowCreateActivity(false)}
+        onSuccess={(newActivity) => {
+          setActivities(prev => [newActivity, ...prev]);
+          setShowCreateActivity(false);
+        }}
+      />}
     </div>
   );
 
   // 创建活动表单组件
-  function CreateActivityForm() {
+  function CreateActivityForm({ userInfo, onClose, onSuccess }) {
     const [formData, setFormData] = useState({
       title: '',
       description: '',
@@ -894,9 +925,8 @@ export default function AdminPanel({ userInfo, onBack }) {
 
         if (res.ok) {
           const newActivity = await res.json();
-          setActivities(prev => [newActivity, ...prev]);
+          onSuccess(newActivity);
           setFormData({ title: '', description: '', startDate: '', endDate: '', image: '' });
-          setShowCreateActivity(false);
           alert('活动创建成功！');
         } else {
           const error = await res.json();
@@ -1086,7 +1116,7 @@ export default function AdminPanel({ userInfo, onBack }) {
             <div style={{ display: 'flex', gap: 15, justifyContent: 'center' }}>
               <button
                 type="button"
-                onClick={() => setShowCreateActivity(false)}
+                onClick={onClose}
                 style={{
                   padding: '12px 24px',
                   backgroundColor: '#95a5a6',

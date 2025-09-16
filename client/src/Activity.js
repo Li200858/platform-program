@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
+import React, { useState, useEffect } from 'react';
+import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
 
 import Avatar from './Avatar';
 import FileUploader from './FileUploader';
