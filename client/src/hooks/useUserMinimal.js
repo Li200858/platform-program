@@ -47,6 +47,22 @@ export const useUserMinimal = () => {
     localStorage.removeItem('userProfile');
   };
 
+  // 检查权限
+  const hasPermission = (permission) => {
+    if (!isLoggedIn) return false;
+    
+    switch (permission) {
+      case 'admin':
+        return isAdmin;
+      case 'create':
+        return isLoggedIn;
+      case 'comment':
+        return isLoggedIn;
+      default:
+        return false;
+    }
+  };
+
   return {
     userInfo,
     isLoggedIn,
@@ -54,6 +70,7 @@ export const useUserMinimal = () => {
     loading,
     updateUserInfo,
     logout,
+    hasPermission,
     // 为了兼容现有代码，添加这些别名
     name: userInfo?.name || '',
     class: userInfo?.class || '',
