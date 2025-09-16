@@ -43,7 +43,7 @@ testCloudinaryConnection()
     }
   })
   .catch(error => {
-    console.error('❌ 测试失败:', error.message);
+    console.error('❌ 测试失败:', error.message || error);
     process.exit(1);
   });
 
