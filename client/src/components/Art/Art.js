@@ -156,7 +156,7 @@ const Art = () => {
   // 加载数据
   useEffect(() => {
     loadItems();
-  }, [loadItems]);
+  }, [activeTab, sort]); // 只依赖真正需要的状态
 
   // 加载本地交互数据
   useEffect(() => {

@@ -41,7 +41,7 @@ export default function MyWorks({ userInfo, onBack }) {
     if (userInfo && userInfo.name) {
       loadMyWorks();
     }
-  }, [userInfo, loadMyWorks]);
+  }, [userInfo]); // 只依赖userInfo
 
   const handleDelete = async (id) => {
     if (!window.confirm('确定要删除这个作品吗？此操作不可恢复。')) {

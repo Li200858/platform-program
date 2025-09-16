@@ -78,7 +78,7 @@ export default function MyCollection({ userInfo, onBack }) {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [activeTab, userInfo]); // 只依赖真正需要的状态
 
   const handleUnfavorite = async (id, type) => {
     if (!userInfo || !userInfo.name) {
