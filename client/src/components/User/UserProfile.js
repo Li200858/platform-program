@@ -5,7 +5,7 @@ import Button from '../common/Button';
 import Input from '../common/Input';
 import Avatar from '../../Avatar';
 import FileUploader from '../../FileUploader';
-import { useUserMinimal as useUser } from '../../hooks/useUserMinimal';
+import { useUserBasic as useUser } from '../../hooks/useUserBasic';
 import { useApiMinimal as useApi } from '../../hooks/useApiMinimal';
 import { validation } from '../../utils/validation';
 

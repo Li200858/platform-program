@@ -8,7 +8,7 @@ import ArtForm from './ArtForm';
 import { ART_TABS, SORT_OPTIONS } from '../../utils/constants';
 import { interactionStorage } from '../../utils/storage';
 import { useApiMinimal as useApi } from '../../hooks/useApiMinimal';
-import { useUserMinimal as useUser } from '../../hooks/useUserMinimal';
+import { useUserBasic as useUser } from '../../hooks/useUserBasic';
 
 const Art = () => {
   const [activeTab, setActiveTab] = useState('all');
