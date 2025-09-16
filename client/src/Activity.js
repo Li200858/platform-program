@@ -49,7 +49,7 @@ export default function Activity({ userInfo, onBack }) {
       const res = await fetch(buildApiUrl(`/api/activities/${id}/like`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userInfo.name })
+        body: JSON.stringify({ userId: userInfo.userId || userInfo.name })
       });
       
       if (!res.ok) {
@@ -86,7 +86,7 @@ export default function Activity({ userInfo, onBack }) {
       const res = await fetch(buildApiUrl(`/api/activities/${id}/favorite`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userInfo.name })
+        body: JSON.stringify({ userId: userInfo.userId || userInfo.name })
       });
       
       if (!res.ok) {

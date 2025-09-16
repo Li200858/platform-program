@@ -70,7 +70,7 @@ function MainApp() {
       case 'activity':
         return <Activity userInfo={userInfo} onBack={() => setSection('art')} />;
       case 'feedback':
-        return <Feedback userInfo={userInfo} />;
+        return <Feedback />;
       case 'profile':
         return <UserProfile onBack={() => setSection('art')} onUserInfoUpdate={() => window.location.reload()} />;
       case 'collection':

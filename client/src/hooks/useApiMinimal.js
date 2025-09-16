@@ -46,13 +46,13 @@ export const useApiMinimal = () => {
     create: (data) => callApi('/api/art', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => callApi(`/api/art/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => callApi(`/api/art/${id}`, { method: 'DELETE' }),
-    toggleLike: (id, userName) => callApi(`/api/art/${id}/like`, { 
+    toggleLike: (id, userId) => callApi(`/api/art/${id}/like`, { 
       method: 'POST', 
-      body: JSON.stringify({ userName }) 
+      body: JSON.stringify({ userId }) 
     }),
-    toggleFavorite: (id, userName) => callApi(`/api/art/${id}/favorite`, { 
+    toggleFavorite: (id, userId) => callApi(`/api/art/${id}/favorite`, { 
       method: 'POST', 
-      body: JSON.stringify({ userName }) 
+      body: JSON.stringify({ userId }) 
     }),
     addComment: (id, data) => callApi(`/api/art/${id}/comment`, { 
       method: 'POST', 
@@ -74,6 +74,18 @@ export const useApiMinimal = () => {
     leave: (id, userName) => callApi(`/api/activities/${id}/leave`, { 
       method: 'POST', 
       body: JSON.stringify({ userName }) 
+    }),
+    toggleLike: (id, userId) => callApi(`/api/activities/${id}/like`, { 
+      method: 'POST', 
+      body: JSON.stringify({ userId }) 
+    }),
+    toggleFavorite: (id, userId) => callApi(`/api/activities/${id}/favorite`, { 
+      method: 'POST', 
+      body: JSON.stringify({ userId }) 
+    }),
+    addComment: (id, data) => callApi(`/api/activities/${id}/comment`, { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
     }),
   };
 

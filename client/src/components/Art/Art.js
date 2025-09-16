@@ -51,7 +51,7 @@ const Art = () => {
     }
 
     try {
-      const data = await api.art.toggleLike(id, userInfo.name);
+      const data = await api.art.toggleLike(id, userInfo.userId || userInfo.name);
       setItems(prev => prev.map(item => item._id === id ? data : item));
       
       // 更新本地存储
@@ -74,7 +74,7 @@ const Art = () => {
     }
 
     try {
-      const data = await api.art.toggleFavorite(id, userInfo.name);
+      const data = await api.art.toggleFavorite(id, userInfo.userId || userInfo.name);
       setItems(prev => prev.map(item => item._id === id ? data : item));
       
       // 更新本地存储

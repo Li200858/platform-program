@@ -7,6 +7,21 @@ export const useUserBasic = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false); // 直接设为false，避免加载问题
 
+  // 从localStorage加载用户信息
+  useEffect(() => {
+    try {
+      const savedUserInfo = localStorage.getItem('userProfile');
+      if (savedUserInfo) {
+        const userData = JSON.parse(savedUserInfo);
+        setUserInfo(userData);
+        setIsLoggedIn(true);
+        setIsAdmin(userData.isAdmin || false);
+      }
+    } catch (error) {
+      console.error('加载用户信息失败:', error);
+    }
+  }, []);
+
   // 更新用户信息
   const updateUserInfo = (updates) => {
     const updatedUserInfo = { ...userInfo, ...updates };
