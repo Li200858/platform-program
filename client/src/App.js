@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Art from './components/Art/Art';
 import Activity from './Activity';
 import Feedback from './components/Feedback/Feedback';
@@ -8,151 +8,219 @@ import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import ErrorBoundary from './ErrorBoundary';
 import MessageToast from './MessageToast';
-import { MessageProvider } from './MessageContext';
+import { MessageProvider, useMessage } from './MessageContext';
+import { useUserBasic as useUser } from './hooks/useUserBasic';
+import { useApiMinimal as useApi } from './hooks/useApiMinimal';
 import './App.css';
 
 function MainApp() {
   const [section, setSection] = useState('art');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  
+  const { userInfo, isLoggedIn, isAdmin, loading: userLoading } = useUser();
+  const { search: searchApi } = useApi();
+  const { showError } = useMessage();
 
-  // 简化的用户状态
-  const [userInfo, setUserInfo] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  // 简化启动，移除环境检查
+  useEffect(() => {
+    console.log('🚀 应用启动完成');
+  }, []);
 
-  // 处理搜索输入
-  const handleSearchInput = (e) => {
-    setSearchQuery(e.target.value);
+  // 搜索功能
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      setShowSearch(false);
+      return;
+    }
+    
+    try {
+      const data = await searchApi.search(searchQuery.trim());
+      setSearchResults(data);
+      setShowSearch(true);
+    } catch (error) {
+      setShowSearch(false);
+      setSearchResults(null);
+    }
   };
 
-  // 清除搜索
-  const clearSearch = () => {
-    setSearchQuery('');
+  // 渲染内容
+  const renderContent = () => {
+    switch (section) {
+      case 'art':
+        return <Art />;
+      case 'activity':
+        return <Activity userInfo={userInfo} onBack={() => setSection('art')} />;
+      case 'feedback':
+        return <Feedback userInfo={userInfo} />;
+      case 'profile':
+        return <UserProfile onBack={() => setSection('art')} onUserInfoUpdate={() => window.location.reload()} />;
+      case 'collection':
+        return <MyCollection userInfo={userInfo} onBack={() => setSection('art')} />;
+      case 'myworks':
+        return <MyWorks userInfo={userInfo} onBack={() => setSection('art')} />;
+      case 'admin':
+        return <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
+      default:
+        return <Art />;
+    }
   };
+
+  if (userLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎨</div>
+          <div style={{ fontSize: '18px', color: '#6c757d' }}>加载中...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="app">
+    <div className="app-root">
       {/* 顶部导航栏 */}
-      <header className="app-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <h1 className="app-title">🎨 艺术创作平台</h1>
-            <p className="app-subtitle">分享你的创意，发现无限可能</p>
-          </div>
-          
-          {/* 搜索框 */}
-          <div className="search-section">
-            <div className="search-container">
-              <input
-                type="text"
-                placeholder="搜索作品、活动..."
-                value={searchQuery}
-                onChange={handleSearchInput}
-                className="search-input"
-              />
-              {searchQuery && (
-                <button onClick={clearSearch} className="search-clear">
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* 用户信息 */}
-          <div className="user-section">
-            {isLoggedIn ? (
-              <div className="user-info">
-                <span className="user-name">{userInfo?.name || '用户'}</span>
-                <span className="user-class">{userInfo?.class || ''}</span>
-                {isAdmin && <span className="admin-badge">管理员</span>}
-              </div>
-            ) : (
-              <div className="login-prompt">
-                <span>请先登录</span>
-              </div>
-            )}
+      <header className="main-header">
+        <div className="logo-area">
+          <div className="site-title">海淀外国语国际部艺术平台</div>
+          <div className="site-title-en">HFLS International Art Platform</div>
+        </div>
+        
+        <nav className="main-nav">
+          <button 
+            className={section === 'art' ? 'active' : ''} 
+            onClick={() => setSection('art')}
+          >
+            艺术作品
+          </button>
+          <button 
+            className={section === 'activity' ? 'active' : ''} 
+            onClick={() => setSection('activity')}
+          >
+            活动展示
+          </button>
+          <button 
+            className={section === 'feedback' ? 'active' : ''} 
+            onClick={() => setSection('feedback')}
+          >
+            意见反馈
+          </button>
+          <button 
+            className={section === 'collection' ? 'active' : ''} 
+            onClick={() => setSection('collection')}
+          >
+            我的收藏
+          </button>
+          <button 
+            className={section === 'myworks' ? 'active' : ''} 
+            onClick={() => setSection('myworks')}
+          >
+            我的作品
+          </button>
+          <button 
+            className={section === 'profile' ? 'active' : ''} 
+            onClick={() => setSection('profile')}
+          >
+            个人信息
+          </button>
+          {isAdmin && (
+            <button 
+              className={section === 'admin' ? 'active' : ''} 
+              onClick={() => setSection('admin')}
+            >
+              管理面板
+            </button>
+          )}
+        </nav>
+        
+        <div className="header-right">
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="搜索艺术作品..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            />
+            <button onClick={handleSearch}>搜索</button>
           </div>
         </div>
       </header>
 
-      {/* 主导航 */}
-      <nav className="main-nav">
-        <button 
-          className={section === 'art' ? 'nav-btn active' : 'nav-btn'}
-          onClick={() => setSection('art')}
-        >
-          🎨 艺术作品
-        </button>
-        <button 
-          className={section === 'activity' ? 'nav-btn active' : 'nav-btn'}
-          onClick={() => setSection('activity')}
-        >
-          🎪 活动
-        </button>
-        <button 
-          className={section === 'feedback' ? 'nav-btn active' : 'nav-btn'}
-          onClick={() => setSection('feedback')}
-        >
-          💬 反馈
-        </button>
-        {isLoggedIn && (
-          <>
-            <button 
-              className={section === 'profile' ? 'nav-btn active' : 'nav-btn'}
-              onClick={() => setSection('profile')}
+      {/* 搜索结果展示 */}
+      {showSearch && searchResults && (
+        <div className="search-result-panel">
+          <div className="search-result-header">
+            <h3>搜索结果："{searchQuery}"</h3>
+            <button
+              onClick={() => {
+                setShowSearch(false);
+                setSearchQuery('');
+                setSearchResults(null);
+              }}
             >
-              👤 个人资料
+              关闭
             </button>
-            <button 
-              className={section === 'collection' ? 'nav-btn active' : 'nav-btn'}
-              onClick={() => setSection('collection')}
-            >
-              ❤️ 我的收藏
-            </button>
-            <button 
-              className={section === 'works' ? 'nav-btn active' : 'nav-btn'}
-              onClick={() => setSection('works')}
-            >
-              🎭 我的作品
-            </button>
-          </>
-        )}
-        {isAdmin && (
-          <button 
-            className={section === 'admin' ? 'nav-btn active' : 'nav-btn'}
-            onClick={() => setSection('admin')}
-          >
-            ⚙️ 管理面板
-          </button>
-        )}
-      </nav>
+          </div>
+          {searchResults.art && searchResults.art.length > 0 ? (
+            <div style={{ marginBottom: 30 }}>
+              <h4>艺术作品 ({searchResults.art.length}条结果)</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {searchResults.art.map(item => (
+                  <div key={item._id} className="search-result-item">
+                    <div style={{ fontWeight: 'bold', marginBottom: 5 }}>{item.title}</div>
+                    <div style={{ color: '#7f8c8d', fontSize: '14px' }}>
+                      {(item.content ? String(item.content).substring(0, 100) : '')}...
+                    </div>
+                    <div className="search-result-meta">
+                      <span>作者: {item.authorName || item.author}</span>
+                      <span>班级: {item.authorClass}</span>
+                      <span>发布时间: {new Date(item.createdAt).toLocaleString()}</span>
+                      {item.tab && <span>分类: {item.tab}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: '#7f8c8d', padding: 40 }}>
+              未找到相关艺术作品
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* 主要内容区域 */}
+      {/* 主内容区 */}
       <main className="main-content">
         <ErrorBoundary>
-          {section === 'art' && <Art />}
-          {section === 'activity' && <Activity />}
-          {section === 'feedback' && <Feedback />}
-          {section === 'profile' && isLoggedIn && <UserProfile />}
-          {section === 'collection' && isLoggedIn && <MyCollection userInfo={userInfo} />}
-          {section === 'works' && isLoggedIn && <MyWorks userInfo={userInfo} />}
-          {section === 'admin' && isAdmin && <AdminPanel userInfo={userInfo} />}
+          {renderContent()}
         </ErrorBoundary>
       </main>
-
-      {/* 消息提示 */}
+      
+      <footer className="main-footer">
+        &copy; {new Date().getFullYear()} HFLS International Art Platform - 让艺术点亮校园
+      </footer>
+      
+      {/* Toast消息提示 */}
       <MessageToast />
     </div>
   );
 }
 
-// 主应用组件，包含消息提供者
-function App() {
+export default function App() {
   return (
     <MessageProvider>
-      <MainApp />
+      <ErrorBoundary>
+        <MainApp />
+      </ErrorBoundary>
     </MessageProvider>
   );
 }
-
-export default App;
