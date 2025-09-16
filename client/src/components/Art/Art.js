@@ -23,18 +23,24 @@ const Art = () => {
 
   // 加载艺术作品列表
   const loadItems = useCallback(async () => {
+    let isMounted = true;
     try {
       const currentTab = ART_TABS.find(t => t.key === activeTab);
       const dbTab = currentTab ? currentTab.dbValue : '';
       const sortParam = sort === 'hot' ? 'hot' : '';
       
       const data = await api.art.getList(dbTab, sortParam);
-      setItems(Array.isArray(data) ? data : []);
+      if (isMounted) {
+        setItems(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('加载艺术作品失败:', error);
-      setItems([]);
+      if (isMounted) {
+        setItems([]);
+      }
     }
-  }, [activeTab, sort, api.art]);
+    return () => { isMounted = false; };
+  }, [activeTab, sort]); // 移除api.art依赖
 
   // 处理点赞
   const handleLike = useCallback(async (id) => {
