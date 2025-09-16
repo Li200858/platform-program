@@ -7,12 +7,30 @@ const app = express();
 
 // 中间件
 app.use(cors({
-  origin: [
-    'https://platform-program.vercel.app',
-    'https://platform-program-production.up.railway.app',
-    'http://localhost:3000',
-    'http://localhost:5000'
-  ],
+  origin: function (origin, callback) {
+    // 允许没有origin的请求（如移动应用或Postman）
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'https://platform-program.vercel.app',
+      'https://platform-program-8faehuy73-changxuan-lis-projects.vercel.app',
+      'https://platform-program-production.up.railway.app',
+      'http://localhost:3000',
+      'http://localhost:5000'
+    ];
+    
+    // 检查是否是Vercel域名
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // 检查是否在允许列表中
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
