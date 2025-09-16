@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
 import { useMessage } from './MessageContext';
 
-import api from './api';
+// 移除旧的api导入，使用直接fetch调用
 
 // 图片压缩函数
 const compressImage = (file, quality = 0.8, maxWidth = 1920) => {

@@ -42,6 +42,7 @@ export const useApiMinimal = () => {
       return callApi(`/art${query ? `?${query}` : ''}`);
     },
     getById: (id) => callApi(`/art/${id}`),
+    getMyWorks: (authorName) => callApi(`/art/my-works?authorName=${encodeURIComponent(authorName)}`),
     create: (data) => callApi('/art', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => callApi(`/art/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => callApi(`/art/${id}`, { method: 'DELETE' }),

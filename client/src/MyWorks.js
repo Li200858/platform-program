@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
-import api from './api';
+// 移除旧的api导入，使用直接fetch调用
 import { buildApiUrl } from './utils/apiUrl';
 
 export default function MyWorks({ userInfo, onBack }) {
@@ -17,7 +17,8 @@ export default function MyWorks({ userInfo, onBack }) {
         console.log('加载我的作品，作者姓名:', userInfo.name);
         
         // 加载艺术作品
-        const artData = await api.art.getMyWorks(userInfo.name);
+        const artResponse = await fetch(buildApiUrl(`/art/my-works?authorName=${encodeURIComponent(userInfo.name)}`));
+        const artData = artResponse.ok ? await artResponse.json() : [];
         console.log('我的艺术作品数据:', artData);
         setWorks(artData || []);
         

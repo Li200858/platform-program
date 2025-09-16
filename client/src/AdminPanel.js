@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { buildApiUrl, buildFileUrl } from './utils/apiUrl';
 
-import api from './api';
+// 移除旧的api导入，使用直接fetch调用
 import FileUploader from './FileUploader';
 
 export default function AdminPanel({ userInfo, onBack }) {
@@ -45,7 +45,8 @@ export default function AdminPanel({ userInfo, onBack }) {
   const loadAdminUsers = async () => {
     setLoading(true);
     try {
-      const data = await api.admin.getUsers();
+      const response = await fetch(buildApiUrl('/admin/users'));
+      const data = response.ok ? await response.json() : [];
       setAdminUsers(data || []);
     } catch (error) {
       console.error('加载管理员失败:', error);
@@ -57,7 +58,8 @@ export default function AdminPanel({ userInfo, onBack }) {
   const loadMaintenanceStatus = async () => {
     setLoading(true);
     try {
-      const data = await api.admin.getMaintenanceStatus();
+      const response = await fetch(buildApiUrl('/admin/maintenance'));
+      const data = response.ok ? await response.json() : { enabled: false, message: '' };
       setMaintenanceMode(data.maintenanceMode || false);
       setMaintenanceMessage(data.maintenanceMessage || '');
     } catch (error) {
