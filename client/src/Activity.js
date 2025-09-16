@@ -45,7 +45,7 @@ export default function Activity({ userInfo, onBack }) {
     }
     
     try {
-      const res = await fetch(buildApiUrl('/api/activities/${id}/like'), {
+      const res = await fetch(buildApiUrl(`/api/activities/${id}/like`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userInfo.name })
@@ -82,7 +82,7 @@ export default function Activity({ userInfo, onBack }) {
     }
     
     try {
-      const res = await fetch(buildApiUrl('/api/activities/${id}/favorite'), {
+      const res = await fetch(buildApiUrl(`/api/activities/${id}/favorite`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: userInfo.name })
@@ -119,7 +119,7 @@ export default function Activity({ userInfo, onBack }) {
     }
 
     try {
-      const res = await fetch(buildApiUrl('/api/activities/${id}/comment'), {
+      const res = await fetch(buildApiUrl(`/api/activities/${id}/comment`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -154,7 +154,7 @@ export default function Activity({ userInfo, onBack }) {
     if (!confirm('确定要删除这个活动吗？')) return;
 
     try {
-      const res = await fetch(buildApiUrl('/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}'), {
+      const res = await fetch(buildApiUrl(`/api/activities/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`), {
         method: 'DELETE'
       });
 

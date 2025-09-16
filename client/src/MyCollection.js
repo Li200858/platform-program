@@ -26,7 +26,7 @@ export default function MyCollection({ userInfo, onBack }) {
         console.log('艺术作品收藏数据:', artData);
         
         // 加载活动收藏
-        const activityRes = await fetch(buildApiUrl('/api/activities/favorites?authorName=${encodeURIComponent(userInfo.name)}'));
+        const activityRes = await fetch(buildApiUrl(`/api/activities/favorites?authorName=${encodeURIComponent(userInfo.name)}`));
         if (!activityRes.ok) {
           throw new Error(`HTTP error! status: ${activityRes.status}`);
         }
@@ -44,7 +44,7 @@ export default function MyCollection({ userInfo, onBack }) {
         console.log('艺术作品喜欢数据:', artData);
         
         // 加载活动喜欢
-        const activityRes = await fetch(buildApiUrl('/api/activities/likes?authorName=${encodeURIComponent(userInfo.name)}'));
+        const activityRes = await fetch(buildApiUrl(`/api/activities/likes?authorName=${encodeURIComponent(userInfo.name)}`));
         if (!activityRes.ok) {
           throw new Error(`HTTP error! status: ${activityRes.status}`);
         }
@@ -75,7 +75,7 @@ export default function MyCollection({ userInfo, onBack }) {
     }
 
     try {
-      const endpoint = type === 'activity' ? buildApiUrl('/api/activities/${id}/favorite') : buildApiUrl('/api/art/${id}/favorite');
+      const endpoint = type === 'activity' ? buildApiUrl(`/api/activities/${id}/favorite`) : buildApiUrl(`/api/art/${id}/favorite`);
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,7 +101,7 @@ export default function MyCollection({ userInfo, onBack }) {
     }
 
     try {
-      const endpoint = type === 'activity' ? buildApiUrl('/api/activities/${id}/like') : buildApiUrl('/api/art/${id}/like');
+      const endpoint = type === 'activity' ? buildApiUrl(`/api/activities/${id}/like`) : buildApiUrl(`/api/art/${id}/like`);
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
