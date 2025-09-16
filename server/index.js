@@ -69,45 +69,35 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 暂时使用最简单的本地存储配置
-console.log('⚠️  使用简化的本地存储配置');
+// 导入Cloudinary配置和服务
+const { cloudinary, verifyCloudinaryConfig, testCloudinaryConnection } = require('./config/cloudinary');
+const CloudinaryStorage = require('./services/cloudinaryStorage');
 
+// 检查Cloudinary配置
+const cloudinaryConfigured = verifyCloudinaryConfig();
+let cloudinaryStorage = null;
+
+if (cloudinaryConfigured) {
+  cloudinaryStorage = new CloudinaryStorage();
+  console.log('✅ Cloudinary配置完成，使用云存储');
+} else {
+  console.log('⚠️  Cloudinary配置不完整，使用本地存储');
+}
+
+// 配置multer - 使用内存存储以便上传到Cloudinary
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = 'uploads';
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const originalName = file.originalname || 'file';
-      
-      // 简单处理文件名
-      const ext = originalName.split('.').pop() || 'bin';
-      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '') || 'file';
-      const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
-      
-      const finalName = `${cleanName}.${cleanExt}`;
-      console.log('文件名生成:', { original: file.originalname, finalName });
-      
-      cb(null, `${uniqueSuffix}-${finalName}`);
-    }
-  }),
+  storage: multer.memoryStorage(), // 使用内存存储
   limits: { 
-    fileSize: 2 * 1024 * 1024, // 进一步减少到2MB，极大提高上传速度
-    files: 1 // 限制同时上传1个文件
+    fileSize: 10 * 1024 * 1024, // 增加到10MB，Cloudinary支持更大文件
+    files: 5 // 允许同时上传5个文件
   },
   fileFilter: (req, file, cb) => {
-    cb(null, true); // 允许所有文件类型
+    // 允许所有文件类型，Cloudinary会自动处理
+    cb(null, true);
   }
 });
 
-// 使用本地存储
-console.log('使用本地文件存储');
+console.log(cloudinaryConfigured ? '使用Cloudinary云存储' : '使用本地文件存储');
 
 // 静态文件服务
 app.use('/uploads', express.static('uploads'));
@@ -257,9 +247,9 @@ app.post('/api/art/:id/like', async (req, res) => {
 });
 
 // 文件上传API
-app.post('/api/upload', upload.array('files', 1), (req, res) => {
+app.post('/api/upload', upload.array('files', 5), async (req, res) => {
   try {
-    console.log('文件上传请求开始...');
+    console.log('📤 文件上传请求开始...');
     console.log('上传文件数量:', req.files ? req.files.length : 0);
     
     if (!req.files || req.files.length === 0) {
@@ -271,32 +261,95 @@ app.post('/api/upload', upload.array('files', 1), (req, res) => {
       console.log(`文件: ${file.originalname}, 大小: ${file.size} bytes, 类型: ${file.mimetype}`);
     });
     
-    const urls = req.files.map(file => `/uploads/${file.filename}`);
-    console.log('文件上传成功，URLs:', urls);
+    let urls = [];
+    let storageType = 'local';
+    let totalSize = 0;
+    
+    if (cloudinaryConfigured && cloudinaryStorage) {
+      // 使用Cloudinary上传
+      console.log('☁️  使用Cloudinary上传文件...');
+      
+      try {
+        const uploadResults = await cloudinaryStorage.uploadFiles(req.files);
+        
+        urls = uploadResults
+          .filter(result => result.success)
+          .map(result => result.url);
+        
+        totalSize = uploadResults
+          .filter(result => result.success)
+          .reduce((sum, result) => sum + (result.bytes || 0), 0);
+        
+        storageType = 'cloudinary';
+        
+        console.log('✅ Cloudinary上传成功，URLs:', urls);
+        
+        // 检查是否有上传失败的文件
+        const failedUploads = uploadResults.filter(result => !result.success);
+        if (failedUploads.length > 0) {
+          console.warn('⚠️  部分文件上传失败:', failedUploads);
+        }
+        
+      } catch (cloudinaryError) {
+        console.error('❌ Cloudinary上传失败:', cloudinaryError);
+        // 回退到本地存储
+        console.log('🔄 回退到本地存储...');
+        storageType = 'local';
+        urls = req.files.map(file => `/uploads/${Date.now()}-${file.originalname}`);
+        totalSize = req.files.reduce((sum, file) => sum + file.size, 0);
+      }
+    } else {
+      // 使用本地存储
+      console.log('💾 使用本地存储...');
+      urls = req.files.map(file => `/uploads/${Date.now()}-${file.originalname}`);
+      totalSize = req.files.reduce((sum, file) => sum + file.size, 0);
+    }
     
     res.json({
       urls: urls,
-      storage: 'local',
-      message: `成功上传 ${req.files.length} 个文件`,
-      totalSize: req.files.reduce((sum, file) => sum + file.size, 0)
+      storage: storageType,
+      message: `成功上传 ${urls.length} 个文件`,
+      totalSize: totalSize,
+      cloudinaryConfigured: cloudinaryConfigured
     });
+    
   } catch (error) {
-    console.error('文件上传错误:', error);
+    console.error('❌ 文件上传错误:', error);
     res.status(500).json({ error: '文件上传失败: ' + error.message });
   }
 });
 
 // 存储配置检查API
-app.get('/api/storage-config', (req, res) => {
-  const config = {
-    storageType: 'local',
-    local: {
-      configured: true,
-      path: path.join(__dirname, 'uploads')
+app.get('/api/storage-config', async (req, res) => {
+  try {
+    const config = {
+      storageType: cloudinaryConfigured ? 'cloudinary' : 'local',
+      cloudinary: {
+        configured: cloudinaryConfigured,
+        connected: false
+      },
+      local: {
+        configured: true,
+        path: path.join(__dirname, 'uploads')
+      }
+    };
+    
+    // 如果Cloudinary已配置，测试连接
+    if (cloudinaryConfigured) {
+      try {
+        const connectionTest = await testCloudinaryConnection();
+        config.cloudinary.connected = connectionTest;
+      } catch (error) {
+        console.error('Cloudinary连接测试失败:', error);
+        config.cloudinary.connected = false;
+      }
     }
-  };
-  
-  res.json(config);
+    
+    res.json(config);
+  } catch (error) {
+    console.error('获取存储配置失败:', error);
+    res.status(500).json({ error: '获取存储配置失败' });
+  }
 });
 
 // 添加评论
