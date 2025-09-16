@@ -1,5 +1,5 @@
 // 艺术作品主组件
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Card from '../common/Card';
 import Button from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -18,29 +18,30 @@ const Art = () => {
   const [showComments, setShowComments] = useState({});
   const [commentForm, setCommentForm] = useState({ content: '' });
   
+  const isMountedRef = useRef(true);
   const api = useApi();
   const { userInfo, isLoggedIn, hasPermission } = useUser();
 
   // 加载艺术作品列表
   const loadItems = useCallback(async () => {
-    let isMounted = true;
+    if (!isMountedRef.current) return;
+    
     try {
       const currentTab = ART_TABS.find(t => t.key === activeTab);
       const dbTab = currentTab ? currentTab.dbValue : '';
       const sortParam = sort === 'hot' ? 'hot' : '';
       
       const data = await api.art.getList(dbTab, sortParam);
-      if (isMounted) {
+      if (isMountedRef.current) {
         setItems(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('加载艺术作品失败:', error);
-      if (isMounted) {
+      if (isMountedRef.current) {
         setItems([]);
       }
     }
-    return () => { isMounted = false; };
-  }, [activeTab, sort]); // 移除api.art依赖
+  }, [activeTab, sort]);
 
   // 处理点赞
   const handleLike = useCallback(async (id) => {
@@ -163,6 +164,13 @@ const Art = () => {
   useEffect(() => {
     loadItems();
   }, [activeTab, sort]); // 只依赖真正需要的状态
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // 加载本地交互数据
   useEffect(() => {

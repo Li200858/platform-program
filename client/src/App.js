@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Art from './components/Art/Art';
 import Activity from './Activity';
 import Feedback from './components/Feedback/Feedback';
@@ -19,6 +19,7 @@ function MainApp() {
   const [searchResults, setSearchResults] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   
+  const isMountedRef = useRef(true);
   const { userInfo, isLoggedIn, isAdmin, loading: userLoading } = useUser();
   const { search: searchApi } = useApi();
   const { showError } = useMessage();
@@ -28,21 +29,36 @@ function MainApp() {
     console.log('🚀 应用启动完成');
   }, []);
 
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // 搜索功能
   const handleSearch = async () => {
+    if (!isMountedRef.current) return;
+    
     if (!searchQuery.trim()) {
-      setSearchResults(null);
-      setShowSearch(false);
+      if (isMountedRef.current) {
+        setSearchResults(null);
+        setShowSearch(false);
+      }
       return;
     }
     
     try {
       const data = await searchApi.search(searchQuery.trim());
-      setSearchResults(data);
-      setShowSearch(true);
+      if (isMountedRef.current) {
+        setSearchResults(data);
+        setShowSearch(true);
+      }
     } catch (error) {
-      setShowSearch(false);
-      setSearchResults(null);
+      if (isMountedRef.current) {
+        setShowSearch(false);
+        setSearchResults(null);
+      }
     }
   };
 
