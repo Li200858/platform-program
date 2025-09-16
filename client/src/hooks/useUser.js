@@ -41,7 +41,7 @@ export const useUser = () => {
       console.error('检查管理员状态失败:', error);
       setIsAdmin(false);
     }
-  }, [api.user, userInfo]);
+  }, [api.user]);
 
   // 保存用户信息
   const saveUserInfo = useCallback(async (newUserInfo) => {
@@ -126,7 +126,7 @@ export const useUser = () => {
   // 初始化
   useEffect(() => {
     loadUserInfo();
-  }, [loadUserInfo]);
+  }, []);
 
   // 当用户信息变化时，检查管理员状态
   useEffect(() => {

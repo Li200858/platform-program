@@ -5,8 +5,8 @@ import Button from '../common/Button';
 import Input from '../common/Input';
 import Avatar from '../../Avatar';
 import FileUploader from '../../FileUploader';
-import { useUser } from '../../hooks/useUser';
-import { useApi } from '../../hooks/useApi';
+import { useUserMinimal as useUser } from '../../hooks/useUserMinimal';
+import { useApiMinimal as useApi } from '../../hooks/useApiMinimal';
 import { validation } from '../../utils/validation';
 
 const UserProfile = ({ onBack, onUserInfoUpdate }) => {

@@ -9,9 +9,9 @@ import AdminPanel from './AdminPanel';
 import ErrorBoundary from './ErrorBoundary';
 import MessageToast from './MessageToast';
 import { MessageProvider, useMessage } from './MessageContext';
-import { useUser } from './hooks/useUser';
-import { useApi } from './hooks/useApi';
-import { checkEnvironment, testApiConnection } from './utils/envCheck';
+import { useUserMinimal as useUser } from './hooks/useUserMinimal';
+import { useApiMinimal as useApi } from './hooks/useApiMinimal';
+// 移除环境检查，简化启动
 import './App.css';
 
 function MainApp() {
@@ -24,9 +24,8 @@ function MainApp() {
   const { search: searchApi } = useApi();
   const { showError } = useMessage();
 
-  // 环境检查
+  // 简化启动，移除环境检查
   useEffect(() => {
-    checkEnvironment();
     console.log('🚀 应用启动完成');
   }, []);
 

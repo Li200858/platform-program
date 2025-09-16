@@ -4,7 +4,7 @@ import { useMessage } from './MessageContext';
 
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
-import api from './api';
+// 移除旧的api导入，使用直接fetch调用
 
 export default function MyCollection({ userInfo, onBack }) {
   const [activeTab, setActiveTab] = useState('favorites');
