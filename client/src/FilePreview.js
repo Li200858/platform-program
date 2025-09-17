@@ -49,7 +49,9 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
 
   const handleDownload = (url, filename) => {
     const link = document.createElement('a');
-    link.href = url.startsWith('http') ? url : `${apiBaseUrl}${url}`;
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 
+      (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
+    link.href = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
     link.download = filename || url.split('/').pop();
     link.target = '_blank';
     document.body.appendChild(link);
@@ -191,7 +193,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {/* 预览内容 */}
             {previewType === 'image' && (
               <img 
-                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
+                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000')}${previewFile}`} 
                 alt="预览" 
                 style={{ 
                   maxWidth: '100%', 
@@ -209,7 +211,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             
             {previewType === 'video' && (
               <video 
-                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
+                src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000')}${previewFile}`} 
                 controls 
                 style={{ 
                   maxWidth: '100%', 
@@ -226,7 +228,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {previewType === 'audio' && (
               <div style={{ padding: '40px', textAlign: 'center' }}>
                 <audio 
-                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`} 
+                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000')}${previewFile}`} 
                   controls 
                   style={{ width: '100%', maxWidth: '400px' }}
                   onError={(e) => {
@@ -239,7 +241,7 @@ const FilePreview = ({ urls, apiBaseUrl }) => {
             {previewType === 'document' && (
               <div style={{ width: '800px', height: '600px' }}>
                 <iframe
-                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl}${previewFile}`}
+                  src={previewFile.startsWith('http') ? previewFile : `${apiBaseUrl || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000')}${previewFile}`}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   title="文档预览"
                   onError={(e) => {

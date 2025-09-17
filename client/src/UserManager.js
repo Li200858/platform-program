@@ -3,7 +3,7 @@ class UserManager {
   static generateUserId() {
     // 生成一个唯一的用户ID，包含时间戳和随机字符串
     const timestamp = Date.now().toString(36);
-    const randomStr = Math.random().toString(36).substr(2, 9);
+    const randomStr = Math.random().toString(36).substring(2, 11);
     return `user_${timestamp}_${randomStr}`;
   }
 

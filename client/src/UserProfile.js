@@ -80,7 +80,9 @@ export default function UserProfile({ onBack }) {
         setMsg('用户信息保存成功！');
       }
       setTimeout(() => {
-        onBack();
+        if (onBack && typeof onBack === 'function') {
+          onBack();
+        }
       }, 1500);
     } catch (error) {
       console.error('保存用户信息失败:', error);
@@ -283,7 +285,7 @@ export default function UserProfile({ onBack }) {
           </label>
           <input
             type="text"
-            value={userInfo.name}
+            value={userInfo.name || ''}
             onChange={(e) => handleInputChange('name', e.target.value)}
             placeholder="请输入您的真实姓名"
             disabled={nameLocked}
@@ -335,7 +337,7 @@ export default function UserProfile({ onBack }) {
           </label>
           <input
             type="text"
-            value={userInfo.class}
+            value={userInfo.class || ''}
             onChange={(e) => handleInputChange('class', e.target.value)}
             placeholder="请输入您的班级"
             style={{ 
@@ -362,7 +364,7 @@ export default function UserProfile({ onBack }) {
             }}>
               <input
                 type="text"
-                value={userInfo.userId}
+                value={userInfo.userId || ''}
                 readOnly
                 style={{ 
                   flex: 1,
