@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件预览测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .file-item {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .file-item img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .file-item video {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .download-btn {
+            margin-top: 5px;
+            padding: 4px 8px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+            background: #ffe6e6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            background: #e6ffe6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>文件预览和下载功能测试</h1>
+    
+    <div class="test-section">
+        <h2>测试说明</h2>
+        <p>这个页面用于测试文件预览和下载功能是否正常工作。</p>
+        <p>请先上传一些文件，然后检查预览和下载功能。</p>
+    </div>
+
+    <div class="test-section">
+        <h2>文件上传测试</h2>
+        <input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf,.doc,.docx,.txt">
+        <button onclick="uploadFiles()">上传文件</button>
+        <div id="uploadStatus"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>文件预览测试</h2>
+        <div id="fileList"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        let uploadedFiles = [];
+
+        function getFileType(url) {
+            const extension = url.split('.').pop().toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension)) {
+                return 'image';
+            } else if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension)) {
+                return 'video';
+            } else if (['pdf'].includes(extension)) {
+                return 'pdf';
+            } else if (['doc', 'docx'].includes(extension)) {
+                return 'word';
+            } else if (['xls', 'xlsx'].includes(extension)) {
+                return 'excel';
+            } else if (['ppt', 'pptx'].includes(extension)) {
+                return 'powerpoint';
+            } else {
+                return 'file';
+            }
+        }
+
+        function getFileIcon(fileType) {
+            switch (fileType) {
+                case 'image': return '🖼️';
+                case 'video': return '🎥';
+                case 'pdf': return '📄';
+                case 'word': return '📝';
+                case 'excel': return '📊';
+                case 'powerpoint': return '📊';
+                default: return '📁';
+            }
+        }
+
+        function handleDownload(url) {
+            console.log('下载文件:', url);
+            const link = document.createElement('a');
+            const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+            const fullUrl = `${API_BASE_URL}/uploads${cleanUrl}`;
+            console.log('下载URL:', fullUrl);
+            
+            link.href = fullUrl;
+            link.download = url.split('/').pop();
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showImageModal(url) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.9);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            modal.innerHTML = `
+                <img src="${url}" style="max-width: 90%; max-height: 90%; object-fit: contain;" onclick="this.parentElement.remove()">
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function uploadFiles() {
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                document.getElementById('uploadStatus').innerHTML = '<div class="error">请选择文件</div>';
+                return;
+            }
+
+            const formData = new FormData();
+            for (let file of files) {
+                formData.append('files', file);
+            }
+
+            try {
+                document.getElementById('uploadStatus').innerHTML = '<div>上传中...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('上传失败: ' + response.status);
+                }
+
+                const result = await response.json();
+                console.log('上传结果:', result);
+                
+                uploadedFiles = result.urls;
+                document.getElementById('uploadStatus').innerHTML = '<div class="success">上传成功！</div>';
+                renderFilePreview();
+                
+            } catch (error) {
+                console.error('上传错误:', error);
+                document.getElementById('uploadStatus').innerHTML = `<div class="error">上传失败: ${error.message}</div>`;
+            }
+        }
+
+        function renderFilePreview() {
+            const fileListDiv = document.getElementById('fileList');
+            fileListDiv.innerHTML = '';
+
+            if (uploadedFiles.length === 0) {
+                fileListDiv.innerHTML = '<p>没有文件</p>';
+                return;
+            }
+
+            uploadedFiles.forEach((url, index) => {
+                const fileType = getFileType(url);
+                const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+                const fullUrl = `${API_BASE_URL}/uploads${cleanUrl}`;
+                const fileName = url.split('/').pop();
+
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+
+                if (fileType === 'image') {
+                    fileItem.innerHTML = `
+                        <img src="${fullUrl}" alt="${fileName}" onclick="showImageModal('${fullUrl}')" 
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div style="display: none; font-size: 48px; margin: 20px 0;">${getFileIcon(fileType)}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px; word-break: break-all;">${fileName}</div>
+                        <button class="download-btn" onclick="handleDownload('${url}')">下载</button>
+                    `;
+                } else if (fileType === 'video') {
+                    fileItem.innerHTML = `
+                        <video src="${fullUrl}" controls 
+                               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"></video>
+                        <div style="display: none; font-size: 48px; margin: 20px 0;">${getFileIcon(fileType)}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px; word-break: break-all;">${fileName}</div>
+                        <button class="download-btn" onclick="handleDownload('${url}')">下载</button>
+                    `;
+                } else {
+                    fileItem.innerHTML = `
+                        <div style="font-size: 48px; margin: 20px 0;">${getFileIcon(fileType)}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px; word-break: break-all;">${fileName}</div>
+                        <button class="download-btn" onclick="handleDownload('${url}')">下载</button>
+                    `;
+                }
+
+                fileListDiv.appendChild(fileItem);
+            });
+        }
+
+        // 页面加载时检查服务器状态
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    console.log('✅ 服务器连接正常');
+                } else {
+                    console.log('❌ 服务器响应异常');
+                }
+            } catch (error) {
+                console.log('❌ 无法连接到服务器:', error.message);
+                document.getElementById('uploadStatus').innerHTML = '<div class="error">无法连接到服务器，请确保服务器正在运行</div>';
+            }
+        });
+    </script>
+</body>
+</html>

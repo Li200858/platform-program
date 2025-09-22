@@ -620,7 +620,7 @@ export default function Art({ userInfo, maintenanceStatus }) {
 }
 
 // 发布表单组件
-function PublishForm({ onBack, userInfo }) {
+function PublishForm({ onBack, userInfo, maintenanceStatus }) {
   const tabs = [
     { key: 'music', label: '音乐', dbValue: '音乐' },
     { key: 'painting', label: '绘画', dbValue: '绘画' },

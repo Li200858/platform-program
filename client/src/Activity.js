@@ -286,7 +286,7 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
 }
 
 // 创建活动表单
-function CreateActivityForm({ onBack, userInfo, onSuccess }) {
+function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
