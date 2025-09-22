@@ -146,8 +146,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     try {
       await api.admin.addAdmin({
         userName: userName,
-        adminName: userInfo.name,
-        adminClass: userInfo.class
+        addedBy: userInfo.name
       });
       setMessage(`已添加 ${userName} 为管理员`);
       loadUsers();
@@ -161,8 +160,7 @@ export default function AdminPanel({ userInfo, onBack }) {
     try {
       await api.admin.removeAdmin({
         userName: userName,
-        adminName: userInfo.name,
-        adminClass: userInfo.class
+        removedBy: userInfo.name
       });
       setMessage(`已移除 ${userName} 的管理员权限`);
       loadUsers();
