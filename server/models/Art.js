@@ -1,17 +1,16 @@
 const mongoose = require('mongoose');
 
 const ArtSchema = new mongoose.Schema({
-  tab: { type: String, required: true }, // music, painting, dance, writing
+  tab: { type: String, required: true },
   title: { type: String, required: true },
   content: { type: String, required: true },
-  author: { type: String, required: true }, // 作者姓名
-  authorClass: { type: String, required: true }, // 作者班级
-  media: [String], // 媒体文件URL数组
-  tags: [String], // 标签数组
+  author: { type: String, required: true },
+  authorName: { type: String, required: true },
+  authorClass: { type: String, required: true },
+  media: [String],
   likes: { type: Number, default: 0 },
-  likedUsers: [{ type: String }], // 存储已点赞用户ID
-  views: { type: Number, default: 0 }, // 浏览量
-  shares: { type: Number, default: 0 }, // 分享数
+  likedUsers: [String],
+  views: { type: Number, default: 0 },
   comments: [{
     id: { type: String, required: true },
     author: { type: String, required: true },
@@ -19,8 +18,7 @@ const ArtSchema = new mongoose.Schema({
     content: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
   }],
-  favorites: [{ type: String }], // 收藏用户
-  isFeatured: { type: Boolean, default: false }, // 是否为精选作品
+  favorites: [String],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

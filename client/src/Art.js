@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
-import config from './config';
 import api from './api';
 
 export default function Art({ userInfo }) {
-  const tabs = useMemo(() => [
+  const tabs = [
     { key: 'all', label: '全部', dbValue: '' },
     { key: 'music', label: '音乐', dbValue: '音乐' },
     { key: 'painting', label: '绘画', dbValue: '绘画' },
@@ -19,7 +18,7 @@ export default function Art({ userInfo }) {
     { key: 'film', label: '影视', dbValue: '影视' },
     { key: 'craft', label: '手工艺', dbValue: '手工艺' },
     { key: 'digital', label: '数字艺术', dbValue: '数字艺术' }
-  ], []);
+  ];
   
   const [tab, setTab] = useState('all');
   const [list, setList] = useState([]);
@@ -36,12 +35,12 @@ export default function Art({ userInfo }) {
   });
   const [showComments, setShowComments] = useState({});
   const [commentForm, setCommentForm] = useState({ author: '', authorClass: '', content: '' });
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     const currentTab = tabs.find(t => t.key === tab);
     const dbTab = currentTab ? currentTab.dbValue : '';
     
-    // 如果是"全部"分类，不传递分类参数
     if (tab === 'all') {
       api.art.getAll('', sort === 'hot' ? 'hot' : '')
         .then(data => {
@@ -73,86 +72,60 @@ export default function Art({ userInfo }) {
     }
   }, [tab, sort, tabs]);
 
-
   const handleLike = async (id) => {
     if (!userInfo || !userInfo.name) {
-      alert('请先完善个人信息');
+      setMessage('请先完善个人信息');
       return;
     }
     
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userInfo.name })
-      });
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const data = await res.json();
+      const data = await api.art.like(id, userInfo.name);
       setList(prev => Array.isArray(prev) ? prev.map(item => item._id === id ? data : item) : []);
-      // 根据服务器返回的数据更新本地状态
+      
       const isLiked = data.likedUsers && data.likedUsers.includes(userInfo.name);
       let newLiked;
       if (isLiked) {
-        // 如果已点赞，添加到本地列表
         newLiked = likedIds.includes(id) ? likedIds : [...likedIds, id];
       } else {
-        // 如果未点赞，从本地列表移除
         newLiked = likedIds.filter(_id => _id !== id);
       }
       setLikedIds(newLiked);
       localStorage.setItem('liked_art_ids', JSON.stringify(newLiked));
     } catch (error) {
       console.error('点赞失败:', error);
-      alert('操作失败，请重试');
+      setMessage('操作失败，请重试');
     }
   };
 
   const handleFavorite = async (id) => {
     if (!userInfo || !userInfo.name) {
-      alert('请先完善个人信息');
+      setMessage('请先完善个人信息');
       return;
     }
     
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}/favorite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userInfo.name })
-      });
-      
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      
-      const data = await res.json();
+      const data = await api.art.favorite(id, userInfo.name);
       setList(prev => Array.isArray(prev) ? prev.map(item => item._id === id ? data : item) : []);
-      // 根据服务器返回的数据更新本地状态
+      
       const isFavorited = data.favorites && data.favorites.includes(userInfo.name);
       let newFavorites;
       if (isFavorited) {
-        // 如果已收藏，添加到本地列表
         newFavorites = favoriteIds.includes(id) ? favoriteIds : [...favoriteIds, id];
       } else {
-        // 如果未收藏，从本地列表移除
         newFavorites = favoriteIds.filter(_id => _id !== id);
       }
       setFavoriteIds(newFavorites);
       localStorage.setItem('favorite_art_ids', JSON.stringify(newFavorites));
     } catch (error) {
       console.error('收藏失败:', error);
-      alert('操作失败，请重试');
+      setMessage('操作失败，请重试');
     }
   };
-
 
   // 删除作品
   const handleDeleteArt = async (id) => {
     if (!userInfo || !userInfo.name) {
-      alert('请先登录');
+      setMessage('请先登录');
       return;
     }
 
@@ -161,28 +134,19 @@ export default function Art({ userInfo }) {
     }
 
     try {
-    const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}?authorName=${encodeURIComponent(userInfo.name)}&isAdmin=${userInfo.isAdmin || false}`, {
-      method: 'DELETE'
-    });
-      
-      if (res.ok) {
-        // 从列表中移除删除的作品
-        setList(prev => prev.filter(item => item._id !== id));
-        alert('作品已删除');
-      } else {
-        const data = await res.json();
-        alert(data.error || '删除失败');
-      }
+      await api.art.delete(id, userInfo.name, userInfo.isAdmin || false);
+      setList(prev => prev.filter(item => item._id !== id));
+      setMessage('作品已删除');
     } catch (error) {
       console.error('删除作品失败:', error);
-      alert('删除失败，请重试');
+      setMessage('删除失败，请重试');
     }
   };
 
   // 删除评论
   const handleDeleteComment = async (artId, commentId) => {
     if (!userInfo || !userInfo.name) {
-      alert('请先登录');
+      setMessage('请先登录');
       return;
     }
 
@@ -191,12 +155,11 @@ export default function Art({ userInfo }) {
     }
 
     try {
-    const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
-      method: 'DELETE'
-    });
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
+        method: 'DELETE'
+      });
       
       if (res.ok) {
-        // 更新作品列表，移除删除的评论
         setList(prev => prev.map(item => {
           if (item._id === artId) {
             return {
@@ -206,25 +169,25 @@ export default function Art({ userInfo }) {
           }
           return item;
         }));
-        alert('评论已删除');
+        setMessage('评论已删除');
       } else {
         const data = await res.json();
-        alert(data.error || '删除失败');
+        setMessage(data.error || '删除失败');
       }
     } catch (error) {
       console.error('删除评论失败:', error);
-      alert('删除失败，请重试');
+      setMessage('删除失败，请重试');
     }
   };
 
   const handleComment = async (id) => {
     if (!commentForm.content.trim()) {
-      alert('请输入评论内容');
+      setMessage('请输入评论内容');
       return;
     }
 
     if (!userInfo || !userInfo.name || !userInfo.class) {
-      alert('请先在个人信息页面填写姓名和班级信息');
+      setMessage('请先在个人信息页面填写姓名和班级信息');
       return;
     }
 
@@ -234,24 +197,14 @@ export default function Art({ userInfo }) {
       content: commentForm.content.trim()
     };
 
-    const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/art/${id}/comment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(commentData)
-    });
-    const data = await res.json();
-    if (res.ok) {
+    try {
+      const data = await api.art.comment(id, commentData);
       setList(Array.isArray(list) ? list.map(item => item._id === id ? data : item) : []);
       setCommentForm({ author: '', authorClass: '', content: '' });
-    } else {
-      alert(data.error || '评论失败');
+    } catch (error) {
+      setMessage('评论失败：' + (error.message || '请重试'));
     }
   };
-
-  // 浏览功能（暂时保留，可能后续使用）
-  // const handleView = async (id) => {
-  //   fetch(`/api/art/${id}/view`, { method: 'POST' });
-  // };
 
   const renderMedia = (urls) => (
     <FilePreview 
@@ -266,6 +219,21 @@ export default function Art({ userInfo }) {
 
   return (
     <div style={{ maxWidth: 800, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+      {/* 消息显示 */}
+      {message && (
+        <div style={{ 
+          padding: '15px', 
+          background: message.includes('成功') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') ? '#155724' : '#721c24',
+          borderRadius: 8,
+          border: `1px solid ${message.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`,
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          {message}
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 }}>
         <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '28px' }}>艺术作品展示</h2>
         <button 
@@ -641,20 +609,20 @@ export default function Art({ userInfo }) {
 
 // 发布表单组件
 function PublishForm({ onBack, userInfo }) {
-    const tabs = [
-      { key: 'music', label: '音乐', dbValue: '音乐' },
-      { key: 'painting', label: '绘画', dbValue: '绘画' },
-      { key: 'dance', label: '舞蹈', dbValue: '舞蹈' },
-      { key: 'writing', label: '写作', dbValue: '写作' },
-      { key: 'photography', label: '摄影', dbValue: '摄影' },
-      { key: 'sculpture', label: '雕塑', dbValue: '雕塑' },
-      { key: 'calligraphy', label: '书法', dbValue: '书法' },
-      { key: 'design', label: '设计', dbValue: '设计' },
-      { key: 'theater', label: '戏剧', dbValue: '戏剧' },
-      { key: 'film', label: '影视', dbValue: '影视' },
-      { key: 'craft', label: '手工艺', dbValue: '手工艺' },
-      { key: 'digital', label: '数字艺术', dbValue: '数字艺术' }
-    ];
+  const tabs = [
+    { key: 'music', label: '音乐', dbValue: '音乐' },
+    { key: 'painting', label: '绘画', dbValue: '绘画' },
+    { key: 'dance', label: '舞蹈', dbValue: '舞蹈' },
+    { key: 'writing', label: '写作', dbValue: '写作' },
+    { key: 'photography', label: '摄影', dbValue: '摄影' },
+    { key: 'sculpture', label: '雕塑', dbValue: '雕塑' },
+    { key: 'calligraphy', label: '书法', dbValue: '书法' },
+    { key: 'design', label: '设计', dbValue: '设计' },
+    { key: 'theater', label: '戏剧', dbValue: '戏剧' },
+    { key: 'film', label: '影视', dbValue: '影视' },
+    { key: 'craft', label: '手工艺', dbValue: '手工艺' },
+    { key: 'digital', label: '数字艺术', dbValue: '数字艺术' }
+  ];
 
   const [formData, setFormData] = useState({
     tab: '音乐',
@@ -665,31 +633,54 @@ function PublishForm({ onBack, userInfo }) {
     media: []
   });
   const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.content) {
-      alert('请填写标题和内容！');
+    // 清除之前的消息
+    setMessage('');
+    
+    if (!formData.title.trim()) {
+      setMessage('请输入作品标题！');
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      setMessage('请输入作品描述！');
       return;
     }
 
     if (!userInfo || !userInfo.name || !userInfo.class) {
-      alert('请先在个人信息页面填写姓名和班级信息！');
+      setMessage('请先在个人信息页面填写姓名和班级信息！');
       return;
     }
 
+    // 显示发布中状态
+    setMessage('正在发布作品，请稍候...');
+
     try {
-      await api.art.create({
-        ...formData,
+      const result = await api.art.create({
+        tab: formData.tab,
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        media: formData.media || [],
         authorName: userInfo.name,
         authorClass: userInfo.class
       });
       
-      alert('发布成功！');
-      onBack();
+      if (result) {
+        setMessage('🎉 作品发布成功！');
+        // 延迟1秒后返回，让用户看到成功消息
+        setTimeout(() => {
+          onBack();
+        }, 1000);
+      } else {
+        setMessage('发布失败，请重试');
+      }
     } catch (error) {
-      alert('发布失败：' + (error.message || '请重试'));
+      console.error('发布作品失败:', error);
+      setMessage('发布失败：' + (error.message || '网络错误，请检查连接后重试'));
     }
   };
 
@@ -697,15 +688,24 @@ function PublishForm({ onBack, userInfo }) {
     const files = e.target.files;
     if (!files.length) return;
 
+    // 清除之前的消息
+    setMessage('');
     setUploading(true);
-    const formData = new FormData();
-    Array.from(files).forEach(file => formData.append('files', file));
+    
+    const uploadFormData = new FormData();
+    Array.from(files).forEach(file => uploadFormData.append('files', file));
 
     try {
-      const data = await api.upload(formData);
-      setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
+      const data = await api.upload(uploadFormData);
+      if (data && data.urls && data.urls.length > 0) {
+        setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
+        setMessage(`✅ 成功上传 ${data.urls.length} 个文件`);
+      } else {
+        setMessage('文件上传失败，请重试');
+      }
     } catch (error) {
-      alert('文件上传失败');
+      console.error('文件上传失败:', error);
+      setMessage('文件上传失败：' + (error.message || '请检查文件大小和格式'));
     } finally {
       setUploading(false);
     }
@@ -714,6 +714,21 @@ function PublishForm({ onBack, userInfo }) {
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
       <h2 style={{ marginBottom: 25, color: '#2c3e50' }}>✨ 发布艺术作品</h2>
+      
+      {/* 消息显示 */}
+      {message && (
+        <div style={{ 
+          padding: '15px', 
+          background: message.includes('成功') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') ? '#155724' : '#721c24',
+          borderRadius: 8,
+          border: `1px solid ${message.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`,
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}>
+          {message}
+        </div>
+      )}
       
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 20 }}>
@@ -814,33 +829,42 @@ function PublishForm({ onBack, userInfo }) {
         {formData.media.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-              已上传文件
+              已上传文件预览
             </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {formData.media.map((url, idx) => (
-                <div key={idx} style={{ 
-                  padding: '5px 10px', 
-                  background: '#ecf0f1', 
-                  borderRadius: 5, 
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}>
-                  <span>📎</span>
-                  <span>{url.split('/').pop()}</span>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ 
-                      ...prev, 
-                      media: prev.media.filter((_, i) => i !== idx) 
-                    }))}
-                    style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer' }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+            <div style={{ 
+              border: '1px solid #ecf0f1', 
+              borderRadius: 8, 
+              padding: 15, 
+              background: '#f8f9fa',
+              position: 'relative'
+            }}>
+              <FilePreview 
+                urls={formData.media} 
+                apiBaseUrl={process.env.REACT_APP_API_URL || 'http://localhost:5000'} 
+              />
+              <div style={{ 
+                position: 'absolute', 
+                top: 10, 
+                right: 10, 
+                display: 'flex', 
+                gap: 5 
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, media: [] }))}
+                  style={{ 
+                    background: '#e74c3c', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 4, 
+                    padding: '5px 10px',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  清空所有
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -849,32 +873,49 @@ function PublishForm({ onBack, userInfo }) {
           <button
             type="button"
             onClick={onBack}
+            disabled={uploading}
             style={{
               padding: '12px 24px',
-              background: '#95a5a6',
+              background: uploading ? '#bdc3c7' : '#95a5a6',
               color: 'white',
               border: 'none',
               borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: '16px'
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              opacity: uploading ? 0.6 : 1
             }}
           >
             取消
           </button>
           <button
             type="submit"
+            disabled={uploading}
             style={{
               padding: '12px 24px',
-              background: '#27ae60',
+              background: uploading ? '#bdc3c7' : '#27ae60',
               color: 'white',
               border: 'none',
               borderRadius: 8,
-              cursor: 'pointer',
+              cursor: uploading ? 'not-allowed' : 'pointer',
               fontSize: '16px',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              opacity: uploading ? 0.6 : 1,
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!uploading) {
+                e.target.style.background = '#229954';
+                e.target.style.transform = 'translateY(-1px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!uploading) {
+                e.target.style.background = '#27ae60';
+                e.target.style.transform = 'translateY(0)';
+              }
             }}
           >
-            ✨ 发布作品
+            {uploading ? '⏳ 上传中...' : '🚀 发布作品'}
           </button>
         </div>
       </form>

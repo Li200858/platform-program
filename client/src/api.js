@@ -1,8 +1,5 @@
-// API工具函数
-const API_BASE_URL = process.env.REACT_APP_API_URL || 
-  (process.env.NODE_ENV === 'production' 
-    ? ''  // 生产环境使用相对路径
-    : 'http://localhost:5000');  // 开发环境使用完整URL
+// 简化的API工具函数
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const api = {
   // 通用fetch函数
@@ -47,7 +44,6 @@ export const api = {
       body: JSON.stringify({ userId }),
     }),
     
-    
     comment: (id, data) => api.request(`/api/art/${id}/comment`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -59,8 +55,33 @@ export const api = {
     
     getLikes: (authorName) => api.request(`/api/art/likes?authorName=${encodeURIComponent(authorName)}`),
     
-    delete: (id, authorName) => api.request(`/api/art/${id}?authorName=${encodeURIComponent(authorName)}`, {
+    delete: (id, authorName, isAdmin) => api.request(`/api/art/${id}?authorName=${encodeURIComponent(authorName)}&isAdmin=${isAdmin}`, {
       method: 'DELETE',
+    }),
+  },
+
+  // 活动相关API
+  activity: {
+    getAll: () => api.request('/api/activities'),
+    
+    create: (data) => api.request('/api/activities', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    like: (id, userId) => api.request(`/api/activities/${id}/like`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+    
+    favorite: (id, userId) => api.request(`/api/activities/${id}/favorite`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+    
+    comment: (id, data) => api.request(`/api/activities/${id}/comment`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
   },
 
@@ -103,20 +124,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    
-    getMaintenanceStatus: () => api.request('/api/admin/maintenance/status'),
-    
-    toggleMaintenance: (data) => api.request('/api/admin/maintenance/toggle', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
   },
-
-  // 身份验证API
-  verifyIdentity: (data) => api.request('/api/verify-identity', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
 };
 
 export default api;

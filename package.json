@@ -1,14 +1,14 @@
 {
   "name": "platform-program",
-  "version": "1.0.0",
-  "description": "校园平台项目",
+  "version": "3.0.0",
+  "description": "校园艺术平台 - 简化版",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "cd server && npm run dev",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
     "build": "cd client && npm run build",
-    "vercel-build": "npm install && cd client && npm install && npm run build",
-    "install-deps": "npm install && cd client && npm install && cd ../server && npm install"
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "setup": "npm run install-all"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -18,6 +18,9 @@
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1,48 +1,40 @@
-import React, { useState } from 'react';
-import DefaultAvatar from './DefaultAvatar';
+import React from 'react';
 
-export default function Avatar({ 
-  src, 
-  name = '用户', 
-  size = 40, 
-  style = {},
-  className = '',
-  alt = '头像'
-}) {
-  const [imageError, setImageError] = useState(false);
-  
-  // 如果没有头像URL或URL无效，或图片加载失败，显示默认头像
-  if (!src || src.trim() === '' || src.includes('picsum.photos') || imageError) {
-    return (
-      <DefaultAvatar 
-        name={name} 
-        size={size} 
-        style={style}
-        className={className}
-      />
-    );
-  }
+export default function Avatar({ src, name, size = 40, style = {} }) {
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.charAt(0).toUpperCase();
+  };
 
-  // 有有效头像URL时显示真实头像
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 
-    (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
-  const imageUrl = src.startsWith('http') ? src : `${API_BASE_URL}${src}`;
-  
+  const getColor = (name) => {
+    if (!name) return '#95a5a6';
+    const colors = [
+      '#e74c3c', '#3498db', '#2ecc71', '#f39c12', 
+      '#9b59b6', '#1abc9c', '#34495e', '#e67e22'
+    ];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  const avatarStyle = {
+    width: size,
+    height: size,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: size * 0.4,
+    fontWeight: 'bold',
+    color: 'white',
+    background: src ? `url(${src}) center/cover` : getColor(name),
+    border: '2px solid #fff',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    ...style
+  };
+
   return (
-    <img
-      src={imageUrl}
-      alt={alt}
-      style={{
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        objectFit: 'cover',
-        border: '2px solid #fff',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        ...style
-      }}
-      className={className}
-      onError={() => setImageError(true)}
-    />
+    <div style={avatarStyle}>
+      {!src && getInitials(name)}
+    </div>
   );
 }

@@ -1,9 +1,8 @@
 {
   "name": "client",
-  "version": "0.1.0",
+  "version": "3.0.0",
   "private": true,
   "dependencies": {
-    "http-proxy-middleware": "^3.0.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-scripts": "5.0.1"
@@ -27,7 +26,6 @@
     ]
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.0.0"
   }
 }

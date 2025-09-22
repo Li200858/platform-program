@@ -17,37 +17,33 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          padding: 20,
-          margin: 20,
-          border: '1px solid #dc3545',
-          borderRadius: 8,
-          backgroundColor: '#f8d7da',
-          color: '#721c24'
+        <div style={{ 
+          padding: '40px', 
+          textAlign: 'center', 
+          background: '#fff', 
+          borderRadius: '15px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+          margin: '40px auto',
+          maxWidth: '600px'
         }}>
-          <h3>出现错误</h3>
-          <p>页面加载时出现错误，请刷新页面重试。</p>
-          <button 
+          <h2 style={{ color: '#e74c3c', marginBottom: '20px' }}>页面出现错误</h2>
+          <p style={{ color: '#7f8c8d', marginBottom: '20px' }}>
+            抱歉，页面遇到了问题。请尝试刷新页面或联系管理员。
+          </p>
+          <button
             onClick={() => window.location.reload()}
             style={{
-              padding: '8px 16px',
-              backgroundColor: '#dc3545',
+              padding: '10px 20px',
+              background: '#3498db',
               color: 'white',
               border: 'none',
-              borderRadius: 4,
-              cursor: 'pointer'
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px'
             }}
           >
             刷新页面
           </button>
-          {process.env.NODE_ENV === 'development' && (
-            <details style={{ marginTop: 10 }}>
-              <summary>错误详情</summary>
-              <pre style={{ fontSize: 12, marginTop: 10 }}>
-                {this.state.error?.toString()}
-              </pre>
-            </details>
-          )}
         </div>
       );
     }

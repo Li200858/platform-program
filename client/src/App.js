@@ -6,7 +6,9 @@ import UserProfile from './UserProfile';
 import MyCollection from './MyCollection';
 import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
+import UserSync from './UserSync';
 import ErrorBoundary from './ErrorBoundary';
+import { UserIDProvider, useUserID } from './UserIDManager';
 import api from './api';
 import './App.css';
 
@@ -17,6 +19,7 @@ function MainApp() {
   const [showSearch, setShowSearch] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const { userID } = useUserID();
 
   // 加载用户信息
   useEffect(() => {
@@ -70,7 +73,9 @@ function MainApp() {
     } else if (section === 'feedback') {
       content = <Feedback userInfo={userInfo} />;
     } else if (section === 'profile') {
-      content = <UserProfile onBack={() => setSection('art')} />;
+      content = <UserProfile onBack={() => setSection('art')} onUserInfoUpdate={setUserInfo} />;
+    } else if (section === 'sync') {
+      content = <UserSync onBack={() => setSection('art')} />;
     } else if (section === 'collection') {
       content = <MyCollection userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'myworks') {
@@ -93,9 +98,23 @@ function MainApp() {
     <div className="app-root">
       {/* 顶部导航栏 */}
       <header className="main-header">
-        <div className="logo-area">
-          <div className="site-title">海淀外国语国际部艺术平台</div>
-          <div className="site-title-en">HFLS International Art Platform</div>
+        <div className="header-top">
+          <div className="logo-area">
+            <div className="site-title">海淀外国语国际部艺术平台</div>
+            <div className="site-title-en">HFLS International Art Platform</div>
+          </div>
+          <div className="header-right">
+            <div className="search-bar">
+              <input
+                type="text"
+                placeholder="搜索艺术作品..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              />
+              <button onClick={handleSearch}>搜索</button>
+            </div>
+          </div>
         </div>
         <nav className="main-nav">
           <button className={section === 'art' ? 'active' : ''} onClick={() => setSection('art')}>
@@ -116,24 +135,15 @@ function MainApp() {
           <button className={section === 'profile' ? 'active' : ''} onClick={() => setSection('profile')}>
             个人信息
           </button>
+          <button className={section === 'sync' ? 'active' : ''} onClick={() => setSection('sync')}>
+            数据同步
+          </button>
           {isAdmin && (
             <button className={section === 'admin' ? 'active' : ''} onClick={() => setSection('admin')}>
               管理面板
             </button>
           )}
         </nav>
-        <div className="header-right">
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="搜索艺术作品..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            />
-            <button onClick={handleSearch}>搜索</button>
-          </div>
-        </div>
       </header>
 
       {/* 搜索结果展示 */}
@@ -153,12 +163,26 @@ function MainApp() {
           </div>
           {searchResults.art && searchResults.art.length > 0 ? (
             <div style={{ marginBottom: 30 }}>
-              <h4>艺术作品 ({searchResults.art.length}条结果)</h4>
+              <h4>🎨 艺术作品 ({searchResults.art.length}条结果)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {searchResults.art.map(item => (
-                  <div key={item._id} className="search-result-item">
-                    <div style={{ fontWeight: 'bold', marginBottom: 5 }}>{item.title}</div>
-                    <div style={{ color: '#7f8c8d', fontSize: '14px' }}>
+                  <div 
+                    key={item._id} 
+                    className="search-result-item"
+                    onClick={() => {
+                      // 关闭搜索面板
+                      setShowSearch(false);
+                      setSearchQuery('');
+                      setSearchResults(null);
+                      // 切换到艺术作品页面
+                      setSection('art');
+                      // 滚动到页面顶部
+                      window.scrollTo(0, 0);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>{item.title}</div>
+                    <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '8px' }}>
                       {item.content.substring(0, 100)}...
                     </div>
                     <div className="search-result-meta">
@@ -167,13 +191,65 @@ function MainApp() {
                       <span>发布时间: {new Date(item.createdAt).toLocaleString()}</span>
                       {item.tab && <span>分类: {item.tab}</span>}
                     </div>
+                    <div style={{ 
+                      marginTop: '8px', 
+                      fontSize: '12px', 
+                      color: '#3498db',
+                      fontWeight: 'bold'
+                    }}>
+                      点击查看完整内容 →
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : searchResults.activity && searchResults.activity.length > 0 ? (
+            <div style={{ marginBottom: 30 }}>
+              <h4>🎪 活动展示 ({searchResults.activity.length}条结果)</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {searchResults.activity.map(item => (
+                  <div 
+                    key={item._id} 
+                    className="search-result-item"
+                    onClick={() => {
+                      // 关闭搜索面板
+                      setShowSearch(false);
+                      setSearchQuery('');
+                      setSearchResults(null);
+                      // 切换到活动页面
+                      setSection('activity');
+                      // 滚动到页面顶部
+                      window.scrollTo(0, 0);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>{item.title}</div>
+                    <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '8px' }}>
+                      {item.content.substring(0, 100)}...
+                    </div>
+                    <div className="search-result-meta">
+                      <span>组织者: {item.authorName || item.author}</span>
+                      <span>班级: {item.authorClass}</span>
+                      <span>发布时间: {new Date(item.createdAt).toLocaleString()}</span>
+                      {item.tab && <span>分类: {item.tab}</span>}
+                    </div>
+                    <div style={{ 
+                      marginTop: '8px', 
+                      fontSize: '12px', 
+                      color: '#3498db',
+                      fontWeight: 'bold'
+                    }}>
+                      点击查看完整内容 →
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
             <div style={{ textAlign: 'center', color: '#7f8c8d', padding: 40 }}>
-              未找到相关艺术作品
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔍</div>
+              <div style={{ fontSize: '18px', marginBottom: '10px' }}>未找到相关内容</div>
+              <div style={{ fontSize: '14px' }}>请尝试其他关键词或检查拼写</div>
             </div>
           )}
         </div>
@@ -194,5 +270,9 @@ function MainApp() {
 }
 
 export default function App() {
-  return <MainApp />;
+  return (
+    <UserIDProvider>
+      <MainApp />
+    </UserIDProvider>
+  );
 }

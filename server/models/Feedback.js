@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
 
 const FeedbackSchema = new mongoose.Schema({
-  category: { type: String, default: '其他' }, // 教学、宿舍、食堂、校园环境
   content: { type: String, required: true },
-  author: { type: String, required: true }, // 可以存邮箱或用户id
-  authorName: { type: String, default: '' },
+  category: { type: String, default: '其他' },
+  author: { type: String, required: true },
+  authorName: { type: String, required: true },
+  authorClass: { type: String, required: true },
   authorAvatar: { type: String, default: '' },
-  authorClass: { type: String, default: '' },
-  media: [String], // 媒体文件URL数组
+  status: { type: String, default: 'pending', enum: ['pending', 'processing', 'resolved'] },
+  adminReply: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
