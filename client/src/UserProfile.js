@@ -13,11 +13,17 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   const [message, setMessage] = useState('');
   const [userRole, setUserRole] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [nameEdited, setNameEdited] = useState(false);
+  const [tempAvatar, setTempAvatar] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('user_profile');
+    const nameEditedFlag = localStorage.getItem('name_edited');
     if (saved) {
       setUserInfo(JSON.parse(saved));
+    }
+    if (nameEditedFlag === 'true') {
+      setNameEdited(true);
     }
   }, []);
 
@@ -46,6 +52,12 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
       return;
     }
 
+    // 如果名字被修改了，标记为已编辑
+    if (userInfo.name && !nameEdited) {
+      setNameEdited(true);
+      localStorage.setItem('name_edited', 'true');
+    }
+
     localStorage.setItem('user_profile', JSON.stringify(userInfo));
     setMessage('个人信息保存成功！');
     
@@ -55,15 +67,30 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
     }
   };
 
-  const handleAvatarUpload = (e) => {
-    const file = e.target.files[0];
+  const handleAvatarUpload = (file) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setUserInfo(prev => ({ ...prev, avatar: e.target.result }));
+        setTempAvatar(e.target.result);
+        setMessage('头像已选择，请点击"保存头像"按钮保存');
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSaveAvatar = () => {
+    if (tempAvatar) {
+      setUserInfo(prev => ({ ...prev, avatar: tempAvatar }));
+      setTempAvatar('');
+      setMessage('头像保存成功！');
+    } else {
+      setMessage('请先选择头像');
+    }
+  };
+
+  const handleAvatarFileSelect = (e) => {
+    const file = e.target.files[0];
+    handleAvatarUpload(file);
   };
 
   return (
@@ -87,19 +114,53 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 30 }}>
         <Avatar 
-          src={userInfo.avatar} 
+          src={tempAvatar || userInfo.avatar} 
           name={userInfo.name} 
           size={100}
           style={{ marginBottom: '20px' }}
         />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleAvatarUpload}
-          style={{ marginBottom: '20px' }}
-        />
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarFileSelect}
+            style={{ display: 'none' }}
+            id="avatar-upload"
+          />
+          <label
+            htmlFor="avatar-upload"
+            style={{
+              padding: '8px 16px',
+              background: '#3498db',
+              color: 'white',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            选择头像
+          </label>
+          {tempAvatar && (
+            <button
+              onClick={handleSaveAvatar}
+              style={{
+                padding: '8px 16px',
+                background: '#27ae60',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              保存头像
+            </button>
+          )}
+        </div>
         <div style={{ fontSize: '14px', color: '#7f8c8d', textAlign: 'center' }}>
-          点击上传头像，支持 JPG、PNG 格式
+          支持 JPG、PNG 格式
         </div>
         
         {/* 用户身份显示 */}
@@ -126,21 +187,33 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
 
       <div style={{ marginBottom: 20 }}>
         <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-          姓名 *
+          姓名 * {nameEdited && <span style={{ color: '#e74c3c', fontSize: '12px' }}>(已设置，不可修改)</span>}
         </label>
         <input
           type="text"
           value={userInfo.name}
-          onChange={(e) => setUserInfo(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(e) => {
+            if (!nameEdited) {
+              setUserInfo(prev => ({ ...prev, name: e.target.value }));
+            }
+          }}
           placeholder="请输入您的姓名"
+          disabled={nameEdited}
           style={{ 
             width: '100%', 
             padding: '12px', 
             borderRadius: 8, 
             border: '2px solid #ecf0f1',
-            fontSize: '16px'
+            fontSize: '16px',
+            backgroundColor: nameEdited ? '#f8f9fa' : 'white',
+            color: nameEdited ? '#6c757d' : '#2c3e50'
           }}
         />
+        {!nameEdited && (
+          <div style={{ fontSize: '12px', color: '#e74c3c', marginTop: '5px' }}>
+            注意：姓名只能设置一次，请谨慎填写
+          </div>
+        )}
       </div>
 
       <div style={{ marginBottom: 30 }}>

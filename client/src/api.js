@@ -91,6 +91,29 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+    getMy: (authorName) => api.request(`/api/feedback/my?authorName=${encodeURIComponent(authorName)}`),
+    
+    reply: (id, data) => api.request(`/api/feedback/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  },
+
+  // 管理员反馈API
+  adminFeedback: {
+    getAll: () => api.request('/api/admin/feedback'),
+    
+    getById: (id) => api.request(`/api/admin/feedback/${id}`),
+    
+    reply: (id, data) => api.request(`/api/admin/feedback/${id}/reply`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    markReceived: (id) => api.request(`/api/admin/feedback/${id}/received`, {
+      method: 'POST',
+    }),
   },
 
   // 搜索API

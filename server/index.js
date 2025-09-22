@@ -503,6 +503,115 @@ app.get('/api/admin/feedback', async (req, res) => {
   }
 });
 
+// 获取单个反馈详情
+app.get('/api/admin/feedback/:id', async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    if (!feedback) {
+      return res.status(404).json({ error: '反馈不存在' });
+    }
+    res.json(feedback);
+  } catch (error) {
+    console.error('获取反馈详情失败:', error);
+    res.status(500).json({ error: '获取反馈详情失败' });
+  }
+});
+
+// 管理员回复反馈
+app.post('/api/admin/feedback/:id/reply', async (req, res) => {
+  try {
+    const { content, adminName, adminClass } = req.body;
+    const feedback = await Feedback.findById(req.params.id);
+    
+    if (!feedback) {
+      return res.status(404).json({ error: '反馈不存在' });
+    }
+
+    const conversationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    
+    feedback.conversations.push({
+      id: conversationId,
+      author: adminName,
+      authorName: adminName,
+      authorClass: adminClass,
+      content: content,
+      isAdmin: true,
+      createdAt: new Date()
+    });
+
+    await feedback.save();
+    res.json(feedback);
+  } catch (error) {
+    console.error('回复反馈失败:', error);
+    res.status(500).json({ error: '回复反馈失败' });
+  }
+});
+
+// 标记反馈为已收到
+app.post('/api/admin/feedback/:id/received', async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    
+    if (!feedback) {
+      return res.status(404).json({ error: '反馈不存在' });
+    }
+
+    feedback.status = 'received';
+    await feedback.save();
+    res.json(feedback);
+  } catch (error) {
+    console.error('标记反馈失败:', error);
+    res.status(500).json({ error: '标记反馈失败' });
+  }
+});
+
+// 用户回复反馈
+app.post('/api/feedback/:id/reply', async (req, res) => {
+  try {
+    const { content, authorName, authorClass, authorAvatar } = req.body;
+    const feedback = await Feedback.findById(req.params.id);
+    
+    if (!feedback) {
+      return res.status(404).json({ error: '反馈不存在' });
+    }
+
+    const conversationId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    
+    feedback.conversations.push({
+      id: conversationId,
+      author: authorName,
+      authorName: authorName,
+      authorClass: authorClass,
+      authorAvatar: authorAvatar || '',
+      content: content,
+      isAdmin: false,
+      createdAt: new Date()
+    });
+
+    await feedback.save();
+    res.json(feedback);
+  } catch (error) {
+    console.error('回复反馈失败:', error);
+    res.status(500).json({ error: '回复反馈失败' });
+  }
+});
+
+// 获取用户的反馈
+app.get('/api/feedback/my', async (req, res) => {
+  try {
+    const { authorName } = req.query;
+    if (!authorName) {
+      return res.status(400).json({ error: '缺少作者名称' });
+    }
+
+    const feedbacks = await Feedback.find({ authorName }).sort({ createdAt: -1 });
+    res.json(feedbacks);
+  } catch (error) {
+    console.error('获取用户反馈失败:', error);
+    res.status(500).json({ error: '获取用户反馈失败' });
+  }
+});
+
 // 获取所有管理员用户
 app.get('/api/admin/users', async (req, res) => {
   try {

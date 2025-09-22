@@ -4,19 +4,27 @@ import FilePreview from './FilePreview';
 import api from './api';
 
 export default function MyCollection({ userInfo, onBack }) {
-  const [collections, setCollections] = useState([]);
+  const [artCollections, setArtCollections] = useState([]);
+  const [activityCollections, setActivityCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('art');
 
   useEffect(() => {
     if (userInfo && userInfo.name) {
-      loadCollections();
+      loadAllCollections();
     } else {
       setLoading(false);
     }
   }, [userInfo]);
 
-  const loadCollections = async () => {
+  useEffect(() => {
+    if (userInfo && userInfo.name) {
+      loadTabCollections();
+    }
+  }, [activeTab, userInfo]);
+
+  const loadAllCollections = async () => {
     if (!userInfo || !userInfo.name) {
       setLoading(false);
       return;
@@ -24,38 +32,67 @@ export default function MyCollection({ userInfo, onBack }) {
 
     try {
       setLoading(true);
-      const data = await api.art.getFavorites(userInfo.name);
-      setCollections(Array.isArray(data) ? data : []);
+      const [artData, activityData] = await Promise.all([
+        api.art.getFavorites(userInfo.name),
+        api.activity.getAll()
+      ]);
+      
+      setArtCollections(Array.isArray(artData) ? artData : []);
+      setActivityCollections(Array.isArray(activityData) ? activityData.filter(activity => 
+        activity.favorites && activity.favorites.includes(userInfo.name)
+      ) : []);
     } catch (error) {
       console.error('加载收藏失败:', error);
-      setCollections([]);
+      setArtCollections([]);
+      setActivityCollections([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUnfavorite = async (id) => {
+  const loadTabCollections = async () => {
+    if (!userInfo || !userInfo.name) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (activeTab === 'art') {
+        const data = await api.art.getFavorites(userInfo.name);
+        setArtCollections(Array.isArray(data) ? data : []);
+      } else if (activeTab === 'activity') {
+        const data = await api.activity.getAll();
+        setActivityCollections(Array.isArray(data) ? data.filter(activity => 
+          activity.favorites && activity.favorites.includes(userInfo.name)
+        ) : []);
+      }
+    } catch (error) {
+      console.error('加载收藏失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnfavorite = async (id, type) => {
     if (!userInfo || !userInfo.name) {
       setMessage('请先完善个人信息');
       return;
     }
     
     try {
-      await api.art.favorite(id, userInfo.name);
-      setCollections(prev => prev.filter(item => item._id !== id));
+      if (type === 'art') {
+        await api.art.favorite(id, userInfo.name);
+        setArtCollections(prev => prev.filter(item => item._id !== id));
+      } else if (type === 'activity') {
+        await api.activity.favorite(id, userInfo.name);
+        setActivityCollections(prev => prev.filter(item => item._id !== id));
+      }
       setMessage('已取消收藏');
     } catch (error) {
       console.error('取消收藏失败:', error);
       setMessage('操作失败，请重试');
     }
   };
-
-  const renderMedia = (urls) => (
-    <FilePreview 
-      urls={urls} 
-      apiBaseUrl={process.env.REACT_APP_API_URL || 'http://localhost:5000'} 
-    />
-  );
 
   if (loading) {
     return (
@@ -131,91 +168,106 @@ export default function MyCollection({ userInfo, onBack }) {
       {/* 消息显示 */}
       {message && (
         <div style={{ 
+          marginBottom: 20, 
           padding: '15px', 
-          background: message.includes('成功') || message.includes('已取消') ? '#d4edda' : '#f8d7da',
-          color: message.includes('成功') || message.includes('已取消') ? '#155724' : '#721c24',
+          background: message.includes('成功') || message.includes('已') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') || message.includes('已') ? '#155724' : '#721c24',
           borderRadius: 8,
-          border: `1px solid ${message.includes('成功') || message.includes('已取消') ? '#c3e6cb' : '#f5c6cb'}`,
-          marginBottom: '20px',
-          textAlign: 'center'
+          border: `1px solid ${message.includes('成功') || message.includes('已') ? '#c3e6cb' : '#f5c6cb'}`
         }}>
           {message}
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {collections.map(item => (
-          <div key={item._id} style={{ 
-            border: '1px solid #ecf0f1', 
-            borderRadius: 12,
-            padding: 20,
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-            transition: 'all 0.3s ease'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 15 }}>
-              <Avatar 
-                name={item.authorName || item.author || '用户'} 
-                size={45}
-                style={{ 
-                  marginRight: 15,
-                  border: '3px solid #fff',
-                  boxShadow: '0 3px 10px rgba(0,0,0,0.1)'
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: 4, color: '#2c3e50' }}>
-                  {item.authorName || item.author}
+      {/* 分区标签 */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 30, borderBottom: '1px solid #ecf0f1' }}>
+        <button
+          onClick={() => setActiveTab('art')}
+          style={{
+            padding: '12px 20px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'art' ? '2px solid #3498db' : '2px solid transparent',
+            color: activeTab === 'art' ? '#3498db' : '#7f8c8d',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          艺术作品 ({artCollections.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('activity')}
+          style={{
+            padding: '12px 20px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'activity' ? '2px solid #3498db' : '2px solid transparent',
+            color: activeTab === 'activity' ? '#3498db' : '#7f8c8d',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          活动设计 ({activityCollections.length})
+        </button>
+      </div>
+
+      {/* 艺术作品收藏 */}
+      {activeTab === 'art' && (
+        <div>
+          {artCollections.map(item => (
+            <div key={item._id} style={{ 
+              border: '1px solid #ecf0f1', 
+              borderRadius: 12, 
+              padding: 20, 
+              marginBottom: 20,
+              background: '#f8f9fa'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                  <Avatar 
+                    src={item.authorAvatar} 
+                    name={item.authorName} 
+                    size={40}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                      {item.authorName}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                      {item.authorClass} • {new Date(item.createdAt).toLocaleString()}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span>班级: {item.authorClass}</span>
-                  <span>日期: {new Date(item.createdAt).toLocaleString()}</span>
-                  <span>浏览 {item.views || 0} 次</span>
-                </div>
-              </div>
-            </div>
-            <div style={{ marginBottom: 15 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                <h3 style={{ margin: 0, fontSize: '20px', color: '#2c3e50', flex: 1 }}>{item.title}</h3>
                 <button
-                  onClick={() => handleUnfavorite(item._id)}
+                  onClick={() => handleUnfavorite(item._id, 'art')}
                   style={{
-                    background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                    padding: '6px 12px',
+                    background: '#6c757d',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '20px',
-                    padding: '8px 16px',
-                    fontSize: '12px',
+                    borderRadius: 6,
                     cursor: 'pointer',
-                    fontWeight: '500',
-                    transition: 'all 0.3s ease',
-                    marginLeft: '10px',
-                    boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.transform = 'scale(1.05)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.4)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                    e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 107, 0.3)';
+                    fontSize: '12px'
                   }}
                 >
                   取消收藏
                 </button>
               </div>
-              <p style={{ margin: 0, lineHeight: 1.6, color: '#34495e', fontSize: '15px' }}>{item.content}</p>
-            </div>
-            {renderMedia(item.media)}
-            <div style={{ 
-              marginTop: 20, 
-              padding: '15px 0',
-              borderTop: '1px solid #ecf0f1',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              
+              <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>{item.title}</h3>
+              <p style={{ margin: '0 0 15px 0', color: '#34495e', lineHeight: 1.6 }}>
+                {item.content}
+              </p>
+              
+              {item.media && item.media.length > 0 && (
+                <div style={{ marginBottom: 15 }}>
+                  <FilePreview files={item.media} />
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
                 <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
                   {item.likes || 0} 喜欢
                 </span>
@@ -227,17 +279,89 @@ export default function MyCollection({ userInfo, onBack }) {
                 </span>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+          
+          {artCollections.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
+              <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无收藏</div>
+              <div style={{ fontSize: '14px' }}>去艺术作品页面收藏一些喜欢的作品吧！</div>
+            </div>
+          )}
+        </div>
+      )}
 
-        {collections.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
-            <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无收藏</div>
-            <div style={{ fontSize: '14px' }}>去艺术作品页面收藏一些喜欢的作品吧！</div>
-          </div>
-        )}
-      </div>
+      {/* 活动设计收藏 */}
+      {activeTab === 'activity' && (
+        <div>
+          {activityCollections.map(item => (
+            <div key={item._id} style={{ 
+              border: '1px solid #ecf0f1', 
+              borderRadius: 12, 
+              padding: 20, 
+              marginBottom: 20,
+              background: '#f8f9fa'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                  <Avatar 
+                    src={item.authorAvatar} 
+                    name={item.authorName} 
+                    size={40}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                      {item.authorName}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                      {item.authorClass} • {new Date(item.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleUnfavorite(item._id, 'activity')}
+                  style={{
+                    padding: '6px 12px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  取消收藏
+                </button>
+              </div>
+              
+              <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>{item.title}</h3>
+              <p style={{ margin: '0 0 15px 0', color: '#34495e', lineHeight: 1.6 }}>
+                {item.description || item.content}
+              </p>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
+                  {item.likes || 0} 喜欢
+                </span>
+                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
+                  {item.favorites?.length || 0} 收藏
+                </span>
+                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
+                  {item.comments?.length || 0} 评论
+                </span>
+              </div>
+            </div>
+          ))}
+          
+          {activityCollections.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
+              <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无收藏</div>
+              <div style={{ fontSize: '14px' }}>去活动展示页面收藏一些喜欢的活动吧！</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

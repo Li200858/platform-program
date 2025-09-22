@@ -9,6 +9,8 @@ export default function AdminPanel({ userInfo, onBack }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [message, setMessage] = useState('');
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [replyContent, setReplyContent] = useState('');
 
   useEffect(() => {
     if (activeTab === 'feedbacks') {
@@ -21,13 +23,64 @@ export default function AdminPanel({ userInfo, onBack }) {
   const loadFeedbacks = async () => {
     try {
       setLoading(true);
-      const data = await api.admin.getFeedbacks();
+      const data = await api.adminFeedback.getAll();
       setFeedbacks(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('加载反馈失败:', error);
       setFeedbacks([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFeedbackClick = async (feedbackId) => {
+    try {
+      const feedback = await api.adminFeedback.getById(feedbackId);
+      setSelectedFeedback(feedback);
+    } catch (error) {
+      console.error('获取反馈详情失败:', error);
+      setMessage('获取反馈详情失败');
+    }
+  };
+
+  const handleReply = async () => {
+    if (!replyContent.trim() || !selectedFeedback) return;
+
+    try {
+      await api.adminFeedback.reply(selectedFeedback._id, {
+        content: replyContent,
+        adminName: userInfo.name,
+        adminClass: userInfo.class
+      });
+      
+      setReplyContent('');
+      setMessage('回复成功！');
+      
+      // 重新加载反馈详情
+      const updatedFeedback = await api.adminFeedback.getById(selectedFeedback._id);
+      setSelectedFeedback(updatedFeedback);
+      
+      // 重新加载反馈列表
+      loadFeedbacks();
+    } catch (error) {
+      console.error('回复失败:', error);
+      setMessage('回复失败，请重试');
+    }
+  };
+
+  const handleMarkReceived = async (feedbackId) => {
+    try {
+      await api.adminFeedback.markReceived(feedbackId);
+      setMessage('已标记为收到');
+      loadFeedbacks();
+      
+      if (selectedFeedback && selectedFeedback._id === feedbackId) {
+        const updatedFeedback = await api.adminFeedback.getById(feedbackId);
+        setSelectedFeedback(updatedFeedback);
+      }
+    } catch (error) {
+      console.error('标记失败:', error);
+      setMessage('标记失败，请重试');
     }
   };
 
@@ -60,36 +113,32 @@ export default function AdminPanel({ userInfo, onBack }) {
   };
 
   const handleAddAdmin = async (userName) => {
-    if (!userName) return;
-
     try {
       await api.admin.addAdmin({
-        userName,
-        addedBy: userInfo.name
+        userName: userName,
+        adminName: userInfo.name,
+        adminClass: userInfo.class
       });
-      setMessage('管理员添加成功！');
+      setMessage(`已添加 ${userName} 为管理员`);
       loadUsers();
     } catch (error) {
-      setMessage('添加失败：' + (error.message || '请重试'));
+      console.error('添加管理员失败:', error);
+      setMessage('添加管理员失败，请重试');
     }
   };
 
   const handleRemoveAdmin = async (userName) => {
-    if (!userName) return;
-
-    if (!window.confirm(`确定要移除用户 ${userName} 的管理员权限吗？`)) {
-      return;
-    }
-
     try {
       await api.admin.removeAdmin({
-        userName,
-        removedBy: userInfo.name
+        userName: userName,
+        adminName: userInfo.name,
+        adminClass: userInfo.class
       });
-      setMessage('管理员移除成功！');
+      setMessage(`已移除 ${userName} 的管理员权限`);
       loadUsers();
     } catch (error) {
-      setMessage('移除失败：' + (error.message || '请重试'));
+      console.error('移除管理员失败:', error);
+      setMessage('移除管理员失败，请重试');
     }
   };
 
@@ -109,19 +158,18 @@ export default function AdminPanel({ userInfo, onBack }) {
         >
           ←
         </button>
-        <h2 style={{ margin: 0, color: '#2c3e50' }}>管理面板</h2>
+        <h2 style={{ margin: 0, color: '#2c3e50' }}>管理员面板</h2>
       </div>
 
       {/* 消息显示 */}
       {message && (
         <div style={{ 
+          marginBottom: 20, 
           padding: '15px', 
-          background: message.includes('成功') ? '#d4edda' : '#f8d7da',
-          color: message.includes('成功') ? '#155724' : '#721c24',
+          background: message.includes('成功') || message.includes('已') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') || message.includes('已') ? '#155724' : '#721c24',
           borderRadius: 8,
-          border: `1px solid ${message.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`,
-          marginBottom: '20px',
-          textAlign: 'center'
+          border: `1px solid ${message.includes('成功') || message.includes('已') ? '#c3e6cb' : '#f5c6cb'}`
         }}>
           {message}
         </div>
@@ -167,37 +215,203 @@ export default function AdminPanel({ userInfo, onBack }) {
             <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
               加载中...
             </div>
+          ) : selectedFeedback ? (
+            <div>
+              <button
+                onClick={() => setSelectedFeedback(null)}
+                style={{
+                  padding: '8px 16px',
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  marginBottom: 20
+                }}
+              >
+                ← 返回列表
+              </button>
+              
+              <div style={{ 
+                border: '1px solid #ecf0f1', 
+                borderRadius: 8,
+                padding: 20,
+                background: '#f8f9fa',
+                marginBottom: 20
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                  <div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#2c3e50' }}>
+                      {selectedFeedback.authorName} ({selectedFeedback.authorClass})
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                      {new Date(selectedFeedback.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <span style={{
+                      padding: '4px 12px',
+                      borderRadius: 12,
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      background: selectedFeedback.status === 'received' ? '#d4edda' : 
+                                 selectedFeedback.status === 'processing' ? '#fff3cd' : '#f8d7da',
+                      color: selectedFeedback.status === 'received' ? '#155724' : 
+                             selectedFeedback.status === 'processing' ? '#856404' : '#721c24'
+                    }}>
+                      {selectedFeedback.status === 'received' ? '已收到' : 
+                       selectedFeedback.status === 'processing' ? '处理中' : '待处理'}
+                    </span>
+                    {selectedFeedback.status !== 'received' && (
+                      <button
+                        onClick={() => handleMarkReceived(selectedFeedback._id)}
+                        style={{
+                          padding: '4px 12px',
+                          background: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        已收到
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div style={{ fontSize: '14px', color: '#34495e', lineHeight: 1.5, marginBottom: 15 }}>
+                  {selectedFeedback.content}
+                </div>
+              </div>
+
+              {/* 对话记录 */}
+              {selectedFeedback.conversations && selectedFeedback.conversations.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>对话记录</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {selectedFeedback.conversations.map(conv => (
+                      <div key={conv.id} style={{
+                        padding: 15,
+                        borderRadius: 8,
+                        background: conv.isAdmin ? '#e3f2fd' : '#f5f5f5',
+                        borderLeft: `4px solid ${conv.isAdmin ? '#2196f3' : '#4caf50'}`
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                            {conv.authorName} {conv.isAdmin && '(管理员)'}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                            {new Date(conv.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#34495e' }}>
+                          {conv.content}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 回复框 */}
+              <div style={{ 
+                border: '1px solid #ecf0f1', 
+                borderRadius: 8,
+                padding: 20,
+                background: '#fff'
+              }}>
+                <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>回复反馈</h4>
+                <textarea
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="请输入回复内容..."
+                  style={{
+                    width: '100%',
+                    height: '100px',
+                    padding: '12px',
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    fontSize: '14px',
+                    resize: 'vertical',
+                    marginBottom: 15
+                  }}
+                />
+                <button
+                  onClick={handleReply}
+                  disabled={!replyContent.trim()}
+                  style={{
+                    padding: '10px 20px',
+                    background: replyContent.trim() ? '#007bff' : '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: replyContent.trim() ? 'pointer' : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  发送回复
+                </button>
+              </div>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
               {feedbacks.map(feedback => (
-                <div key={feedback._id} style={{ 
-                  border: '1px solid #ecf0f1', 
-                  borderRadius: 8,
-                  padding: 20,
-                  background: '#f8f9fa'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#2c3e50', marginBottom: 5 }}>
-                        {feedback.authorName} ({feedback.authorClass})
-                      </div>
+                <div 
+                  key={feedback._id} 
+                  onClick={() => handleFeedbackClick(feedback._id)}
+                  style={{ 
+                    border: '1px solid #ecf0f1', 
+                    borderRadius: 8,
+                    padding: 20,
+                    background: '#f8f9fa',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#e9ecef';
+                    e.target.style.borderColor = '#007bff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#f8f9fa';
+                    e.target.style.borderColor = '#ecf0f1';
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2c3e50' }}>
+                      {feedback.authorName} ({feedback.authorClass})
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: 12,
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        background: feedback.status === 'received' ? '#d4edda' : 
+                                   feedback.status === 'processing' ? '#fff3cd' : '#f8d7da',
+                        color: feedback.status === 'received' ? '#155724' : 
+                               feedback.status === 'processing' ? '#856404' : '#721c24'
+                      }}>
+                        {feedback.status === 'received' ? '已收到' : 
+                         feedback.status === 'processing' ? '处理中' : '待处理'}
+                      </span>
                       <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                        {new Date(feedback.createdAt).toLocaleString()} • 分类: {feedback.category}
+                        {new Date(feedback.createdAt).toLocaleString()}
                       </div>
                     </div>
-                    <span style={{ 
-                      padding: '4px 8px', 
-                      borderRadius: '12px', 
-                      fontSize: '12px',
-                      background: feedback.status === 'resolved' ? '#d4edda' : '#fff3cd',
-                      color: feedback.status === 'resolved' ? '#155724' : '#856404'
-                    }}>
-                      {feedback.status === 'resolved' ? '已处理' : '待处理'}
-                    </span>
                   </div>
                   <div style={{ fontSize: '14px', color: '#34495e', lineHeight: 1.5 }}>
-                    {feedback.content}
+                    {feedback.content.length > 100 ? 
+                      feedback.content.substring(0, 100) + '...' : 
+                      feedback.content
+                    }
                   </div>
+                  {feedback.conversations && feedback.conversations.length > 0 && (
+                    <div style={{ fontSize: '12px', color: '#007bff', marginTop: 8 }}>
+                      有 {feedback.conversations.length} 条对话记录
+                    </div>
+                  )}
                 </div>
               ))}
               {feedbacks.length === 0 && (
@@ -214,63 +428,74 @@ export default function AdminPanel({ userInfo, onBack }) {
         <div>
           <h3 style={{ marginBottom: 20, color: '#2c3e50' }}>用户管理</h3>
           
-          <div style={{ marginBottom: 20 }}>
+          {/* 搜索用户 */}
+          <div style={{ marginBottom: 30 }}>
             <div style={{ display: 'flex', gap: 10, marginBottom: 15 }}>
               <input
                 type="text"
-                placeholder="搜索用户..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ 
-                  flex: 1, 
-                  padding: '10px', 
-                  borderRadius: 8, 
-                  border: '2px solid #ecf0f1' 
+                placeholder="搜索用户名..."
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  fontSize: '14px'
                 }}
               />
               <button
                 onClick={handleSearchUsers}
                 style={{
                   padding: '10px 20px',
-                  background: '#3498db',
+                  background: '#007bff',
                   color: 'white',
                   border: 'none',
-                  borderRadius: 8,
+                  borderRadius: 6,
                   cursor: 'pointer',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  fontWeight: 'bold'
                 }}
               >
                 搜索
               </button>
             </div>
-          </div>
-
-          {searchResults.length > 0 && (
-            <div style={{ marginBottom: 30 }}>
-              <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>搜索结果</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {searchResults.map(user => (
-                  <div key={user.name} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+            
+            {searchResults.length > 0 && (
+              <div style={{ 
+                border: '1px solid #ecf0f1', 
+                borderRadius: 8,
+                background: '#f8f9fa',
+                padding: 15
+              }}>
+                <h4 style={{ marginBottom: 10, color: '#2c3e50' }}>搜索结果</h4>
+                {searchResults.map((user, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '15px',
-                    border: '1px solid #ecf0f1',
-                    borderRadius: 8,
-                    background: '#f8f9fa'
+                    padding: '10px',
+                    borderBottom: '1px solid #dee2e6',
+                    background: '#fff',
+                    borderRadius: 6,
+                    marginBottom: 8
                   }}>
                     <div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{user.name}</div>
-                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>班级: {user.class}</div>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                        {user.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        班级: {user.class}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleAddAdmin(user.name)}
                       style={{
                         padding: '6px 12px',
-                        background: '#27ae60',
+                        background: '#28a745',
                         color: 'white',
                         border: 'none',
-                        borderRadius: 6,
+                        borderRadius: 4,
                         cursor: 'pointer',
                         fontSize: '12px'
                       }}
@@ -280,57 +505,60 @@ export default function AdminPanel({ userInfo, onBack }) {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>当前管理员</h4>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-              加载中...
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {users.map(user => (
-                <div key={user._id} style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  padding: '15px',
-                  border: '1px solid #ecf0f1',
-                  borderRadius: 8,
-                  background: '#f8f9fa'
-                }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{user.name}</div>
-                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                      班级: {user.class} • 创建时间: {new Date(user.createdAt).toLocaleString()}
+          {/* 管理员列表 */}
+          <div>
+            <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>当前管理员</h4>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+                加载中...
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {users.map(user => (
+                  <div key={user._id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '15px',
+                    border: '1px solid #ecf0f1',
+                    borderRadius: 8,
+                    background: '#f8f9fa'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                        {user.name}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        班级: {user.class}
+                      </div>
                     </div>
-                  </div>
-                  {user.name !== userInfo.name && (
                     <button
                       onClick={() => handleRemoveAdmin(user.name)}
                       style={{
                         padding: '6px 12px',
-                        background: '#e74c3c',
+                        background: '#dc3545',
                         color: 'white',
                         border: 'none',
-                        borderRadius: 6,
+                        borderRadius: 4,
                         cursor: 'pointer',
                         fontSize: '12px'
                       }}
                     >
                       移除管理员
                     </button>
-                  )}
-                </div>
-              ))}
-              {users.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-                  暂无管理员
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                ))}
+                {users.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+                    暂无管理员
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
