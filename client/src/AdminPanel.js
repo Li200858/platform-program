@@ -8,6 +8,7 @@ export default function AdminPanel({ userInfo, onBack }) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [replyContent, setReplyContent] = useState('');
@@ -116,15 +117,28 @@ export default function AdminPanel({ userInfo, onBack }) {
   const handleSearchUsers = async () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
+      setMessage('请输入搜索关键词');
       return;
     }
 
     try {
+      setSearchLoading(true);
+      setMessage('');
       const data = await api.admin.searchUsers(searchQuery);
-      setSearchResults(Array.isArray(data) ? data : []);
+      const results = Array.isArray(data) ? data : [];
+      setSearchResults(results);
+      
+      if (results.length === 0) {
+        setMessage('未找到匹配的用户');
+      } else {
+        setMessage(`找到 ${results.length} 个匹配的用户`);
+      }
     } catch (error) {
       console.error('搜索用户失败:', error);
       setSearchResults([]);
+      setMessage('搜索失败，请重试');
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -492,7 +506,12 @@ export default function AdminPanel({ userInfo, onBack }) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索用户名..."
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchUsers();
+                  }
+                }}
+                placeholder="搜索用户名或班级..."
                 style={{
                   flex: 1,
                   padding: '10px',
@@ -503,18 +522,20 @@ export default function AdminPanel({ userInfo, onBack }) {
               />
               <button
                 onClick={handleSearchUsers}
+                disabled={searchLoading}
                 style={{
                   padding: '10px 20px',
-                  background: '#007bff',
+                  background: searchLoading ? '#6c757d' : '#007bff',
                   color: 'white',
                   border: 'none',
                   borderRadius: 6,
-                  cursor: 'pointer',
+                  cursor: searchLoading ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  minWidth: '80px'
                 }}
               >
-                搜索
+                {searchLoading ? '搜索中...' : '搜索'}
               </button>
             </div>
             
@@ -527,38 +548,67 @@ export default function AdminPanel({ userInfo, onBack }) {
               }}>
                 <h4 style={{ marginBottom: 10, color: '#2c3e50' }}>搜索结果</h4>
                 {searchResults.map((user, index) => (
-                  <div key={index} style={{
+                  <div key={user.userID || index} style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '10px',
+                    padding: '15px',
                     borderBottom: '1px solid #dee2e6',
                     background: '#fff',
                     borderRadius: 6,
                     marginBottom: 8
                   }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '16px' }}>
                         {user.name}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                      <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '4px' }}>
                         班级: {user.class}
                       </div>
+                      {user.userID && user.userID !== 'unknown' && (
+                        <div style={{ fontSize: '11px', color: '#95a5a6', marginTop: '2px' }}>
+                          ID: {user.userID}
+                        </div>
+                      )}
+                      {user.isAdmin && (
+                        <div style={{ 
+                          fontSize: '10px', 
+                          color: '#e74c3c', 
+                          fontWeight: 'bold',
+                          marginTop: '4px'
+                        }}>
+                          当前是管理员
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleAddAdmin(user.name)}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                    >
-                      设为管理员
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {!user.isAdmin ? (
+                        <button
+                          onClick={() => handleAddAdmin(user.name)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          设为管理员
+                        </button>
+                      ) : (
+                        <span style={{
+                          padding: '6px 12px',
+                          background: '#6c757d',
+                          color: 'white',
+                          borderRadius: 4,
+                          fontSize: '12px'
+                        }}>
+                          已是管理员
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

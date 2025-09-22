@@ -663,20 +663,39 @@ app.get('/api/admin/users', async (req, res) => {
 app.get('/api/admin/search-users', async (req, res) => {
   const { q } = req.query;
   
-  if (!q) {
+  if (!q || q.trim() === '') {
     return res.json([]);
   }
 
   try {
-    const artUsers = await Art.distinct('authorName', { 
-      authorName: { $regex: q, $options: 'i' } 
-    });
-    const feedbackUsers = await Feedback.distinct('authorName', { 
-      authorName: { $regex: q, $options: 'i' } 
-    });
-    
-    const allUsers = [...new Set([...artUsers, ...feedbackUsers])];
-    const users = allUsers.map(name => ({ name, class: '未知' }));
+    // 从User集合中搜索用户
+    const users = await User.find({
+      $or: [
+        { name: { $regex: q, $options: 'i' } },
+        { class: { $regex: q, $options: 'i' } }
+      ]
+    }).select('name class userID role isAdmin createdAt').limit(20);
+
+    // 如果User集合中没有找到，则从Art和Feedback中搜索
+    if (users.length === 0) {
+      const artUsers = await Art.distinct('authorName', { 
+        authorName: { $regex: q, $options: 'i' } 
+      });
+      const feedbackUsers = await Feedback.distinct('authorName', { 
+        authorName: { $regex: q, $options: 'i' } 
+      });
+      
+      const allUsers = [...new Set([...artUsers, ...feedbackUsers])];
+      const fallbackUsers = allUsers.map(name => ({ 
+        name, 
+        class: '未知班级',
+        userID: 'unknown',
+        role: 'user',
+        isAdmin: false
+      }));
+      
+      return res.json(fallbackUsers);
+    }
     
     res.json(users);
   } catch (error) {
