@@ -82,14 +82,20 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
       // 保存到本地存储
       localStorage.setItem('user_profile', JSON.stringify(userInfo));
       
-      // 同步到后端
+      // 同步到后端（建立用户名和ID的绑定关系）
       try {
-        await api.user.sync({
+        const syncResult = await api.user.sync({
           userID: userID,
           name: userInfo.name,
           class: userInfo.class
         });
-        setMessage('个人信息保存并同步成功！');
+        
+        if (syncResult.success) {
+          setMessage('个人信息保存并同步成功！用户名和ID已绑定。');
+          console.log('用户信息已同步到服务器:', syncResult.user);
+        } else {
+          setMessage('本地保存成功，但同步到服务器失败，请检查网络连接');
+        }
       } catch (error) {
         console.error('同步到后端失败:', error);
         setMessage('本地保存成功，但同步到服务器失败，请检查网络连接');

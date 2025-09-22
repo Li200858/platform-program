@@ -5,6 +5,26 @@ export default function UserSync({ onBack }) {
   const { userID, importUserID, exportUserID, resetUserID } = useUserID();
   const [importID, setImportID] = useState('');
   const [message, setMessage] = useState('');
+  const [currentUserInfo, setCurrentUserInfo] = useState(null);
+
+  // 加载当前用户信息
+  React.useEffect(() => {
+    const loadCurrentUserInfo = async () => {
+      if (userID) {
+        try {
+          const api = (await import('./api')).default;
+          const userData = await api.user.getByID(userID);
+          if (userData && userData.name && userData.class) {
+            setCurrentUserInfo(userData);
+          }
+        } catch (error) {
+          console.log('无法获取当前用户信息:', error.message);
+        }
+      }
+    };
+    
+    loadCurrentUserInfo();
+  }, [userID]);
 
   const handleImport = async () => {
     if (!importID.trim()) {
@@ -13,9 +33,20 @@ export default function UserSync({ onBack }) {
     }
 
     try {
-      setMessage('正在导入用户ID和用户信息...');
+      setMessage('正在验证用户ID并导入用户信息...');
+      
+      // 先验证用户ID是否存在
+      const api = (await import('./api')).default;
+      const userData = await api.user.getByID(importID.trim());
+      
+      if (!userData || !userData.name || !userData.class) {
+        setMessage('该用户ID不存在或信息不完整，请检查ID是否正确');
+        return;
+      }
+      
+      // 验证通过后导入
       await importUserID(importID.trim());
-      setMessage('用户ID导入成功！用户信息已自动同步，无需重复填写姓名和班级。页面将自动刷新以显示最新信息。');
+      setMessage(`用户ID导入成功！已绑定到用户：${userData.name} (${userData.class})。页面将自动刷新以显示最新信息。`);
       setImportID('');
       
       // 延迟刷新页面，让用户看到成功消息
@@ -23,7 +54,11 @@ export default function UserSync({ onBack }) {
         window.location.reload();
       }, 2000);
     } catch (error) {
-      setMessage('导入失败：' + error.message);
+      if (error.message.includes('404')) {
+        setMessage('该用户ID不存在，请检查ID是否正确');
+      } else {
+        setMessage('导入失败：' + error.message);
+      }
     }
   };
 
@@ -94,6 +129,45 @@ export default function UserSync({ onBack }) {
         <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '8px' }}>
           此ID用于跨设备同步您的数据
         </div>
+        
+        {/* 显示当前绑定的用户信息 */}
+        {currentUserInfo ? (
+          <div style={{ 
+            marginTop: '15px', 
+            padding: '15px', 
+            background: '#e8f5e8', 
+            borderRadius: 8,
+            border: '1px solid #c3e6c3'
+          }}>
+            <div style={{ fontSize: '14px', color: '#27ae60', fontWeight: 'bold', marginBottom: '5px' }}>
+              ✅ 已绑定用户信息
+            </div>
+            <div style={{ fontSize: '13px', color: '#2c3e50' }}>
+              <strong>姓名：</strong>{currentUserInfo.name}
+            </div>
+            <div style={{ fontSize: '13px', color: '#2c3e50' }}>
+              <strong>班级：</strong>{currentUserInfo.class}
+            </div>
+            <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '5px' }}>
+              此ID已与上述用户信息绑定，导入此ID将自动获取该用户信息
+            </div>
+          </div>
+        ) : (
+          <div style={{ 
+            marginTop: '15px', 
+            padding: '15px', 
+            background: '#fff3cd', 
+            borderRadius: 8,
+            border: '1px solid #ffeaa7'
+          }}>
+            <div style={{ fontSize: '14px', color: '#856404', fontWeight: 'bold', marginBottom: '5px' }}>
+              ⚠️ 未绑定用户信息
+            </div>
+            <div style={{ fontSize: '12px', color: '#856404' }}>
+              此ID尚未绑定任何用户信息，需要先在个人信息页面填写姓名和班级
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 消息显示 */}

@@ -103,11 +103,28 @@ export const UserIDProvider = ({ children }) => {
   // 重置用户ID
   const resetUserID = () => {
     try {
+      // 清除所有用户相关数据
       localStorage.removeItem('user_unique_id');
+      localStorage.removeItem('user_profile');
+      localStorage.removeItem('name_edited');
+      localStorage.removeItem('liked_art_ids');
+      localStorage.removeItem('liked_activity_ids');
+      localStorage.removeItem('favorite_art_ids');
+      localStorage.removeItem('favorite_activity_ids');
+      
+      // 生成新的用户ID
       const newID = generateUserID();
       localStorage.setItem('user_unique_id', newID);
       setUserID(newID);
-      console.log('用户ID已重置:', newID);
+      
+      // 触发storage事件，通知其他组件清除用户信息
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'user_profile',
+        newValue: null,
+        oldValue: null
+      }));
+      
+      console.log('用户ID已重置，所有用户数据已清除:', newID);
       return newID;
     } catch (error) {
       console.error('重置用户ID失败:', error);

@@ -769,7 +769,7 @@ app.post('/api/user/sync', async (req, res) => {
   }
 
   try {
-    // 查找或创建用户
+    // 查找用户（根据userID）
     let user = await User.findOne({ userID });
     
     if (!user) {
@@ -783,9 +783,9 @@ app.post('/api/user/sync', async (req, res) => {
         isAdmin: false
       });
     } else {
-      // 更新用户信息
-      if (name) user.name = name;
-      if (userClass) user.class = userClass;
+      // 如果找到用户，更新用户信息（保持绑定关系）
+      if (name && name !== '用户') user.name = name;
+      if (userClass && userClass !== '未知班级') user.class = userClass;
       if (avatar) user.avatar = avatar;
       await user.save();
     }
