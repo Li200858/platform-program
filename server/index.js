@@ -446,7 +446,7 @@ app.post('/api/activities/:id/comment', async (req, res) => {
 
 // 反馈功能
 app.post('/api/feedback', async (req, res) => {
-  const { content, category, authorName, authorClass } = req.body;
+  const { content, authorName, authorClass } = req.body;
   
   if (!content || !authorName || !authorClass) {
     return res.status(400).json({ error: '请填写完整信息' });
@@ -455,7 +455,6 @@ app.post('/api/feedback', async (req, res) => {
   try {
     const feedback = await Feedback.create({
       content,
-      category: category || '其他',
       author: authorName,
       authorName,
       authorClass,

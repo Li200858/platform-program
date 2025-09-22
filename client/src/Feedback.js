@@ -4,18 +4,9 @@ import api from './api';
 
 export default function Feedback({ userInfo }) {
   const [formData, setFormData] = useState({
-    content: '',
-    category: '其他'
+    content: ''
   });
   const [submitting, setSubmitting] = useState(false);
-
-  const categories = [
-    { value: '教学', label: '教学相关' },
-    { value: '宿舍', label: '宿舍生活' },
-    { value: '食堂', label: '食堂餐饮' },
-    { value: '环境', label: '校园环境' },
-    { value: '其他', label: '其他建议' }
-  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +30,7 @@ export default function Feedback({ userInfo }) {
       });
       
       alert('反馈提交成功！感谢您的建议。');
-      setFormData({ content: '', category: '其他' });
+      setFormData({ content: '' });
     } catch (error) {
       alert('提交失败：' + (error.message || '请重试'));
     } finally {
@@ -67,23 +58,6 @@ export default function Feedback({ userInfo }) {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-            反馈分类
-          </label>
-          <select
-            value={formData.category}
-            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-            style={{ width: '100%', padding: '12px', borderRadius: 8, border: '2px solid #ecf0f1', fontSize: '16px' }}
-          >
-            {categories.map(cat => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
             反馈内容 *
