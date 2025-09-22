@@ -612,6 +612,30 @@ app.get('/api/feedback/my', async (req, res) => {
   }
 });
 
+// 删除活动
+app.delete('/api/activities/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { authorName, isAdmin } = req.query;
+
+    const activity = await Activity.findById(id);
+    if (!activity) {
+      return res.status(404).json({ error: '活动不存在' });
+    }
+
+    // 检查权限：只有作者本人或管理员可以删除
+    if (activity.authorName !== authorName && !isAdmin) {
+      return res.status(403).json({ error: '没有权限删除此活动' });
+    }
+
+    await Activity.findByIdAndDelete(id);
+    res.json({ message: '活动删除成功' });
+  } catch (error) {
+    console.error('删除活动失败:', error);
+    res.status(500).json({ error: '删除活动失败' });
+  }
+});
+
 // 获取所有管理员用户
 app.get('/api/admin/users', async (req, res) => {
   try {

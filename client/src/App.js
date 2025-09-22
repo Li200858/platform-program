@@ -178,6 +178,19 @@ function MainApp() {
                       setSection('art');
                       // 滚动到页面顶部
                       window.scrollTo(0, 0);
+                      // 高亮显示搜索结果
+                      setTimeout(() => {
+                        const element = document.querySelector(`[data-art-id="${item._id}"]`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          element.style.background = '#fff3cd';
+                          element.style.border = '2px solid #ffc107';
+                          setTimeout(() => {
+                            element.style.background = '';
+                            element.style.border = '';
+                          }, 3000);
+                        }
+                      }, 100);
                     }}
                     style={{ cursor: 'pointer' }}
                   >
@@ -220,6 +233,19 @@ function MainApp() {
                       setSection('activity');
                       // 滚动到页面顶部
                       window.scrollTo(0, 0);
+                      // 高亮显示搜索结果
+                      setTimeout(() => {
+                        const element = document.querySelector(`[data-activity-id="${item._id}"]`);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          element.style.background = '#fff3cd';
+                          element.style.border = '2px solid #ffc107';
+                          setTimeout(() => {
+                            element.style.background = '';
+                            element.style.border = '';
+                          }, 3000);
+                        }
+                      }, 100);
                     }}
                     style={{ cursor: 'pointer' }}
                   >

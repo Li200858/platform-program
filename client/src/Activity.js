@@ -5,6 +5,7 @@ import api from './api';
 export default function Activity({ userInfo, onBack }) {
   const [activities, setActivities] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [message, setMessage] = useState('');
   const [likedIds, setLikedIds] = useState(() => {
     const saved = localStorage.getItem('liked_activity_ids');
     return saved ? JSON.parse(saved) : [];
@@ -78,6 +79,26 @@ export default function Activity({ userInfo, onBack }) {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!userInfo || !userInfo.name) {
+      setMessage('请先完善个人信息');
+      return;
+    }
+
+    if (!window.confirm('确定要删除这个活动吗？此操作不可恢复。')) {
+      return;
+    }
+
+    try {
+      await api.activity.delete(id, userInfo.name, userInfo.isAdmin || false);
+      setActivities(prev => prev.filter(item => item._id !== id));
+      setMessage('活动已删除');
+    } catch (error) {
+      console.error('删除失败:', error);
+      setMessage('删除失败，请重试');
+    }
+  };
+
   if (showCreate) {
     return <CreateActivityForm onBack={() => setShowCreate(false)} userInfo={userInfo} onSuccess={loadActivities} />;
   }
@@ -116,9 +137,23 @@ export default function Activity({ userInfo, onBack }) {
         </button>
       </div>
 
+      {/* 消息显示 */}
+      {message && (
+        <div style={{ 
+          marginBottom: 20, 
+          padding: '15px', 
+          background: message.includes('成功') || message.includes('已') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') || message.includes('已') ? '#155724' : '#721c24',
+          borderRadius: 8,
+          border: `1px solid ${message.includes('成功') || message.includes('已') ? '#c3e6cb' : '#f5c6cb'}`
+        }}>
+          {message}
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {activities.map(activity => (
-          <div key={activity._id} style={{ 
+          <div key={activity._id} data-activity-id={activity._id} style={{ 
             border: '1px solid #ecf0f1', 
             borderRadius: 12,
             padding: 20,
@@ -139,6 +174,24 @@ export default function Activity({ userInfo, onBack }) {
                   {activity.authorClass} • {new Date(activity.createdAt).toLocaleString()}
                 </div>
               </div>
+              {/* 删除按钮 - 只有作者本人或管理员可以删除 */}
+              {(userInfo && (activity.authorName === userInfo.name || userInfo.isAdmin)) && (
+                <button
+                  onClick={() => handleDelete(activity._id)}
+                  style={{
+                    padding: '6px 12px',
+                    background: '#e74c3c',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  删除
+                </button>
+              )}
             </div>
 
             <h3 style={{ margin: '0 0 10px 0', fontSize: '20px', color: '#2c3e50' }}>

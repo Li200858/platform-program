@@ -304,7 +304,7 @@ export default function Art({ userInfo }) {
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {Array.isArray(list) && list.map(item => (
-          <div key={item._id} style={{ 
+          <div key={item._id} data-art-id={item._id} style={{ 
             border: '1px solid #ecf0f1', 
             borderRadius: 12,
             padding: 20,

@@ -83,6 +83,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+    delete: (id, authorName, isAdmin) => api.request(`/api/activities/${id}?authorName=${encodeURIComponent(authorName)}&isAdmin=${isAdmin}`, {
+      method: 'DELETE',
+    }),
   },
 
   // 反馈相关API
