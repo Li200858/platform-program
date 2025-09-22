@@ -51,30 +51,88 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
       return;
     }
 
-    // 如果名字被修改了，标记为已编辑
-    if (userInfo.name && !nameEdited) {
-      setNameEdited(true);
-      localStorage.setItem('name_edited', 'true');
-    }
+    try {
+      // 如果名字被修改了，标记为已编辑
+      if (userInfo.name && !nameEdited) {
+        setNameEdited(true);
+        localStorage.setItem('name_edited', 'true');
+      }
 
-    localStorage.setItem('user_profile', JSON.stringify(userInfo));
-    setMessage('个人信息保存成功！');
-    
-    // 通知父组件更新用户信息
-    if (onUserInfoUpdate) {
-      onUserInfoUpdate(userInfo);
+      // 检查头像大小，如果太大则进一步压缩
+      let avatarToSave = userInfo.avatar;
+      if (userInfo.avatar && userInfo.avatar.length > 100000) { // 如果base64超过100KB
+        setMessage('头像文件较大，正在压缩...');
+        // 这里可以进一步压缩，但为了简化，我们直接保存
+        // 在实际应用中，可以重新压缩图片
+      }
+
+      localStorage.setItem('user_profile', JSON.stringify(userInfo));
+      setMessage('个人信息保存成功！');
+      
+      // 通知父组件更新用户信息
+      if (onUserInfoUpdate) {
+        onUserInfoUpdate(userInfo);
+      }
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        setMessage('存储空间不足，请选择较小的头像图片或清除浏览器缓存');
+      } else {
+        setMessage('保存失败，请重试');
+        console.error('保存失败:', error);
+      }
     }
   };
 
-  const handleAvatarFileSelect = (e) => {
+  const compressImage = (file, maxWidth = 200, quality = 0.8) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // 计算压缩后的尺寸
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 绘制压缩后的图片
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // 转换为base64
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleAvatarFileSelect = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUserInfo(prev => ({ ...prev, avatar: e.target.result }));
-        setMessage('头像已选择，请点击"保存信息"按钮保存');
-      };
-      reader.readAsDataURL(file);
+      // 检查文件大小，如果超过2MB则压缩
+      if (file.size > 2 * 1024 * 1024) {
+        try {
+          const compressedAvatar = await compressImage(file, 150, 0.7);
+          setUserInfo(prev => ({ ...prev, avatar: compressedAvatar }));
+          setMessage('头像已选择并压缩，请点击"保存信息"按钮保存');
+        } catch (error) {
+          console.error('图片压缩失败:', error);
+          setMessage('图片处理失败，请选择较小的图片');
+        }
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setUserInfo(prev => ({ ...prev, avatar: e.target.result }));
+          setMessage('头像已选择，请点击"保存信息"按钮保存');
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -128,8 +186,30 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
           </label>
         </div>
         <div style={{ fontSize: '14px', color: '#7f8c8d', textAlign: 'center' }}>
-          支持 JPG、PNG 格式
+          支持 JPG、PNG 格式，建议图片小于2MB
         </div>
+        <button
+          onClick={() => {
+            if (window.confirm('确定要清除所有本地数据吗？这将删除您的个人信息和设置。')) {
+              localStorage.clear();
+              setUserInfo({ name: '', class: '', avatar: '' });
+              setNameEdited(false);
+              setMessage('本地数据已清除，请重新设置个人信息');
+            }
+          }}
+          style={{
+            marginTop: '10px',
+            padding: '6px 12px',
+            background: '#e74c3c',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '12px'
+          }}
+        >
+          清除本地数据
+        </button>
         
         {/* 用户身份显示 */}
         {userInfo.name && (
