@@ -187,7 +187,7 @@ export default function Activity({ userInfo, onBack }) {
                   fontWeight: '600'
                 }}
               >
-                <span>👍</span>
+                <span></span>
                 <span>{activity.likes || 0}</span>
               </button>
 

@@ -217,13 +217,13 @@ export default function MyCollection({ userInfo, onBack }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  👍 {item.likes || 0} 喜欢
+                  {item.likes || 0} 喜欢
                 </span>
                 <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  ⭐ {item.favorites?.length || 0} 收藏
+                  {item.favorites?.length || 0} 收藏
                 </span>
                 <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  💬 {item.comments?.length || 0} 评论
+                  {item.comments?.length || 0} 评论
                 </span>
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function MyCollection({ userInfo, onBack }) {
 
         {collections.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📚</div>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
             <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无收藏</div>
             <div style={{ fontSize: '14px' }}>去艺术作品页面收藏一些喜欢的作品吧！</div>
           </div>

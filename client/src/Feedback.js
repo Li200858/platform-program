@@ -59,7 +59,7 @@ export default function Feedback({ userInfo }) {
         marginBottom: '30px'
       }}>
         <div style={{ fontSize: '14px', color: '#0c5460', fontWeight: 'bold', marginBottom: '8px' }}>
-          💡 反馈说明
+          反馈说明
         </div>
         <div style={{ fontSize: '13px', color: '#0c5460', lineHeight: '1.5' }}>
           您的反馈对我们很重要！请详细描述您遇到的问题或建议，我们会认真对待每一条反馈并及时处理。
@@ -122,7 +122,7 @@ export default function Feedback({ userInfo }) {
               </div>
             </div>
             <div style={{ fontSize: '12px', color: '#27ae60' }}>
-              ✓ 将以此身份提交反馈
+              将以此身份提交反馈
             </div>
           </div>
         ) : (

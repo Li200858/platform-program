@@ -29,19 +29,19 @@ export default function FilePreview({ urls, apiBaseUrl = 'http://localhost:5000'
   const getFileIcon = (fileType) => {
     switch (fileType) {
       case 'image':
-        return '🖼️';
+        return '';
       case 'video':
-        return '🎥';
+        return '';
       case 'pdf':
-        return '📄';
+        return '';
       case 'word':
-        return '📝';
+        return '';
       case 'excel':
-        return '📊';
+        return '';
       case 'powerpoint':
-        return '📈';
+        return '';
       default:
-        return '📎';
+        return '';
     }
   };
 

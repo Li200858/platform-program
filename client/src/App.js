@@ -247,7 +247,7 @@ function MainApp() {
             </div>
           ) : (
             <div style={{ textAlign: 'center', color: '#7f8c8d', padding: 40 }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔍</div>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
               <div style={{ fontSize: '18px', marginBottom: '10px' }}>未找到相关内容</div>
               <div style={{ fontSize: '14px' }}>请尝试其他关键词或检查拼写</div>
             </div>

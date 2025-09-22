@@ -116,9 +116,9 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
             fontWeight: 'bold',
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
           }}>
-            {userRole === '超级管理员' && '👑 '}
-            {userRole === '管理员' && '🛡️ '}
-            {userRole === '普通用户' && '👤 '}
+            {userRole === '超级管理员' && ''}
+            {userRole === '管理员' && ''}
+            {userRole === '普通用户' && ''}
             {userRole}
           </div>
         )}
@@ -200,7 +200,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         marginBottom: '20px'
       }}>
         <div style={{ fontSize: '14px', color: '#27ae60', fontWeight: 'bold', marginBottom: '5px' }}>
-          💡 提示
+          提示
         </div>
         <div style={{ fontSize: '13px', color: '#2c3e50', lineHeight: '1.5' }}>
           设置个人信息后，您就可以发布作品、参与评论和互动了。姓名和班级信息将显示在您发布的内容中。

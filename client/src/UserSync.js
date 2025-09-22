@@ -193,7 +193,7 @@ export default function UserSync({ onBack }) {
             display: 'inline-block',
             border: '2px solid #dee2e6'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '10px' }}>📱</div>
+            <div style={{ fontSize: '48px', marginBottom: '10px' }}></div>
             <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
               扫描此二维码同步用户数据
             </div>
