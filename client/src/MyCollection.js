@@ -188,7 +188,10 @@ export default function MyCollection({ userInfo, onBack }) {
             {/* 媒体文件 */}
             {item.media && item.media.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <FilePreview files={item.media} />
+                <FilePreview 
+                  urls={item.media} 
+                  apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                />
               </div>
             )}
 
@@ -441,7 +444,10 @@ export default function MyCollection({ userInfo, onBack }) {
               
               {item.media && item.media.length > 0 && (
                 <div style={{ marginBottom: 15 }}>
-                  <FilePreview files={item.media} />
+                  <FilePreview 
+                    urls={item.media} 
+                    apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                  />
                 </div>
               )}
               
