@@ -7,8 +7,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   const { userID } = useUserID();
   const [userInfo, setUserInfo] = useState({
     name: '',
-    class: '',
-    avatar: ''
+    class: ''
   });
   const [message, setMessage] = useState('');
   const [userRole, setUserRole] = useState('');
@@ -58,13 +57,6 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         localStorage.setItem('name_edited', 'true');
       }
 
-      // 检查头像大小，如果太大则进一步压缩
-      let avatarToSave = userInfo.avatar;
-      if (userInfo.avatar && userInfo.avatar.length > 100000) { // 如果base64超过100KB
-        setMessage('头像文件较大，正在压缩...');
-        // 这里可以进一步压缩，但为了简化，我们直接保存
-        // 在实际应用中，可以重新压缩图片
-      }
 
       // 保存到本地存储
       localStorage.setItem('user_profile', JSON.stringify(userInfo));
@@ -74,8 +66,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         await api.user.sync({
           userID: userID,
           name: userInfo.name,
-          class: userInfo.class,
-          avatar: userInfo.avatar
+          class: userInfo.class
         });
         setMessage('个人信息保存并同步成功！');
       } catch (error) {
@@ -88,67 +79,11 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         onUserInfoUpdate(userInfo);
       }
     } catch (error) {
-      if (error.name === 'QuotaExceededError') {
-        setMessage('存储空间不足，请选择较小的头像图片或清除浏览器缓存');
-      } else {
-        setMessage('保存失败，请重试');
-        console.error('保存失败:', error);
-      }
+      setMessage('保存失败，请重试');
+      console.error('保存失败:', error);
     }
   };
 
-  const compressImage = (file, maxWidth = 200, quality = 0.8) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        // 计算压缩后的尺寸
-        let { width, height } = img;
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        // 绘制压缩后的图片
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        // 转换为base64
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleAvatarFileSelect = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // 检查文件大小，如果超过2MB则压缩
-      if (file.size > 2 * 1024 * 1024) {
-        try {
-          const compressedAvatar = await compressImage(file, 150, 0.7);
-          setUserInfo(prev => ({ ...prev, avatar: compressedAvatar }));
-          setMessage('头像已选择并压缩，请点击"保存信息"按钮保存');
-        } catch (error) {
-          console.error('图片压缩失败:', error);
-          setMessage('图片处理失败，请选择较小的图片');
-        }
-      } else {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setUserInfo(prev => ({ ...prev, avatar: e.target.result }));
-          setMessage('头像已选择，请点击"保存信息"按钮保存');
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  };
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
@@ -171,42 +106,15 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 30 }}>
         <Avatar 
-          src={userInfo.avatar} 
           name={userInfo.name} 
           size={100}
           style={{ marginBottom: '20px' }}
         />
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarFileSelect}
-            style={{ display: 'none' }}
-            id="avatar-upload"
-          />
-          <label
-            htmlFor="avatar-upload"
-            style={{
-              padding: '8px 16px',
-              background: '#3498db',
-              color: 'white',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 'bold'
-            }}
-          >
-            选择头像
-          </label>
-        </div>
-        <div style={{ fontSize: '14px', color: '#7f8c8d', textAlign: 'center' }}>
-          支持 JPG、PNG 格式，建议图片小于2MB
-        </div>
         <button
           onClick={() => {
             if (window.confirm('确定要清除所有本地数据吗？这将删除您的个人信息和设置。')) {
               localStorage.clear();
-              setUserInfo({ name: '', class: '', avatar: '' });
+              setUserInfo({ name: '', class: '' });
               setNameEdited(false);
               setMessage('本地数据已清除，请重新设置个人信息');
             }

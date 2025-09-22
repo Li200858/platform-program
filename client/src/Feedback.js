@@ -89,7 +89,7 @@ export default function Feedback({ userInfo }) {
             border: '1px solid #c3e6c3'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <Avatar src={userInfo.avatar} name={userInfo.name} size={40} />
+              <Avatar name={userInfo.name} size={40} />
               <div>
                 <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{userInfo.name}</div>
                 <div style={{ fontSize: '14px', color: '#7f8c8d' }}>{userInfo.class}</div>

@@ -109,7 +109,7 @@ export default function MyWorks({ userInfo, onBack }) {
         content: content,
         authorName: userInfo.name,
         authorClass: userInfo.class,
-        authorAvatar: userInfo.avatar || ''
+        authorAvatar: ''
       });
       
       setMessage('回复成功！');

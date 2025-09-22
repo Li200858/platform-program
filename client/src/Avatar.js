@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Avatar({ src, name, size = 40, style = {} }) {
+export default function Avatar({ name, size = 40, style = {} }) {
   const getInitials = (name) => {
     if (!name) return '?';
     return name.charAt(0).toUpperCase();
@@ -26,7 +26,7 @@ export default function Avatar({ src, name, size = 40, style = {} }) {
     fontSize: size * 0.4,
     fontWeight: 'bold',
     color: 'white',
-    background: src ? `url(${src}) center/cover` : getColor(name),
+    background: getColor(name),
     border: '2px solid #fff',
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
     ...style
@@ -34,7 +34,7 @@ export default function Avatar({ src, name, size = 40, style = {} }) {
 
   return (
     <div style={avatarStyle}>
-      {!src && getInitials(name)}
+      {getInitials(name)}
     </div>
   );
 }
