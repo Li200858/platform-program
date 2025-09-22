@@ -163,7 +163,7 @@ function MainApp() {
           </div>
           {searchResults.art && searchResults.art.length > 0 ? (
             <div style={{ marginBottom: 30 }}>
-              <h4>🎨 艺术作品 ({searchResults.art.length}条结果)</h4>
+              <h4>艺术作品 ({searchResults.art.length}条结果)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {searchResults.art.map(item => (
                   <div 
@@ -205,7 +205,7 @@ function MainApp() {
             </div>
           ) : searchResults.activity && searchResults.activity.length > 0 ? (
             <div style={{ marginBottom: 30 }}>
-              <h4>🎪 活动展示 ({searchResults.activity.length}条结果)</h4>
+              <h4>活动展示 ({searchResults.activity.length}条结果)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {searchResults.activity.map(item => (
                   <div 

@@ -259,7 +259,7 @@ export default function Art({ userInfo }) {
             e.target.style.transform = 'translateY(0)';
           }}
         >
-          ✨ 发布作品
+          发布作品
         </button>
       </div>
       
@@ -298,7 +298,7 @@ export default function Art({ userInfo }) {
           }}
           onClick={() => setSort(sort === 'hot' ? 'time' : 'hot')}
         >
-          {sort === 'hot' ? '⏰ 按时间排序' : '🔥 按热度排序'}
+          {sort === 'hot' ? '按时间排序' : '按热度排序'}
         </button>
       </div>
       
@@ -670,7 +670,7 @@ function PublishForm({ onBack, userInfo }) {
       });
       
       if (result) {
-        setMessage('🎉 作品发布成功！');
+        setMessage('作品发布成功！');
         // 延迟1秒后返回，让用户看到成功消息
         setTimeout(() => {
           onBack();
@@ -699,7 +699,7 @@ function PublishForm({ onBack, userInfo }) {
       const data = await api.upload(uploadFormData);
       if (data && data.urls && data.urls.length > 0) {
         setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
-        setMessage(`✅ 成功上传 ${data.urls.length} 个文件`);
+        setMessage(`成功上传 ${data.urls.length} 个文件`);
       } else {
         setMessage('文件上传失败，请重试');
       }
@@ -713,7 +713,7 @@ function PublishForm({ onBack, userInfo }) {
 
   return (
     <div style={{ maxWidth: 600, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ marginBottom: 25, color: '#2c3e50' }}>✨ 发布艺术作品</h2>
+      <h2 style={{ marginBottom: 25, color: '#2c3e50' }}>发布艺术作品</h2>
       
       {/* 消息显示 */}
       {message && (
@@ -791,7 +791,7 @@ function PublishForm({ onBack, userInfo }) {
               </div>
             </div>
             <div style={{ fontSize: '12px', color: '#27ae60' }}>
-              ✓ 将以此身份发布作品
+              将以此身份发布作品
             </div>
           </div>
         ) : (
@@ -915,7 +915,7 @@ function PublishForm({ onBack, userInfo }) {
               }
             }}
           >
-            {uploading ? '⏳ 上传中...' : '🚀 发布作品'}
+            {uploading ? '上传中...' : '发布作品'}
           </button>
         </div>
       </form>
