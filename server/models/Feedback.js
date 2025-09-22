@@ -6,6 +6,7 @@ const FeedbackSchema = new mongoose.Schema({
   authorName: { type: String, required: true },
   authorClass: { type: String, required: true },
   authorAvatar: { type: String, default: '' },
+  media: [{ type: String }],
   status: { type: String, default: 'pending', enum: ['pending', 'processing', 'resolved', 'received'] },
   adminReply: { type: String, default: '' },
   conversations: [{

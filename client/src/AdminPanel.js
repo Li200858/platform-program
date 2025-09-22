@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import FilePreview from './FilePreview';
 import api from './api';
 
 export default function AdminPanel({ userInfo, onBack }) {
@@ -352,6 +353,16 @@ export default function AdminPanel({ userInfo, onBack }) {
                 <div style={{ fontSize: '14px', color: '#34495e', lineHeight: 1.5, marginBottom: 15 }}>
                   {selectedFeedback.content}
                 </div>
+
+                {selectedFeedback.media && selectedFeedback.media.length > 0 && (
+                  <div style={{ marginBottom: 15 }}>
+                    <h4 style={{ marginBottom: 10, color: '#2c3e50', fontSize: '14px' }}>附件文件</h4>
+                    <FilePreview 
+                      urls={selectedFeedback.media} 
+                      apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                    />
+                  </div>
+                )}
               </div>
 
               {/* 对话记录 */}

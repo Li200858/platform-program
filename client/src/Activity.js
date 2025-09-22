@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
+import FilePreview from './FilePreview';
 import api from './api';
 
 export default function Activity({ userInfo, onBack, maintenanceStatus }) {
@@ -210,6 +211,15 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
               {activity.description}
             </p>
 
+            {activity.media && activity.media.length > 0 && (
+              <div style={{ marginBottom: 15 }}>
+                <FilePreview 
+                  urls={activity.media} 
+                  apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                />
+              </div>
+            )}
+
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -292,8 +302,32 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
     description: '',
     startDate: '',
     endDate: '',
-    image: ''
+    image: '',
+    media: []
   });
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
+
+    setUploading(true);
+    
+    const uploadFormData = new FormData();
+    Array.from(files).forEach(file => uploadFormData.append('files', file));
+
+    try {
+      const data = await api.upload(uploadFormData);
+      if (data && data.urls && data.urls.length > 0) {
+        setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
+      }
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      alert('文件上传失败：' + (error.message || '请检查文件大小和格式'));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -393,6 +427,40 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
             />
           </div>
         </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+            上传文件（可选）
+          </label>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileUpload}
+            disabled={uploading}
+            style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px solid #ecf0f1' }}
+          />
+          {uploading && <div style={{ color: '#3498db', marginTop: 5 }}>上传中...</div>}
+        </div>
+
+        {formData.media.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+              已上传文件预览
+            </label>
+            <div style={{ 
+              border: '1px solid #ecf0f1', 
+              borderRadius: 8, 
+              padding: 15, 
+              background: '#f8f9fa',
+              position: 'relative'
+            }}>
+              <FilePreview 
+                urls={formData.media} 
+                apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+              />
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 15, justifyContent: 'flex-end' }}>
           <button

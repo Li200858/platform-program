@@ -343,7 +343,7 @@ app.get('/api/activities', async (req, res) => {
 });
 
 app.post('/api/activities', async (req, res) => {
-  const { title, description, startDate, endDate, image, authorName, authorClass } = req.body;
+  const { title, description, startDate, endDate, image, authorName, authorClass, media } = req.body;
   
   if (!title || !description || !startDate || !endDate || !authorName || !authorClass) {
     return res.status(400).json({ error: '请填写所有必要信息' });
@@ -356,6 +356,7 @@ app.post('/api/activities', async (req, res) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       image,
+      media: media || [],
       author: authorName,
       authorName,
       authorClass,
@@ -459,7 +460,7 @@ app.post('/api/activities/:id/comment', async (req, res) => {
 
 // 反馈功能
 app.post('/api/feedback', async (req, res) => {
-  const { content, authorName, authorClass } = req.body;
+  const { content, authorName, authorClass, media } = req.body;
   
   if (!content || !authorName || !authorClass) {
     return res.status(400).json({ error: '请填写完整信息' });
@@ -468,6 +469,7 @@ app.post('/api/feedback', async (req, res) => {
   try {
     const feedback = await Feedback.create({
       content,
+      media: media || [],
       author: authorName,
       authorName,
       authorClass,
