@@ -14,7 +14,6 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   const [userRole, setUserRole] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [nameEdited, setNameEdited] = useState(false);
-  const [tempAvatar, setTempAvatar] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('user_profile');
@@ -67,30 +66,16 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
     }
   };
 
-  const handleAvatarUpload = (file) => {
+  const handleAvatarFileSelect = (e) => {
+    const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setTempAvatar(e.target.result);
-        setMessage('头像已选择，请点击"保存头像"按钮保存');
+        setUserInfo(prev => ({ ...prev, avatar: e.target.result }));
+        setMessage('头像已选择，请点击"保存信息"按钮保存');
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleSaveAvatar = () => {
-    if (tempAvatar) {
-      setUserInfo(prev => ({ ...prev, avatar: tempAvatar }));
-      setTempAvatar('');
-      setMessage('头像保存成功！');
-    } else {
-      setMessage('请先选择头像');
-    }
-  };
-
-  const handleAvatarFileSelect = (e) => {
-    const file = e.target.files[0];
-    handleAvatarUpload(file);
   };
 
   return (
@@ -114,7 +99,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 30 }}>
         <Avatar 
-          src={tempAvatar || userInfo.avatar} 
+          src={userInfo.avatar} 
           name={userInfo.name} 
           size={100}
           style={{ marginBottom: '20px' }}
@@ -141,23 +126,6 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
           >
             选择头像
           </label>
-          {tempAvatar && (
-            <button
-              onClick={handleSaveAvatar}
-              style={{
-                padding: '8px 16px',
-                background: '#27ae60',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }}
-            >
-              保存头像
-            </button>
-          )}
         </div>
         <div style={{ fontSize: '14px', color: '#7f8c8d', textAlign: 'center' }}>
           支持 JPG、PNG 格式
