@@ -45,7 +45,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
     checkUserRole();
   }, [userInfo.name]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!userInfo.name || !userInfo.class) {
       setMessage('请填写姓名和班级');
       return;
