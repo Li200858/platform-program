@@ -187,7 +187,7 @@ export default function Activity({ userInfo, onBack }) {
                   fontWeight: '600'
                 }}
               >
-                <span></span>
+                <span>点赞</span>
                 <span>{activity.likes || 0}</span>
               </button>
 
@@ -207,7 +207,7 @@ export default function Activity({ userInfo, onBack }) {
                   fontWeight: '600'
                 }}
               >
-                <span>⭐</span>
+                <span>收藏</span>
                 <span>{activity.favorites?.length || 0}</span>
               </button>
             </div>
