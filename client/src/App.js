@@ -27,7 +27,16 @@ function MainApp() {
     const loadUserInfo = () => {
       const savedUserInfo = localStorage.getItem('user_profile');
       if (savedUserInfo) {
-        setUserInfo(JSON.parse(savedUserInfo));
+        const parsedInfo = JSON.parse(savedUserInfo);
+        setUserInfo(prevInfo => {
+          // 只有当用户信息真正改变时才更新
+          if (!prevInfo || prevInfo.name !== parsedInfo.name || prevInfo.class !== parsedInfo.class) {
+            return parsedInfo;
+          }
+          return prevInfo;
+        });
+      } else {
+        setUserInfo(null);
       }
     };
     
@@ -43,7 +52,7 @@ function MainApp() {
     window.addEventListener('storage', handleStorageChange);
     
     // 定期检查localStorage变化（用于同一窗口内的更新）
-    const interval = setInterval(loadUserInfo, 500);
+    const interval = setInterval(loadUserInfo, 2000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);

@@ -17,13 +17,13 @@ export default function MyWorks({ userInfo, onBack }) {
     } else {
       setLoading(false);
     }
-  }, [userInfo]);
+  }, [userInfo?.name]);
 
   useEffect(() => {
     if (userInfo && userInfo.name) {
       loadTabData();
     }
-  }, [activeTab, userInfo]);
+  }, [activeTab, userInfo?.name]);
 
   const loadAllData = async () => {
     if (!userInfo || !userInfo.name) {

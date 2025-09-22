@@ -16,13 +16,13 @@ export default function MyCollection({ userInfo, onBack }) {
     } else {
       setLoading(false);
     }
-  }, [userInfo]);
+  }, [userInfo?.name]);
 
   useEffect(() => {
     if (userInfo && userInfo.name) {
       loadTabCollections();
     }
-  }, [activeTab, userInfo]);
+  }, [activeTab, userInfo?.name]);
 
   const loadAllCollections = async () => {
     if (!userInfo || !userInfo.name) {

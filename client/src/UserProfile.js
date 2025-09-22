@@ -38,7 +38,7 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
     window.addEventListener('storage', handleStorageChange);
     
     // 定期检查localStorage变化（用于同一窗口内的更新）
-    const interval = setInterval(loadUserInfo, 500);
+    const interval = setInterval(loadUserInfo, 2000);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
