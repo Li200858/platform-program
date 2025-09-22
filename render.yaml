@@ -1,46 +1,23 @@
 services:
-  # 前端服务 - 优化配置
   - type: web
-    name: platform-program-frontend
-    env: static
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: ./client/build
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    # 性能优化配置
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: public, max-age=31536000
-      - path: /static/*
-        name: Cache-Control
-        value: public, max-age=31536000
-    # 启用压缩
-    compress: true
-
-  # 后端服务 - 优化配置
-  - type: web
-    name: platform-program-backend
+    name: platform-program
     env: node
-    buildCommand: cd server && npm install
-    startCommand: cd server && node index.js
-    # 性能优化配置
-    plan: starter  # 使用付费计划获得更好性能
+    plan: starter
+    buildCommand: cd client && npm install && npm run build
+    startCommand: node server/index.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: MONGODB_URI
-        value: your_mongodb_atlas_connection_string
-      # 性能优化环境变量
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=512
-      - key: UV_THREADPOOL_SIZE
-        value: 4
-    # 健康检查
-    healthCheckPath: /health
-    # 自动扩展
-    autoDeploy: true
+        fromDatabase:
+          name: platform-program-db
+          property: connectionString
+    # 启用持久化存储
+    disk:
+      name: platform-program-disk
+      mountPath: /opt/render/project/src/uploads
+      sizeGB: 1
+
+databases:
+  - name: platform-program-db
+    plan: starter

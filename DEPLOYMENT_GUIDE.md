@@ -1,141 +1,115 @@
-# 部署指南 - Railway + Vercel
+# 部署指南 - 解决文件丢失问题
 
-## 🚀 快速部署步骤
+## 问题描述
+每次重新部署时，服务器会重新启动，本地的`uploads`文件夹会被清空，导致之前上传的文件丢失。
 
-### 1. Railway 后端部署
+## 解决方案
 
-#### 步骤 1: 创建 Railway 项目
-1. 访问 [Railway.app](https://railway.app)
-2. 使用 GitHub 登录
-3. 点击 "New Project" -> "Deploy from GitHub repo"
-4. 选择您的 `platform-program` 仓库
-5. 选择 "Deploy Now"
+### 方案1：使用Render持久化存储（推荐）
 
-#### 步骤 2: 配置环境变量
-在 Railway 项目设置中添加以下环境变量：
+1. **在Render控制台中启用持久化存储**：
+   - 进入您的Render服务设置
+   - 找到"Disk"部分
+   - 添加一个新的磁盘：
+     - 名称：`platform-program-disk`
+     - 挂载路径：`/opt/render/project/src/uploads`
+     - 大小：1GB（可根据需要调整）
 
-```bash
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/platform-program
-PORT=5000
-NODE_ENV=production
-INITIAL_ADMIN=admin
-```
+2. **使用render.yaml配置**：
+   - 项目根目录已包含`render.yaml`配置文件
+   - 在Render中导入此配置即可自动设置持久化存储
 
-#### 步骤 3: 配置构建设置
-- **Root Directory**: `server`
-- **Build Command**: `npm install`
-- **Start Command**: `npm start`
+### 方案2：使用云存储服务
 
-#### 步骤 4: 获取后端URL
-部署完成后，Railway 会提供一个类似 `https://platform-program-production.up.railway.app` 的URL
+1. **配置AWS S3**（需要AWS账户）：
+   ```bash
+   # 设置环境变量
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_REGION=us-east-1
+   AWS_S3_BUCKET=your-bucket-name
+   ```
 
-### 2. Vercel 前端部署
+2. **安装依赖**：
+   ```bash
+   npm install aws-sdk multer-s3
+   ```
 
-#### 步骤 1: 创建 Vercel 项目
-1. 访问 [Vercel.com](https://vercel.com)
-2. 使用 GitHub 登录
-3. 点击 "New Project"
-4. 导入您的 `platform-program` 仓库
+3. **使用云存储**：
+   - 修改`server/index.js`中的文件上传配置
+   - 使用`cloudStorage.js`中的配置
 
-#### 步骤 2: 配置构建设置
-- **Framework Preset**: Create React App
-- **Root Directory**: `client`
-- **Build Command**: `npm run build`
-- **Output Directory**: `build`
+### 方案3：自动备份系统（已实现）
 
-#### 步骤 3: 配置环境变量
-在 Vercel 项目设置中添加：
+项目已包含自动备份系统：
 
-```bash
-REACT_APP_API_URL=https://your-railway-backend-url.railway.app
-```
+1. **自动备份**：
+   - 服务器启动时自动创建文件备份
+   - 每次启动时尝试恢复最新备份
+   - 自动清理旧备份（保留最近5个）
 
-#### 步骤 4: 更新 vercel.json
-将 `vercel.json` 中的后端URL替换为您的实际Railway URL：
+2. **手动备份管理**：
+   - `GET /api/admin/backups` - 获取备份列表
+   - `POST /api/admin/backup/create` - 创建备份
+   - `POST /api/admin/backup/restore` - 恢复备份
 
-```json
-{
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "https://your-actual-railway-url.railway.app/api/$1"
-    }
-  ]
-}
-```
+## 推荐部署步骤
 
-### 3. 数据库设置
+### 使用Render持久化存储：
 
-#### MongoDB Atlas 配置
-1. 访问 [MongoDB Atlas](https://cloud.mongodb.com)
-2. 创建新集群
-3. 创建数据库用户
-4. 获取连接字符串
-5. 在 Railway 环境变量中设置 `MONGODB_URI`
+1. **在Render控制台中**：
+   - 进入服务设置
+   - 添加持久化磁盘
+   - 挂载到`/opt/render/project/src/uploads`
 
-### 4. 部署后测试
+2. **重新部署**：
+   - 推送代码到GitHub
+   - Render会自动重新部署
+   - 文件将保存在持久化存储中
 
-#### 后端测试
-```bash
-# 健康检查
-curl https://your-railway-url.railway.app/api/health
+### 验证部署：
 
-# 测试API
-curl https://your-railway-url.railway.app/api/arts
-```
+1. **检查文件上传**：
+   - 上传一些测试文件
+   - 确认文件可以正常预览和下载
 
-#### 前端测试
-1. 访问 Vercel 提供的URL
-2. 测试作品发布功能
-3. 测试文件上传
-4. 测试用户注册/登录
-5. 测试所有核心功能
+2. **测试重新部署**：
+   - 进行代码更新并重新部署
+   - 确认之前的文件仍然可以访问
 
-### 5. 域名配置（可选）
+## 注意事项
 
-#### 自定义域名
-- **Railway**: 在项目设置中添加自定义域名
-- **Vercel**: 在项目设置中添加自定义域名
+1. **持久化存储成本**：
+   - Render的持久化存储会产生额外费用
+   - 建议根据实际使用情况选择合适的大小
 
-## 🔧 故障排除
+2. **备份策略**：
+   - 定期检查备份是否正常创建
+   - 重要文件建议额外备份到其他位置
 
-### 常见问题
+3. **监控存储使用**：
+   - 定期清理不需要的文件
+   - 监控存储空间使用情况
 
-1. **CORS 错误**
-   - 确保 Railway 后端允许 Vercel 域名
-   - 检查 `cors()` 配置
+## 故障排除
 
-2. **API 连接失败**
-   - 检查 `REACT_APP_API_URL` 环境变量
-   - 确认 Railway URL 正确
+如果文件仍然丢失：
 
-3. **文件上传失败**
-   - 检查 Railway 存储配置
-   - 确认文件大小限制
+1. **检查挂载路径**：
+   - 确认Render磁盘正确挂载到指定路径
+   - 检查服务器日志中的路径信息
 
-4. **数据库连接失败**
-   - 检查 `MONGODB_URI` 格式
-   - 确认数据库用户权限
+2. **检查权限**：
+   - 确认应用有权限写入挂载目录
+   - 检查文件权限设置
 
-### 监控和日志
+3. **查看日志**：
+   - 检查服务器启动日志
+   - 查看备份恢复是否成功
 
-- **Railway**: 在项目面板查看日志
-- **Vercel**: 在函数日志中查看错误
-- **MongoDB**: 在 Atlas 中查看连接状态
+## 联系支持
 
-## 📝 部署检查清单
-
-- [ ] Railway 后端部署成功
-- [ ] 环境变量配置正确
-- [ ] MongoDB 连接正常
-- [ ] Vercel 前端部署成功
-- [ ] API 路由配置正确
-- [ ] 文件上传功能正常
-- [ ] 用户认证功能正常
-- [ ] 所有页面正常访问
-
-## 🎉 完成！
-
-部署完成后，您的艺术平台将在以下地址运行：
-- **前端**: `https://your-vercel-app.vercel.app`
-- **后端**: `https://your-railway-app.railway.app`
+如果遇到问题，请：
+1. 检查服务器日志
+2. 确认Render配置正确
+3. 联系技术支持

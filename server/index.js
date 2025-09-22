@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const FileBackup = require('./backup');
 
 // 数据模型
 const Art = require('./models/Art');
@@ -22,17 +23,24 @@ console.log(`使用端口: ${PORT}`);
 // 中间件
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+// 配置静态文件服务 - 支持持久化存储
+const uploadsDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : 'uploads';
+app.use('/uploads', express.static(uploadsDir));
 
 // 确保uploads目录存在
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads', { recursive: true });
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// 文件上传配置 - 简化版本
+// 文件上传配置 - 支持持久化存储
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads');
+    // 在Render上使用持久化存储目录
+    const uploadDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : 'uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
@@ -962,11 +970,74 @@ app.post('/api/admin/maintenance/disable', async (req, res) => {
   }
 });
 
+// 文件备份管理API
+app.get('/api/admin/backups', (req, res) => {
+  try {
+    const backup = new FileBackup();
+    const backups = backup.listBackups();
+    res.json({ backups });
+  } catch (error) {
+    console.error('获取备份列表失败:', error);
+    res.status(500).json({ error: '获取备份列表失败' });
+  }
+});
+
+app.post('/api/admin/backup/create', async (req, res) => {
+  try {
+    const backup = new FileBackup();
+    const backupFile = await backup.createBackup();
+    res.json({ message: '备份创建成功', backupFile });
+  } catch (error) {
+    console.error('创建备份失败:', error);
+    res.status(500).json({ error: '创建备份失败' });
+  }
+});
+
+app.post('/api/admin/backup/restore', async (req, res) => {
+  try {
+    const { backupFile } = req.body;
+    if (!backupFile) {
+      return res.status(400).json({ error: '请指定备份文件' });
+    }
+    
+    const backup = new FileBackup();
+    await backup.restoreBackup(backupFile);
+    res.json({ message: '备份恢复成功' });
+  } catch (error) {
+    console.error('恢复备份失败:', error);
+    res.status(500).json({ error: '恢复备份失败' });
+  }
+});
+
 app.listen(PORT, async () => {
   console.log('艺术平台服务器运行在端口', PORT);
   console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`MongoDB连接成功`);
   console.log(`健康检查: http://localhost:${PORT}/health`);
   console.log(`根路径: http://localhost:${PORT}/`);
+  
+  // 初始化管理员
   await initializeAdmin();
+  
+  // 初始化文件备份系统
+  const backup = new FileBackup();
+  try {
+    // 尝试恢复最新的备份
+    const backups = backup.listBackups();
+    if (backups.length > 0) {
+      const latestBackup = path.join(backup.backupDir, backups[0]);
+      console.log('发现备份文件，尝试恢复:', latestBackup);
+      await backup.restoreBackup(latestBackup);
+      console.log('文件备份恢复成功');
+    }
+    
+    // 清理旧备份
+    backup.cleanupOldBackups();
+    
+    // 创建新的备份
+    await backup.createBackup();
+    console.log('文件备份系统初始化完成');
+  } catch (error) {
+    console.log('文件备份系统初始化失败，但不影响服务运行:', error.message);
+  }
 });
