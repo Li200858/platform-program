@@ -15,8 +15,13 @@ export default function UserSync({ onBack }) {
     try {
       setMessage('正在导入用户ID和用户信息...');
       await importUserID(importID.trim());
-      setMessage('用户ID导入成功！用户信息已自动同步，无需重复填写姓名和班级。');
+      setMessage('用户ID导入成功！用户信息已自动同步，无需重复填写姓名和班级。页面将自动刷新以显示最新信息。');
       setImportID('');
+      
+      // 延迟刷新页面，让用户看到成功消息
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (error) {
       setMessage('导入失败：' + error.message);
     }

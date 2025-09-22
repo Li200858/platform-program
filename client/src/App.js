@@ -43,7 +43,7 @@ function MainApp() {
     window.addEventListener('storage', handleStorageChange);
     
     // 定期检查localStorage变化（用于同一窗口内的更新）
-    const interval = setInterval(loadUserInfo, 1000);
+    const interval = setInterval(loadUserInfo, 500);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);

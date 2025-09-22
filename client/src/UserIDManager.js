@@ -70,6 +70,14 @@ export const UserIDProvider = ({ children }) => {
           };
           localStorage.setItem('user_profile', JSON.stringify(userProfile));
           localStorage.setItem('name_edited', 'true'); // 标记为已编辑，避免重复填写
+          
+          // 触发storage事件，通知其他组件更新
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: 'user_profile',
+            newValue: JSON.stringify(userProfile),
+            oldValue: null
+          }));
+          
           console.log('用户信息已自动导入:', userProfile);
         }
       } catch (apiError) {
