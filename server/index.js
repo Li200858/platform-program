@@ -14,6 +14,10 @@ const User = require('./models/User');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// 确保端口正确
+console.log(`环境变量 PORT: ${process.env.PORT}`);
+console.log(`使用端口: ${PORT}`);
+
 // 中间件
 app.use(cors());
 app.use(express.json());
@@ -821,21 +825,27 @@ app.get('/api/user/:userID', async (req, res) => {
 
 // 健康检查
 app.get('/health', (req, res) => {
+  console.log('健康检查请求');
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    port: PORT,
+    nodeEnv: process.env.NODE_ENV
   });
 });
 
 // 根路径
 app.get('/', (req, res) => {
+  console.log('根路径请求');
   res.json({ 
-    message: '艺术平台API服务运行中',
-    version: '3.0.0',
-    features: ['艺术作品展示', '点赞系统', '搜索功能', '反馈系统', '管理员系统']
+    message: '校园艺术平台API服务运行中',
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    nodeEnv: process.env.NODE_ENV
   });
 });
+
 
 // 初始化默认管理员
 async function initializeAdmin() {
@@ -863,5 +873,9 @@ async function initializeAdmin() {
 
 app.listen(PORT, async () => {
   console.log('艺术平台服务器运行在端口', PORT);
+  console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`MongoDB连接成功`);
+  console.log(`健康检查: http://localhost:${PORT}/health`);
+  console.log(`根路径: http://localhost:${PORT}/`);
   await initializeAdmin();
 });
