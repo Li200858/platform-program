@@ -165,6 +165,18 @@ export const api = {
       body: JSON.stringify(data),
     }),
   },
+
+  // 维护模式相关API
+  maintenance: {
+    getStatus: () => api.request('/api/maintenance/status'),
+    enable: (data) => api.request('/api/admin/maintenance/enable', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    disable: () => api.request('/api/admin/maintenance/disable', {
+      method: 'POST',
+    }),
+  },
 };
 
 export default api;

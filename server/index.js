@@ -10,6 +10,7 @@ const Art = require('./models/Art');
 const Activity = require('./models/Activity');
 const Feedback = require('./models/Feedback');
 const User = require('./models/User');
+const Maintenance = require('./models/Maintenance');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -870,6 +871,96 @@ async function initializeAdmin() {
     console.error('初始化管理员失败:', error);
   }
 }
+
+// 维护模式相关API
+// 获取维护模式状态
+app.get('/api/maintenance/status', async (req, res) => {
+  try {
+    let maintenance = await Maintenance.findOne();
+    if (!maintenance) {
+      // 如果没有维护记录，创建一个默认的
+      maintenance = await Maintenance.create({
+        isEnabled: false,
+        message: '网站正在维护中，暂时无法发布作品和评论，请稍后再试。'
+      });
+    }
+    res.json({
+      isEnabled: maintenance.isEnabled,
+      message: maintenance.message,
+      enabledBy: maintenance.enabledBy,
+      enabledAt: maintenance.enabledAt,
+      disabledAt: maintenance.disabledAt
+    });
+  } catch (error) {
+    console.error('获取维护状态失败:', error);
+    res.status(500).json({ error: '获取维护状态失败' });
+  }
+});
+
+// 开启维护模式（仅管理员）
+app.post('/api/admin/maintenance/enable', async (req, res) => {
+  try {
+    const { message, adminName } = req.body;
+    
+    let maintenance = await Maintenance.findOne();
+    if (!maintenance) {
+      maintenance = await Maintenance.create({
+        isEnabled: true,
+        message: message || '网站正在维护中，暂时无法发布作品和评论，请稍后再试。',
+        enabledBy: adminName || '管理员',
+        enabledAt: new Date()
+      });
+    } else {
+      maintenance.isEnabled = true;
+      maintenance.message = message || maintenance.message;
+      maintenance.enabledBy = adminName || maintenance.enabledBy;
+      maintenance.enabledAt = new Date();
+      maintenance.updatedAt = new Date();
+      await maintenance.save();
+    }
+    
+    res.json({ 
+      success: true, 
+      message: '维护模式已开启',
+      maintenance: {
+        isEnabled: maintenance.isEnabled,
+        message: maintenance.message,
+        enabledBy: maintenance.enabledBy,
+        enabledAt: maintenance.enabledAt
+      }
+    });
+  } catch (error) {
+    console.error('开启维护模式失败:', error);
+    res.status(500).json({ error: '开启维护模式失败' });
+  }
+});
+
+// 关闭维护模式（仅管理员）
+app.post('/api/admin/maintenance/disable', async (req, res) => {
+  try {
+    let maintenance = await Maintenance.findOne();
+    if (!maintenance) {
+      return res.json({ success: true, message: '维护模式未开启' });
+    }
+    
+    maintenance.isEnabled = false;
+    maintenance.disabledAt = new Date();
+    maintenance.updatedAt = new Date();
+    await maintenance.save();
+    
+    res.json({ 
+      success: true, 
+      message: '维护模式已关闭',
+      maintenance: {
+        isEnabled: maintenance.isEnabled,
+        disabledAt: maintenance.disabledAt
+      }
+    });
+  } catch (error) {
+    console.error('关闭维护模式失败:', error);
+    res.status(500).json({ error: '关闭维护模式失败' });
+  }
+});
 
 app.listen(PORT, async () => {
   console.log('艺术平台服务器运行在端口', PORT);

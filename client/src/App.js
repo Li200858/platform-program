@@ -19,6 +19,7 @@ function MainApp() {
   const [showSearch, setShowSearch] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
   const { userID } = useUserID();
 
   // 加载用户信息
@@ -27,6 +28,19 @@ function MainApp() {
     if (savedUserInfo) {
       setUserInfo(JSON.parse(savedUserInfo));
     }
+  }, []);
+
+  // 加载维护模式状态
+  useEffect(() => {
+    const loadMaintenanceStatus = async () => {
+      try {
+        const status = await api.maintenance.getStatus();
+        setMaintenanceStatus(status);
+      } catch (error) {
+        console.error('加载维护状态失败:', error);
+      }
+    };
+    loadMaintenanceStatus();
   }, []);
 
   const checkAdminStatus = React.useCallback(async () => {
@@ -67,11 +81,11 @@ function MainApp() {
   let content = null;
   try {
     if (section === 'art') {
-      content = <Art userInfo={userInfo} />;
+      content = <Art userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'activity') {
-      content = <Activity userInfo={userInfo} onBack={() => setSection('art')} />;
+      content = <Activity userInfo={userInfo} onBack={() => setSection('art')} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'feedback') {
-      content = <Feedback userInfo={userInfo} />;
+      content = <Feedback userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'profile') {
       content = <UserProfile onBack={() => setSection('art')} onUserInfoUpdate={setUserInfo} />;
     } else if (section === 'sync') {
@@ -96,6 +110,24 @@ function MainApp() {
 
   return (
     <div className="app-root">
+      {/* 维护模式提示 */}
+      {maintenanceStatus.isEnabled && !isAdmin && (
+        <div style={{
+          background: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          color: '#856404',
+          padding: '15px',
+          textAlign: 'center',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000
+        }}>
+          ⚠️ {maintenanceStatus.message}
+        </div>
+      )}
+
       {/* 顶部导航栏 */}
       <header className="main-header">
         <div className="header-top">

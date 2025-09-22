@@ -3,7 +3,7 @@ import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
 
-export default function Art({ userInfo }) {
+export default function Art({ userInfo, maintenanceStatus }) {
   const tabs = [
     { key: 'all', label: '全部', dbValue: '' },
     { key: 'music', label: '音乐', dbValue: '音乐' },
@@ -214,7 +214,7 @@ export default function Art({ userInfo }) {
   );
 
   if (showPublish) {
-    return <PublishForm onBack={() => setShowPublish(false)} userInfo={userInfo} />;
+    return <PublishForm onBack={() => setShowPublish(false)} userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
   }
 
   return (
@@ -237,29 +237,41 @@ export default function Art({ userInfo }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 }}>
         <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '28px' }}>艺术作品展示</h2>
         <button 
-          onClick={() => setShowPublish(true)}
+          onClick={() => {
+            if (maintenanceStatus.isEnabled && !userInfo?.isAdmin) {
+              alert(maintenanceStatus.message || '网站正在维护中，暂时无法发布作品');
+              return;
+            }
+            setShowPublish(true);
+          }}
+          disabled={maintenanceStatus.isEnabled && !userInfo?.isAdmin}
           style={{ 
             padding: '12px 24px', 
-            backgroundColor: '#3498db', 
+            backgroundColor: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? '#95a5a6' : '#3498db', 
             color: 'white', 
             border: 'none', 
             borderRadius: 8,
-            cursor: 'pointer',
+            cursor: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? 'not-allowed' : 'pointer',
             fontSize: '16px',
             fontWeight: 'bold',
-            boxShadow: '0 2px 8px rgba(52, 152, 219, 0.3)',
-            transition: 'all 0.3s ease'
+            boxShadow: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? 'none' : '0 2px 8px rgba(52, 152, 219, 0.3)',
+            transition: 'all 0.3s ease',
+            opacity: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? 0.6 : 1
           }}
           onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#2980b9';
-            e.target.style.transform = 'translateY(-2px)';
+            if (!(maintenanceStatus.isEnabled && !userInfo?.isAdmin)) {
+              e.target.style.backgroundColor = '#2980b9';
+              e.target.style.transform = 'translateY(-2px)';
+            }
           }}
           onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#3498db';
-            e.target.style.transform = 'translateY(0)';
+            if (!(maintenanceStatus.isEnabled && !userInfo?.isAdmin)) {
+              e.target.style.backgroundColor = '#3498db';
+              e.target.style.transform = 'translateY(0)';
+            }
           }}
         >
-          发布作品
+          {maintenanceStatus.isEnabled && !userInfo?.isAdmin ? '维护中' : '发布作品'}
         </button>
       </div>
       

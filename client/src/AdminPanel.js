@@ -11,14 +11,30 @@ export default function AdminPanel({ userInfo, onBack }) {
   const [message, setMessage] = useState('');
   const [selectedFeedback, setSelectedFeedback] = useState(null);
   const [replyContent, setReplyContent] = useState('');
+  const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
 
   useEffect(() => {
     if (activeTab === 'feedbacks') {
       loadFeedbacks();
     } else if (activeTab === 'users') {
       loadUsers();
+    } else if (activeTab === 'maintenance') {
+      loadMaintenanceStatus();
     }
   }, [activeTab]);
+
+  // 加载维护模式状态
+  const loadMaintenanceStatus = async () => {
+    try {
+      const status = await api.maintenance.getStatus();
+      setMaintenanceStatus(status);
+      setMaintenanceMessage(status.message || '');
+    } catch (error) {
+      console.error('加载维护状态失败:', error);
+      setMessage('加载维护状态失败');
+    }
+  };
 
   const loadFeedbacks = async () => {
     try {
@@ -142,6 +158,32 @@ export default function AdminPanel({ userInfo, onBack }) {
     }
   };
 
+  // 维护模式管理函数
+  const handleEnableMaintenance = async () => {
+    try {
+      await api.maintenance.enable({
+        message: maintenanceMessage,
+        adminName: userInfo.name
+      });
+      setMessage('维护模式已开启');
+      loadMaintenanceStatus();
+    } catch (error) {
+      console.error('开启维护模式失败:', error);
+      setMessage('开启维护模式失败，请重试');
+    }
+  };
+
+  const handleDisableMaintenance = async () => {
+    try {
+      await api.maintenance.disable();
+      setMessage('维护模式已关闭');
+      loadMaintenanceStatus();
+    } catch (error) {
+      console.error('关闭维护模式失败:', error);
+      setMessage('关闭维护模式失败，请重试');
+    }
+  };
+
   return (
     <div style={{ maxWidth: 1000, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 30 }}>
@@ -205,6 +247,21 @@ export default function AdminPanel({ userInfo, onBack }) {
           }}
         >
           用户管理
+        </button>
+        <button
+          onClick={() => setActiveTab('maintenance')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: activeTab === 'maintenance' ? '2px solid #3498db' : '2px solid #ecf0f1',
+            background: activeTab === 'maintenance' ? '#3498db' : '#fff',
+            color: activeTab === 'maintenance' ? '#fff' : '#2c3e50',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}
+        >
+          维护模式
         </button>
       </div>
 
@@ -558,6 +615,151 @@ export default function AdminPanel({ userInfo, onBack }) {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'maintenance' && (
+        <div>
+          <h3 style={{ marginBottom: 20, color: '#2c3e50' }}>维护模式管理</h3>
+          
+          {/* 当前状态显示 */}
+          <div style={{ 
+            marginBottom: 30, 
+            padding: '20px', 
+            background: maintenanceStatus.isEnabled ? '#fff3cd' : '#d4edda',
+            border: `1px solid ${maintenanceStatus.isEnabled ? '#ffeaa7' : '#c3e6cb'}`,
+            borderRadius: 8
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              marginBottom: 10 
+            }}>
+              <div style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                background: maintenanceStatus.isEnabled ? '#f39c12' : '#27ae60',
+                marginRight: 10
+              }}></div>
+              <strong style={{ 
+                color: maintenanceStatus.isEnabled ? '#856404' : '#155724',
+                fontSize: '16px'
+              }}>
+                {maintenanceStatus.isEnabled ? '维护模式已开启' : '维护模式已关闭'}
+              </strong>
+            </div>
+            {maintenanceStatus.isEnabled && (
+              <div style={{ 
+                color: '#856404',
+                fontSize: '14px',
+                marginTop: 10
+              }}>
+                维护信息：{maintenanceStatus.message}
+              </div>
+            )}
+            {maintenanceStatus.enabledBy && (
+              <div style={{ 
+                color: '#6c757d',
+                fontSize: '12px',
+                marginTop: 5
+              }}>
+                操作者：{maintenanceStatus.enabledBy} | 
+                时间：{maintenanceStatus.enabledAt ? new Date(maintenanceStatus.enabledAt).toLocaleString() : '未知'}
+              </div>
+            )}
+          </div>
+
+          {/* 维护模式控制 */}
+          <div style={{ 
+            padding: '20px', 
+            background: '#f8f9fa', 
+            borderRadius: 8,
+            border: '1px solid #ecf0f1'
+          }}>
+            <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>
+              {maintenanceStatus.isEnabled ? '关闭维护模式' : '开启维护模式'}
+            </h4>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: 8, 
+                fontWeight: 'bold', 
+                color: '#2c3e50' 
+              }}>
+                维护提示信息
+              </label>
+              <textarea
+                value={maintenanceMessage}
+                onChange={(e) => setMaintenanceMessage(e.target.value)}
+                placeholder="请输入维护期间的提示信息..."
+                rows={3}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  borderRadius: 8, 
+                  border: '2px solid #ecf0f1', 
+                  resize: 'vertical',
+                  fontSize: '14px',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {maintenanceStatus.isEnabled ? (
+                <button
+                  onClick={handleDisableMaintenance}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  关闭维护模式
+                </button>
+              ) : (
+                <button
+                  onClick={handleEnableMaintenance}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#e74c3c',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  开启维护模式
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 维护模式说明 */}
+          <div style={{ 
+            marginTop: 20, 
+            padding: '15px', 
+            background: '#e3f2fd', 
+            borderRadius: 8,
+            border: '1px solid #bbdefb'
+          }}>
+            <h5 style={{ margin: '0 0 10px 0', color: '#1976d2' }}>维护模式说明：</h5>
+            <ul style={{ margin: 0, paddingLeft: 20, color: '#1976d2', fontSize: '14px' }}>
+              <li>开启维护模式后，普通用户将无法发布作品、活动或评论</li>
+              <li>用户将看到维护提示信息，但可以正常浏览内容</li>
+              <li>管理员可以正常使用所有功能</li>
+              <li>维护模式可以随时开启或关闭</li>
+            </ul>
           </div>
         </div>
       )}

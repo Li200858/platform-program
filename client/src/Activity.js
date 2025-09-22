@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import api from './api';
 
-export default function Activity({ userInfo, onBack }) {
+export default function Activity({ userInfo, onBack, maintenanceStatus }) {
   const [activities, setActivities] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [message, setMessage] = useState('');
@@ -100,7 +100,7 @@ export default function Activity({ userInfo, onBack }) {
   };
 
   if (showCreate) {
-    return <CreateActivityForm onBack={() => setShowCreate(false)} userInfo={userInfo} onSuccess={loadActivities} />;
+    return <CreateActivityForm onBack={() => setShowCreate(false)} userInfo={userInfo} onSuccess={loadActivities} maintenanceStatus={maintenanceStatus} />;
   }
 
   return (
@@ -121,19 +121,27 @@ export default function Activity({ userInfo, onBack }) {
         </button>
         <h2 style={{ margin: 0, color: '#2c3e50', flex: 1 }}>活动展示</h2>
         <button 
-          onClick={() => setShowCreate(true)}
+          onClick={() => {
+            if (maintenanceStatus.isEnabled && !userInfo?.isAdmin) {
+              alert(maintenanceStatus.message || '网站正在维护中，暂时无法创建活动');
+              return;
+            }
+            setShowCreate(true);
+          }}
+          disabled={maintenanceStatus.isEnabled && !userInfo?.isAdmin}
           style={{ 
             padding: '10px 20px', 
-            backgroundColor: '#27ae60', 
+            backgroundColor: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? '#95a5a6' : '#27ae60', 
             color: 'white', 
             border: 'none', 
             borderRadius: 8,
-            cursor: 'pointer',
+            cursor: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? 'not-allowed' : 'pointer',
             fontSize: '14px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            opacity: (maintenanceStatus.isEnabled && !userInfo?.isAdmin) ? 0.6 : 1
           }}
         >
-          + 创建活动
+          {maintenanceStatus.isEnabled && !userInfo?.isAdmin ? '+ 维护中' : '+ 创建活动'}
         </button>
       </div>
 
