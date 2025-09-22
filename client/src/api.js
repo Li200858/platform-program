@@ -135,6 +135,16 @@ export const api = {
     }).then(response => response.json());
   },
 
+  // 用户相关API
+  user: {
+    sync: (data) => api.request('/api/user/sync', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    getByID: (userID) => api.request(`/api/user/${userID}`),
+  },
+
   // 管理员相关API
   admin: {
     check: (userName) => api.request(`/api/admin/check?userName=${encodeURIComponent(userName)}`),

@@ -66,8 +66,22 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         // 在实际应用中，可以重新压缩图片
       }
 
+      // 保存到本地存储
       localStorage.setItem('user_profile', JSON.stringify(userInfo));
-      setMessage('个人信息保存成功！');
+      
+      // 同步到后端
+      try {
+        await api.user.sync({
+          userID: userID,
+          name: userInfo.name,
+          class: userInfo.class,
+          avatar: userInfo.avatar
+        });
+        setMessage('个人信息保存并同步成功！');
+      } catch (error) {
+        console.error('同步到后端失败:', error);
+        setMessage('本地保存成功，但同步到服务器失败，请检查网络连接');
+      }
       
       // 通知父组件更新用户信息
       if (onUserInfoUpdate) {
