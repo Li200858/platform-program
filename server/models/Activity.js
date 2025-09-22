@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const ActivitySchema = new mongoose.Schema({
   title: { type: String, required: true },
-  description: { type: String, required: true },
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
+  description: { type: String, default: '' },
+  startDate: { type: Date, default: Date.now },
+  endDate: { type: Date, default: Date.now },
   image: { type: String, default: '' },
   author: { type: String, required: true },
   authorName: { type: String, required: true },

@@ -14,11 +14,11 @@ export const UserIDProvider = ({ children }) => {
   const [userID, setUserID] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 生成唯一用户ID
+  // 生成唯一用户ID（纯数字）
   const generateUserID = () => {
-    const timestamp = Date.now().toString(36);
-    const randomPart = Math.random().toString(36).substr(2, 9);
-    return `user_${timestamp}_${randomPart}`;
+    const timestamp = Date.now();
+    const randomPart = Math.floor(Math.random() * 1000000);
+    return `${timestamp}${randomPart}`;
   };
 
   // 从localStorage获取或创建用户ID
@@ -86,33 +86,6 @@ export const UserIDProvider = ({ children }) => {
     }
   };
 
-  // 获取用户ID的二维码数据
-  const getQRCodeData = () => {
-    if (!userID) return null;
-    
-    return {
-      type: 'user_sync',
-      userID: userID,
-      timestamp: Date.now(),
-      version: '1.0'
-    };
-  };
-
-  // 解析二维码数据
-  const parseQRCodeData = (data) => {
-    try {
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-      
-      if (parsed.type === 'user_sync' && parsed.userID) {
-        return parsed.userID;
-      }
-      
-      throw new Error('无效的同步数据格式');
-    } catch (error) {
-      console.error('解析二维码数据失败:', error);
-      throw error;
-    }
-  };
 
   useEffect(() => {
     initializeUserID();
@@ -123,9 +96,7 @@ export const UserIDProvider = ({ children }) => {
     isLoading,
     importUserID,
     exportUserID,
-    resetUserID,
-    getQRCodeData,
-    parseQRCodeData
+    resetUserID
   };
 
   return (
