@@ -341,7 +341,6 @@ export default function Art({ userInfo, maintenanceStatus }) {
                 <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span>班级: {item.authorClass}</span>
                   <span>日期: {new Date(item.createdAt).toLocaleString()}</span>
-                  <span>浏览 {item.views || 0} 次</span>
                 </div>
               </div>
             </div>
