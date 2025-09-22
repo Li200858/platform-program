@@ -24,10 +24,31 @@ function MainApp() {
 
   // 加载用户信息
   useEffect(() => {
-    const savedUserInfo = localStorage.getItem('user_profile');
-    if (savedUserInfo) {
-      setUserInfo(JSON.parse(savedUserInfo));
-    }
+    const loadUserInfo = () => {
+      const savedUserInfo = localStorage.getItem('user_profile');
+      if (savedUserInfo) {
+        setUserInfo(JSON.parse(savedUserInfo));
+      }
+    };
+    
+    loadUserInfo();
+    
+    // 监听localStorage变化，当用户信息被更新时自动刷新
+    const handleStorageChange = (e) => {
+      if (e.key === 'user_profile') {
+        loadUserInfo();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // 定期检查localStorage变化（用于同一窗口内的更新）
+    const interval = setInterval(loadUserInfo, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // 加载维护模式状态

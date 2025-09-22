@@ -6,15 +6,16 @@ export default function UserSync({ onBack }) {
   const [importID, setImportID] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!importID.trim()) {
       setMessage('请输入要导入的用户ID');
       return;
     }
 
     try {
-      importUserID(importID.trim());
-      setMessage('用户ID导入成功！现在可以同步您的数据了。');
+      setMessage('正在导入用户ID和用户信息...');
+      await importUserID(importID.trim());
+      setMessage('用户ID导入成功！用户信息已自动同步，无需重复填写姓名和班级。');
       setImportID('');
     } catch (error) {
       setMessage('导入失败：' + error.message);

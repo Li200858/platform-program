@@ -47,7 +47,7 @@ export const UserIDProvider = ({ children }) => {
   };
 
   // 导入用户ID（用于跨设备同步）
-  const importUserID = (importedID) => {
+  const importUserID = async (importedID) => {
     if (!importedID || typeof importedID !== 'string') {
       throw new Error('无效的用户ID格式');
     }
@@ -56,6 +56,27 @@ export const UserIDProvider = ({ children }) => {
       localStorage.setItem('user_unique_id', importedID);
       setUserID(importedID);
       console.log('用户ID已导入:', importedID);
+      
+      // 尝试从服务器获取用户信息
+      try {
+        const api = (await import('./api')).default;
+        const userData = await api.user.getByID(importedID);
+        
+        // 如果获取到用户信息，保存到本地存储
+        if (userData && userData.name && userData.class) {
+          const userProfile = {
+            name: userData.name,
+            class: userData.class
+          };
+          localStorage.setItem('user_profile', JSON.stringify(userProfile));
+          localStorage.setItem('name_edited', 'true'); // 标记为已编辑，避免重复填写
+          console.log('用户信息已自动导入:', userProfile);
+        }
+      } catch (apiError) {
+        console.log('无法从服务器获取用户信息，用户需要手动填写:', apiError.message);
+        // 不抛出错误，让用户手动填写信息
+      }
+      
       return true;
     } catch (error) {
       console.error('导入用户ID失败:', error);

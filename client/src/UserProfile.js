@@ -15,14 +15,35 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   const [nameEdited, setNameEdited] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem('user_profile');
-    const nameEditedFlag = localStorage.getItem('name_edited');
-    if (saved) {
-      setUserInfo(JSON.parse(saved));
-    }
-    if (nameEditedFlag === 'true') {
-      setNameEdited(true);
-    }
+    const loadUserInfo = () => {
+      const saved = localStorage.getItem('user_profile');
+      const nameEditedFlag = localStorage.getItem('name_edited');
+      if (saved) {
+        setUserInfo(JSON.parse(saved));
+      }
+      if (nameEditedFlag === 'true') {
+        setNameEdited(true);
+      }
+    };
+    
+    loadUserInfo();
+    
+    // 监听localStorage变化，当用户信息被更新时自动刷新
+    const handleStorageChange = (e) => {
+      if (e.key === 'user_profile') {
+        loadUserInfo();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // 定期检查localStorage变化（用于同一窗口内的更新）
+    const interval = setInterval(loadUserInfo, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // 检查用户身份
