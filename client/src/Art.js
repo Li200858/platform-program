@@ -209,7 +209,7 @@ export default function Art({ userInfo }) {
   const renderMedia = (urls) => (
     <FilePreview 
       urls={urls} 
-      apiBaseUrl={process.env.REACT_APP_API_URL || 'http://localhost:5000'} 
+      apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
     />
   );
 
@@ -840,7 +840,7 @@ function PublishForm({ onBack, userInfo }) {
             }}>
               <FilePreview 
                 urls={formData.media} 
-                apiBaseUrl={process.env.REACT_APP_API_URL || 'http://localhost:5000'} 
+                apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
               />
               <div style={{ 
                 position: 'absolute', 

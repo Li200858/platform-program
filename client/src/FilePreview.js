@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function FilePreview({ urls, apiBaseUrl = 'http://localhost:5000' }) {
+export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000' }) {
   const [selectedImage, setSelectedImage] = useState(null);
 
   if (!urls || urls.length === 0) {
@@ -47,7 +47,8 @@ export default function FilePreview({ urls, apiBaseUrl = 'http://localhost:5000'
 
   const handleDownload = (url) => {
     const link = document.createElement('a');
-    link.href = `${apiBaseUrl}/uploads${url}`;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    link.href = `${apiBaseUrl}/uploads${cleanUrl}`;
     link.download = url.split('/').pop();
     document.body.appendChild(link);
     link.click();
@@ -59,7 +60,9 @@ export default function FilePreview({ urls, apiBaseUrl = 'http://localhost:5000'
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
         {urls.map((url, index) => {
           const fileType = getFileType(url);
-          const fullUrl = `${apiBaseUrl}/uploads${url}`;
+          // 确保URL格式正确
+          const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+          const fullUrl = `${apiBaseUrl}/uploads${cleanUrl}`;
           const fileName = url.split('/').pop();
 
           return (
