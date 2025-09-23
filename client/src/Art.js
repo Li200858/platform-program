@@ -365,109 +365,138 @@ export default function Art({ userInfo, maintenanceStatus }) {
       padding: 20px;
     `;
     
-    userDetailModal.innerHTML = `
-      <div style="
-        background: #fff;
-        border-radius: 15px;
-        padding: 30px;
-        max-width: 400px;
-        width: 100%;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      ">
-        <div style="margin-bottom: 20px;">
-          <div style="
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-          ">
-            ${name.charAt(0).toUpperCase()}
-          </div>
-          <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 24px;">${name}</h3>
-          <p style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 16px;">班级: ${userClass}</p>
-          <p style="margin: 0; color: #7f8c8d; font-size: 14px;">用户名: ${username}</p>
-        </div>
-        
-        <div style="display: flex; gap: 10px; justify-content: center;">
-          <button onclick="this.closest('[style*=\"position: fixed\"]').remove()" style="
-            padding: 10px 20px;
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-          ">
-            关闭
-          </button>
-          ${userInfo && userInfo.name !== name ? `
-            <button onclick="
-              // 关注功能
-              window.handleFollowUser && window.handleFollowUser('${username}');
-            " style="
-              padding: 10px 20px;
-              background: #3498db;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: bold;
-            ">
-              关注
-            </button>
-            <button onclick="
-              // 私信功能
-              window.handleMessageUser && window.handleMessageUser('${username}');
-            " style="
-              padding: 10px 20px;
-              background: #27ae60;
-              color: white;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 14px;
-              font-weight: bold;
-            ">
-              私信
-            </button>
-          ` : ''}
-        </div>
-      </div>
+    // 创建弹窗内容
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     `;
+
+    // 创建头像
+    const avatar = document.createElement('div');
+    avatar.style.cssText = `
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      color: white;
+      font-size: 32px;
+      font-weight: bold;
+    `;
+    avatar.textContent = name.charAt(0).toUpperCase();
+
+    // 创建用户信息
+    const userInfoDiv = document.createElement('div');
+    userInfoDiv.style.marginBottom = '20px';
+    
+    const nameH3 = document.createElement('h3');
+    nameH3.style.cssText = 'margin: 0 0 10px 0; color: #2c3e50; font-size: 24px;';
+    nameH3.textContent = name;
+    
+    const classP = document.createElement('p');
+    classP.style.cssText = 'margin: 0 0 5px 0; color: #7f8c8d; font-size: 16px;';
+    classP.textContent = `班级: ${userClass}`;
+    
+    const usernameP = document.createElement('p');
+    usernameP.style.cssText = 'margin: 0; color: #7f8c8d; font-size: 14px;';
+    usernameP.textContent = `用户名: ${username}`;
+
+    userInfoDiv.appendChild(avatar);
+    userInfoDiv.appendChild(nameH3);
+    userInfoDiv.appendChild(classP);
+    userInfoDiv.appendChild(usernameP);
+
+    // 创建按钮容器
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: center;';
+
+    // 创建关闭按钮
+    const closeButton = document.createElement('button');
+    closeButton.style.cssText = `
+      padding: 10px 20px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    `;
+    closeButton.textContent = '关闭';
+    closeButton.onclick = () => {
+      document.body.removeChild(userDetailModal);
+      delete window.handleFollowUser;
+      delete window.handleMessageUser;
+    };
+
+    buttonContainer.appendChild(closeButton);
+
+    // 如果不是当前用户，添加关注和私信按钮
+    if (userInfo && userInfo.name !== name) {
+      const followButton = document.createElement('button');
+      followButton.style.cssText = `
+        padding: 10px 20px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+      `;
+      followButton.textContent = '关注';
+      followButton.onclick = () => {
+        handleFollow(username);
+        document.body.removeChild(userDetailModal);
+        delete window.handleFollowUser;
+        delete window.handleMessageUser;
+      };
+
+      const messageButton = document.createElement('button');
+      messageButton.style.cssText = `
+        padding: 10px 20px;
+        background: #27ae60;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+      `;
+      messageButton.textContent = '私信';
+      messageButton.onclick = () => {
+        if (window.setSection) {
+          window.setSection('messages');
+        }
+        document.body.removeChild(userDetailModal);
+        delete window.handleFollowUser;
+        delete window.handleMessageUser;
+      };
+
+      buttonContainer.appendChild(followButton);
+      buttonContainer.appendChild(messageButton);
+    }
+
+    // 组装弹窗内容
+    modalContent.appendChild(userInfoDiv);
+    modalContent.appendChild(buttonContainer);
+    userDetailModal.appendChild(modalContent);
     
     document.body.appendChild(userDetailModal);
-    
-    // 添加全局函数处理关注和私信
-    window.handleFollowUser = (username) => {
-      handleFollow(username);
-      document.body.removeChild(userDetailModal);
-    };
-    
-    window.handleMessageUser = (username) => {
-      // 跳转到私信页面
-      if (window.setSection) {
-        window.setSection('messages');
-      }
-      document.body.removeChild(userDetailModal);
-    };
     
     // 点击背景关闭弹窗
     userDetailModal.addEventListener('click', (e) => {
       if (e.target === userDetailModal) {
         document.body.removeChild(userDetailModal);
-        // 清理全局函数
-        delete window.handleFollowUser;
-        delete window.handleMessageUser;
       }
     });
   };
