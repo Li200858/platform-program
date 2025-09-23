@@ -204,13 +204,13 @@ export default function Search({ userInfo, onBack }) {
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      ❤️ {item.likes || 0} 喜欢
+                      {item.likes || 0} 喜欢
                     </span>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      ⭐ {item.favorites?.length || 0} 收藏
+                      {item.favorites?.length || 0} 收藏
                     </span>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      💬 {item.comments?.length || 0} 评论
+                      {item.comments?.length || 0} 评论
                     </span>
                   </div>
                 </div>
@@ -273,13 +273,13 @@ export default function Search({ userInfo, onBack }) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      ❤️ {item.likes || 0} 喜欢
+                      {item.likes || 0} 喜欢
                     </span>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      ⭐ {item.favorites?.length || 0} 收藏
+                      {item.favorites?.length || 0} 收藏
                     </span>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      💬 {item.comments?.length || 0} 评论
+                      {item.comments?.length || 0} 评论
                     </span>
                   </div>
                 </div>

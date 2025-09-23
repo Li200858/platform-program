@@ -191,7 +191,7 @@ export default function Follow({ userInfo, onBack }) {
         <div>
           {following.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>👥</div>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>👤</div>
               <div style={{ fontSize: '18px', marginBottom: '10px' }}>还没有关注任何人</div>
               <div style={{ fontSize: '14px' }}>去发现有趣的人吧！</div>
             </div>
@@ -244,7 +244,7 @@ export default function Follow({ userInfo, onBack }) {
         <div>
           {followers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>👥</div>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>👤</div>
               <div style={{ fontSize: '18px', marginBottom: '10px' }}>还没有粉丝</div>
               <div style={{ fontSize: '14px' }}>发布更多精彩内容来吸引关注吧！</div>
             </div>

@@ -22,6 +22,7 @@ function MainApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [searchType, setSearchType] = useState('all');
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
@@ -125,7 +126,7 @@ function MainApp() {
       return;
     }
     try {
-      const data = await api.search(searchQuery.trim());
+      const data = await api.search.global(searchQuery.trim(), searchType);
       setSearchResults(data);
       setShowSearch(true);
     } catch (error) {
@@ -202,13 +203,29 @@ function MainApp() {
             <div className="site-title-en">HFLS International Art Platform</div>
           </div>
           <div className="header-right">
-            <div className="search-bar">
+            <div className="search-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <select
+                value={searchType}
+                onChange={e => setSearchType(e.target.value)}
+                style={{
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="all">全部</option>
+                <option value="art">艺术作品</option>
+                <option value="activity">活动设计</option>
+                <option value="user">用户</option>
+              </select>
               <input
                 type="text"
-                placeholder="搜索艺术作品..."
+                placeholder="搜索内容..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                style={{ flex: 1 }}
               />
               <button onClick={handleSearch}>搜索</button>
             </div>
@@ -224,9 +241,6 @@ function MainApp() {
           <button className={section === 'feedback' ? 'active' : ''} onClick={() => setSection('feedback')}>
             意见反馈
           </button>
-          <button className={section === 'search' ? 'active' : ''} onClick={() => setSection('search')}>
-            🔍 搜索
-          </button>
           <button className={section === 'collection' ? 'active' : ''} onClick={() => setSection('collection')}>
             我的收藏
           </button>
@@ -234,16 +248,16 @@ function MainApp() {
             我的作品
           </button>
           <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}>
-            💌 私信
+            私信
           </button>
           <button className={section === 'follow' ? 'active' : ''} onClick={() => setSection('follow')}>
-            👥 关注
+            关注
           </button>
           <button className={section === 'teams' ? 'active' : ''} onClick={() => setSection('teams')}>
-            🤝 团队
+            团队
           </button>
           <button className={section === 'notifications' ? 'active' : ''} onClick={() => setSection('notifications')} style={{ position: 'relative' }}>
-            🔔 通知
+            通知
             {notificationCount > 0 && (
               <span style={{
                 position: 'absolute',

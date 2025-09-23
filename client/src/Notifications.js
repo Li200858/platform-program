@@ -62,14 +62,14 @@ export default function Notifications({ userInfo, onBack }) {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'like': return '❤️';
-      case 'comment': return '💬';
-      case 'follow': return '👥';
+      case 'like': return '♥';
+      case 'comment': return '[评论]';
+      case 'follow': return '[关注]';
       case 'mention': return '@';
-      case 'team_invite': return '📧';
-      case 'team_update': return '🔄';
-      case 'message': return '💌';
-      default: return '🔔';
+      case 'team_invite': return '[邀请]';
+      case 'team_update': return '[更新]';
+      case 'message': return '[消息]';
+      default: return '[通知]';
     }
   };
 
@@ -228,7 +228,7 @@ export default function Notifications({ userInfo, onBack }) {
       {/* 通知列表 */}
       {notifications.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔔</div>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>📢</div>
           <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无通知</div>
           <div style={{ fontSize: '14px' }}>当有人关注你、点赞你的作品或评论时会收到通知</div>
         </div>

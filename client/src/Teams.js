@@ -212,7 +212,7 @@ export default function Teams({ userInfo, onBack }) {
       {/* 团队列表 */}
       {teams.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>👥</div>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>👤</div>
           <div style={{ fontSize: '18px', marginBottom: '10px' }}>还没有加入任何团队</div>
           <div style={{ fontSize: '14px' }}>创建团队开始协作吧！</div>
         </div>
@@ -261,10 +261,10 @@ export default function Teams({ userInfo, onBack }) {
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                    👥 {team.members.length} 成员
+                    {team.members.length} 成员
                   </div>
                   <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                    📁 {team.projects.length} 项目
+                    {team.projects.length} 项目
                   </div>
                 </div>
               </div>
@@ -724,7 +724,7 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
         <h3 style={{ marginBottom: 15, color: '#2c3e50' }}>团队项目</h3>
         {team.projects.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📁</div>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📄</div>
             <div style={{ fontSize: '18px', marginBottom: '10px' }}>还没有项目</div>
             <div style={{ fontSize: '14px' }}>创建第一个项目开始协作吧！</div>
           </div>
