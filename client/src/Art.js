@@ -305,6 +305,10 @@ export default function Art({ userInfo, maintenanceStatus }) {
     try {
       const isFollowing = followStatus[username];
       if (isFollowing) {
+        // 显示确认对话框
+        const confirmed = window.confirm(`确定要取消关注 ${username} 吗？`);
+        if (!confirmed) return;
+        
         await api.follow.unfollow(userInfo.name, username);
         setMessage(`已取消关注 ${username}`);
       } else {
@@ -341,16 +345,6 @@ export default function Art({ userInfo, maintenanceStatus }) {
     }
   };
 
-  // 私信用户
-  const handleMessageUser = (username) => {
-    if (window.setSection) {
-      window.setSection('messages');
-      // 设置私信目标用户
-      if (window.setMessageTarget) {
-        window.setMessageTarget(username);
-      }
-    }
-  };
 
   // 查看用户详情
   const handleViewUserProfile = (username, name, userClass) => {

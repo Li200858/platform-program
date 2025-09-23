@@ -452,10 +452,26 @@ function MainApp() {
                         <button
                           onClick={async () => {
                             try {
-                              await api.follow.follow(userInfo.name, user.name);
-                              setMessage('关注成功');
+                              // 检查当前关注状态
+                              const status = await api.follow.getStatus(userInfo.name, user.name);
+                              const isFollowing = status.isFollowing;
+                              
+                              if (isFollowing) {
+                                // 显示确认对话框
+                                const confirmed = window.confirm(`确定要取消关注 ${user.name} 吗？`);
+                                if (!confirmed) return;
+                                
+                                await api.follow.unfollow(userInfo.name, user.name);
+                                setMessage(`已取消关注 ${user.name}`);
+                              } else {
+                                await api.follow.follow({
+                                  follower: userInfo.name,
+                                  following: user.name
+                                });
+                                setMessage(`已关注 ${user.name}`);
+                              }
                             } catch (error) {
-                              setMessage('关注失败：' + (error.message || '请重试'));
+                              setMessage('操作失败：' + (error.message || '请重试'));
                             }
                           }}
                           style={{

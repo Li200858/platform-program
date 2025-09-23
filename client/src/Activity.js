@@ -116,6 +116,10 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
     try {
       const isFollowing = followStatus[username];
       if (isFollowing) {
+        // 显示确认对话框
+        const confirmed = window.confirm(`确定要取消关注 ${username} 吗？`);
+        if (!confirmed) return;
+        
         await api.follow.unfollow(userInfo.name, username);
         setMessage(`已取消关注 ${username}`);
       } else {

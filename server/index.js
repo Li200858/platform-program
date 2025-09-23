@@ -24,7 +24,14 @@ console.log(`环境变量 PORT: ${process.env.PORT}`);
 console.log(`使用端口: ${PORT}`);
 
 // 中间件
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://platform-program-frontend.onrender.com',
+    'https://platform-program.onrender.com'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 // 配置静态文件服务 - 支持持久化存储
 const uploadsDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : 'uploads';
