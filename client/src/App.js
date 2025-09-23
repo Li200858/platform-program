@@ -8,7 +8,6 @@ import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import UserSync from './UserSync';
 import Search from './Search';
-import Messages from './Messages';
 import Follow from './Follow';
 import Teams from './Teams';
 import Notifications from './Notifications';
@@ -163,8 +162,6 @@ function MainApp() {
       content = <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'search') {
       content = <Search userInfo={userInfo} onBack={() => setSection('art')} />;
-    } else if (section === 'messages') {
-      content = <Messages userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'follow') {
       content = <Follow userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'teams') {
@@ -254,9 +251,6 @@ function MainApp() {
           </button>
           <button className={section === 'myworks' ? 'active' : ''} onClick={() => setSection('myworks')}>
             我的作品
-          </button>
-          <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}>
-            私信
           </button>
           <button className={section === 'follow' ? 'active' : ''} onClick={() => setSection('follow')}>
             关注

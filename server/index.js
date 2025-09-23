@@ -12,7 +12,6 @@ const Activity = require('./models/Activity');
 const Feedback = require('./models/Feedback');
 const User = require('./models/User');
 const Maintenance = require('./models/Maintenance');
-const Message = require('./models/Message');
 const Follow = require('./models/Follow');
 const Notification = require('./models/Notification');
 const Team = require('./models/Team');
@@ -1138,83 +1137,6 @@ app.listen(PORT, async () => {
 
 // ==================== 用户互动功能 API ====================
 
-// 发送私信
-app.post('/api/messages/send', async (req, res) => {
-  const { sender, receiver, content, media } = req.body;
-  
-  if (!sender || !receiver || !content) {
-    return res.status(400).json({ error: '请填写完整信息' });
-  }
-
-  try {
-    const message = await Message.create({
-      sender,
-      receiver,
-      content,
-      media: media || [],
-      createdAt: new Date()
-    });
-
-    // 创建通知
-    await Notification.create({
-      recipient: receiver,
-      sender: sender,
-      type: 'message',
-      content: `收到来自 ${sender} 的私信`,
-      relatedId: message._id,
-      relatedType: 'message'
-    });
-
-    res.json(message);
-  } catch (error) {
-    console.error('发送私信失败:', error);
-    res.status(500).json({ error: '发送私信失败' });
-  }
-});
-
-// 获取私信列表
-app.get('/api/messages/:username', async (req, res) => {
-  const { username } = req.params;
-  
-  try {
-    const messages = await Message.find({
-      $or: [{ sender: username }, { receiver: username }]
-    })
-    .sort({ createdAt: -1 })
-    .limit(100);
-
-    res.json(messages);
-  } catch (error) {
-    console.error('获取私信失败:', error);
-    res.status(500).json({ error: '获取私信失败' });
-  }
-});
-
-// 获取与特定用户的对话
-app.get('/api/messages/:username1/:username2', async (req, res) => {
-  const { username1, username2 } = req.params;
-  
-  try {
-    const messages = await Message.find({
-      $or: [
-        { sender: username1, receiver: username2 },
-        { sender: username2, receiver: username1 }
-      ]
-    })
-    .sort({ createdAt: 1 });
-
-    // 标记消息为已读
-    await Message.updateMany(
-      { sender: username2, receiver: username1, isRead: false },
-      { isRead: true, readAt: new Date() }
-    );
-
-    res.json(messages);
-  } catch (error) {
-    console.error('获取对话失败:', error);
-    res.status(500).json({ error: '获取对话失败' });
-  }
-});
 
 // 关注用户
 app.post('/api/follow', async (req, res) => {

@@ -68,7 +68,6 @@ export default function Notifications({ userInfo, onBack }) {
       case 'mention': return '@';
       case 'team_invite': return '[邀请]';
       case 'team_update': return '[更新]';
-      case 'message': return '[消息]';
       default: return '[通知]';
     }
   };
@@ -81,7 +80,6 @@ export default function Notifications({ userInfo, onBack }) {
       case 'mention': return '#f39c12';
       case 'team_invite': return '#9b59b6';
       case 'team_update': return '#1abc9c';
-      case 'message': return '#34495e';
       default: return '#95a5a6';
     }
   };
@@ -319,7 +317,7 @@ export default function Notifications({ userInfo, onBack }) {
                            notification.relatedType === 'feedback' ? '意见反馈' :
                            notification.relatedType === 'team' ? '团队' :
                            notification.relatedType === 'user' ? '用户' :
-                           notification.relatedType === 'message' ? '私信' : '未知'}
+                           '未知'}
                         </span>
                       </>
                     )}

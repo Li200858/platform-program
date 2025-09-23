@@ -188,15 +188,6 @@ export const api = {
     }),
   },
 
-  // 用户互动功能API
-  messages: {
-    send: (data) => api.request('/api/messages/send', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    getMessages: (username) => api.request(`/api/messages/${username}`),
-    getConversation: (username1, username2) => api.request(`/api/messages/${username1}/${username2}`),
-  },
 
   follow: {
     follow: (data) => api.request('/api/follow', {
