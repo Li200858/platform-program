@@ -6,13 +6,13 @@ const NotificationSchema = new mongoose.Schema({
   type: { 
     type: String, 
     required: true,
-    enum: ['like', 'comment', 'follow', 'mention', 'team_invite', 'team_update']
+    enum: ['like', 'comment', 'follow', 'mention']
   },
   content: { type: String, required: true }, // 通知内容
   relatedId: { type: String }, // 相关内容的ID（如作品ID、活动ID等）
   relatedType: { 
     type: String,
-    enum: ['art', 'activity', 'feedback', 'team', 'user']
+    enum: ['art', 'activity', 'feedback', 'user']
   },
   isRead: { type: Boolean, default: false },
   readAt: { type: Date },

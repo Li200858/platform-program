@@ -8,7 +8,6 @@ import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import UserSync from './UserSync';
 import Search from './Search';
-import Teams from './Teams';
 import Notifications from './Notifications';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
@@ -162,8 +161,6 @@ function MainApp() {
       content = <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'search') {
       content = <Search userInfo={userInfo} onBack={() => setSection('art')} />;
-    } else if (section === 'teams') {
-      content = <Teams userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'notifications') {
       content = <Notifications userInfo={userInfo} onBack={() => setSection('art')} />;
     }
@@ -249,9 +246,6 @@ function MainApp() {
           </button>
           <button className={section === 'myworks' ? 'active' : ''} onClick={() => setSection('myworks')}>
             我的作品
-          </button>
-          <button className={section === 'teams' ? 'active' : ''} onClick={() => setSection('teams')}>
-            团队
           </button>
           <button className={section === 'notifications' ? 'active' : ''} onClick={() => setSection('notifications')} style={{ position: 'relative' }}>
             通知

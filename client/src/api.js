@@ -210,39 +210,6 @@ export const api = {
     }),
   },
 
-  // 团队协作功能API
-  teams: {
-    create: (data) => api.request('/api/teams', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    getUserTeams: (username) => api.request(`/api/teams/user/${username}`),
-    getTeam: (id) => api.request(`/api/teams/${id}`),
-    inviteUser: (teamId, data) => api.request(`/api/teams/${teamId}/invite`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    joinTeam: (teamId, data) => api.request(`/api/teams/${teamId}/join`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    processJoinRequest: (teamId, requestId, data) => api.request(`/api/teams/${teamId}/join-requests/${requestId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-    disbandTeam: (teamId, data) => api.request(`/api/teams/${teamId}`, {
-      method: 'DELETE',
-      body: JSON.stringify(data),
-    }),
-    createProject: (teamId, data) => api.request(`/api/teams/${teamId}/projects`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    updateProject: (teamId, projectId, data) => api.request(`/api/teams/${teamId}/projects/${projectId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  },
 
   // 搜索功能API
   search: {

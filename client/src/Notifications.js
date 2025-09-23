@@ -66,8 +66,6 @@ export default function Notifications({ userInfo, onBack }) {
       case 'comment': return '[评论]';
       case 'follow': return '[关注]';
       case 'mention': return '@';
-      case 'team_invite': return '[邀请]';
-      case 'team_update': return '[更新]';
       default: return '[通知]';
     }
   };
@@ -78,8 +76,6 @@ export default function Notifications({ userInfo, onBack }) {
       case 'comment': return '#3498db';
       case 'follow': return '#27ae60';
       case 'mention': return '#f39c12';
-      case 'team_invite': return '#9b59b6';
-      case 'team_update': return '#1abc9c';
       default: return '#95a5a6';
     }
   };
@@ -315,7 +311,6 @@ export default function Notifications({ userInfo, onBack }) {
                           {notification.relatedType === 'art' ? '艺术作品' :
                            notification.relatedType === 'activity' ? '活动设计' :
                            notification.relatedType === 'feedback' ? '意见反馈' :
-                           notification.relatedType === 'team' ? '团队' :
                            notification.relatedType === 'user' ? '用户' :
                            '未知'}
                         </span>
