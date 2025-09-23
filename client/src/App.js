@@ -87,6 +87,14 @@ function MainApp() {
     return () => clearInterval(interval);
   }, [userInfo]);
 
+  // 暴露setSection函数给全局使用
+  useEffect(() => {
+    window.setSection = setSection;
+    return () => {
+      delete window.setSection;
+    };
+  }, []);
+
   // 加载维护模式状态
   useEffect(() => {
     const loadMaintenanceStatus = async () => {

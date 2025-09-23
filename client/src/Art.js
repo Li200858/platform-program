@@ -341,6 +341,137 @@ export default function Art({ userInfo, maintenanceStatus }) {
     }
   };
 
+  // 查看用户详情
+  const handleViewUserProfile = (username, name, userClass) => {
+    const targetUserInfo = {
+      username: username,
+      name: name,
+      class: userClass
+    };
+    
+    // 创建用户详情弹窗
+    const userDetailModal = document.createElement('div');
+    userDetailModal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    `;
+    
+    userDetailModal.innerHTML = `
+      <div style="
+        background: #fff;
+        border-radius: 15px;
+        padding: 30px;
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      ">
+        <div style="margin-bottom: 20px;">
+          <div style="
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+          ">
+            ${name.charAt(0).toUpperCase()}
+          </div>
+          <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 24px;">${name}</h3>
+          <p style="margin: 0 0 5px 0; color: #7f8c8d; font-size: 16px;">班级: ${userClass}</p>
+          <p style="margin: 0; color: #7f8c8d; font-size: 14px;">用户名: ${username}</p>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button onclick="this.closest('[style*=\"position: fixed\"]').remove()" style="
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+          ">
+            关闭
+          </button>
+          ${userInfo && userInfo.name !== name ? `
+            <button onclick="
+              // 关注功能
+              window.handleFollowUser && window.handleFollowUser('${username}');
+            " style="
+              padding: 10px 20px;
+              background: #3498db;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: bold;
+            ">
+              关注
+            </button>
+            <button onclick="
+              // 私信功能
+              window.handleMessageUser && window.handleMessageUser('${username}');
+            " style="
+              padding: 10px 20px;
+              background: #27ae60;
+              color: white;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: bold;
+            ">
+              私信
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(userDetailModal);
+    
+    // 添加全局函数处理关注和私信
+    window.handleFollowUser = (username) => {
+      handleFollow(username);
+      document.body.removeChild(userDetailModal);
+    };
+    
+    window.handleMessageUser = (username) => {
+      // 跳转到私信页面
+      if (window.setSection) {
+        window.setSection('messages');
+      }
+      document.body.removeChild(userDetailModal);
+    };
+    
+    // 点击背景关闭弹窗
+    userDetailModal.addEventListener('click', (e) => {
+      if (e.target === userDetailModal) {
+        document.body.removeChild(userDetailModal);
+        // 清理全局函数
+        delete window.handleFollowUser;
+        delete window.handleMessageUser;
+      }
+    });
+  };
+
   if (showPublish) {
     return <PublishForm onBack={() => setShowPublish(false)} userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
   }
@@ -496,12 +627,40 @@ export default function Art({ userInfo, maintenanceStatus }) {
                 {item.collaborators && item.collaborators.length > 0 && (
                   <div style={{ marginTop: 8, fontSize: '12px', color: '#7f8c8d' }}>
                     <span style={{ fontWeight: 'bold' }}>合作用户: </span>
-                    {item.collaborators.map((collab, index) => (
-                      <span key={index}>
-                        {collab.name}
-                        {index < item.collaborators.length - 1 ? ', ' : ''}
-                      </span>
-                    ))}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                      {item.collaborators.map((collab, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleViewUserProfile(collab.username, collab.name, collab.class)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '4px 8px',
+                            background: '#f8f9fa',
+                            borderRadius: '12px',
+                            border: '1px solid #e9ecef',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#e9ecef';
+                            e.target.style.transform = 'scale(1.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = '#f8f9fa';
+                            e.target.style.transform = 'scale(1)';
+                          }}
+                        >
+                          <Avatar 
+                            name={collab.name} 
+                            size={20}
+                            style={{ border: '1px solid #dee2e6' }}
+                          />
+                          <span style={{ fontSize: '11px', fontWeight: '500' }}>{collab.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
