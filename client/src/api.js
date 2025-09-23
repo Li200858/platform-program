@@ -177,6 +177,73 @@ export const api = {
       method: 'POST',
     }),
   },
+
+  // 用户互动功能API
+  messages: {
+    send: (data) => api.request('/api/messages/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    getMessages: (username) => api.request(`/api/messages/${username}`),
+    getConversation: (username1, username2) => api.request(`/api/messages/${username1}/${username2}`),
+  },
+
+  follow: {
+    follow: (data) => api.request('/api/follow', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    unfollow: (follower, following) => api.request(`/api/follow/${follower}/${following}`, {
+      method: 'DELETE',
+    }),
+    getFollowing: (username) => api.request(`/api/follow/following/${username}`),
+    getFollowers: (username) => api.request(`/api/follow/followers/${username}`),
+    getStatus: (follower, following) => api.request(`/api/follow/status/${follower}/${following}`),
+  },
+
+  notifications: {
+    getNotifications: (username) => api.request(`/api/notifications/${username}`),
+    markAsRead: (id) => api.request(`/api/notifications/${id}/read`, {
+      method: 'PUT',
+    }),
+    markAllAsRead: (username) => api.request(`/api/notifications/${username}/read-all`, {
+      method: 'PUT',
+    }),
+  },
+
+  // 团队协作功能API
+  teams: {
+    create: (data) => api.request('/api/teams', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    getUserTeams: (username) => api.request(`/api/teams/user/${username}`),
+    getTeam: (id) => api.request(`/api/teams/${id}`),
+    inviteUser: (teamId, data) => api.request(`/api/teams/${teamId}/invite`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    createProject: (teamId, data) => api.request(`/api/teams/${teamId}/projects`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    updateProject: (teamId, projectId, data) => api.request(`/api/teams/${teamId}/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  },
+
+  // 搜索功能API
+  search: {
+    global: (query, type = 'all', limit = 20) => {
+      const params = new URLSearchParams();
+      params.append('q', query);
+      params.append('type', type);
+      params.append('limit', limit.toString());
+      return api.request(`/api/search?${params.toString()}`);
+    },
+    users: (query) => api.request(`/api/users/search?q=${encodeURIComponent(query)}`),
+  },
 };
 
 export default api;

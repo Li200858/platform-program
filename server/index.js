@@ -12,6 +12,10 @@ const Activity = require('./models/Activity');
 const Feedback = require('./models/Feedback');
 const User = require('./models/User');
 const Maintenance = require('./models/Maintenance');
+const Message = require('./models/Message');
+const Follow = require('./models/Follow');
+const Notification = require('./models/Notification');
+const Team = require('./models/Team');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1060,5 +1064,520 @@ app.listen(PORT, async () => {
     console.log('文件备份系统初始化完成');
   } catch (error) {
     console.log('文件备份系统初始化失败，但不影响服务运行:', error.message);
+  }
+});
+
+// ==================== 用户互动功能 API ====================
+
+// 发送私信
+app.post('/api/messages/send', async (req, res) => {
+  const { sender, receiver, content, media } = req.body;
+  
+  if (!sender || !receiver || !content) {
+    return res.status(400).json({ error: '请填写完整信息' });
+  }
+
+  try {
+    const message = await Message.create({
+      sender,
+      receiver,
+      content,
+      media: media || [],
+      createdAt: new Date()
+    });
+
+    // 创建通知
+    await Notification.create({
+      recipient: receiver,
+      sender: sender,
+      type: 'message',
+      content: `收到来自 ${sender} 的私信`,
+      relatedId: message._id,
+      relatedType: 'message'
+    });
+
+    res.json(message);
+  } catch (error) {
+    console.error('发送私信失败:', error);
+    res.status(500).json({ error: '发送私信失败' });
+  }
+});
+
+// 获取私信列表
+app.get('/api/messages/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const messages = await Message.find({
+      $or: [{ sender: username }, { receiver: username }]
+    })
+    .sort({ createdAt: -1 })
+    .limit(100);
+
+    res.json(messages);
+  } catch (error) {
+    console.error('获取私信失败:', error);
+    res.status(500).json({ error: '获取私信失败' });
+  }
+});
+
+// 获取与特定用户的对话
+app.get('/api/messages/:username1/:username2', async (req, res) => {
+  const { username1, username2 } = req.params;
+  
+  try {
+    const messages = await Message.find({
+      $or: [
+        { sender: username1, receiver: username2 },
+        { sender: username2, receiver: username1 }
+      ]
+    })
+    .sort({ createdAt: 1 });
+
+    // 标记消息为已读
+    await Message.updateMany(
+      { sender: username2, receiver: username1, isRead: false },
+      { isRead: true, readAt: new Date() }
+    );
+
+    res.json(messages);
+  } catch (error) {
+    console.error('获取对话失败:', error);
+    res.status(500).json({ error: '获取对话失败' });
+  }
+});
+
+// 关注用户
+app.post('/api/follow', async (req, res) => {
+  const { follower, following } = req.body;
+  
+  if (!follower || !following || follower === following) {
+    return res.status(400).json({ error: '无效的关注请求' });
+  }
+
+  try {
+    const follow = await Follow.create({ follower, following });
+
+    // 创建通知
+    await Notification.create({
+      recipient: following,
+      sender: follower,
+      type: 'follow',
+      content: `${follower} 关注了你`,
+      relatedType: 'user'
+    });
+
+    res.json(follow);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: '已经关注过该用户' });
+    }
+    console.error('关注用户失败:', error);
+    res.status(500).json({ error: '关注用户失败' });
+  }
+});
+
+// 取消关注
+app.delete('/api/follow/:follower/:following', async (req, res) => {
+  const { follower, following } = req.params;
+  
+  try {
+    await Follow.deleteOne({ follower, following });
+    res.json({ message: '取消关注成功' });
+  } catch (error) {
+    console.error('取消关注失败:', error);
+    res.status(500).json({ error: '取消关注失败' });
+  }
+});
+
+// 获取关注列表
+app.get('/api/follow/following/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const following = await Follow.find({ follower: username })
+      .sort({ createdAt: -1 });
+    res.json(following);
+  } catch (error) {
+    console.error('获取关注列表失败:', error);
+    res.status(500).json({ error: '获取关注列表失败' });
+  }
+});
+
+// 获取粉丝列表
+app.get('/api/follow/followers/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const followers = await Follow.find({ following: username })
+      .sort({ createdAt: -1 });
+    res.json(followers);
+  } catch (error) {
+    console.error('获取粉丝列表失败:', error);
+    res.status(500).json({ error: '获取粉丝列表失败' });
+  }
+});
+
+// 检查关注状态
+app.get('/api/follow/status/:follower/:following', async (req, res) => {
+  const { follower, following } = req.params;
+  
+  try {
+    const follow = await Follow.findOne({ follower, following });
+    res.json({ isFollowing: !!follow });
+  } catch (error) {
+    console.error('检查关注状态失败:', error);
+    res.status(500).json({ error: '检查关注状态失败' });
+  }
+});
+
+// 获取通知列表
+app.get('/api/notifications/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const notifications = await Notification.find({ recipient: username })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(notifications);
+  } catch (error) {
+    console.error('获取通知失败:', error);
+    res.status(500).json({ error: '获取通知失败' });
+  }
+});
+
+// 标记通知为已读
+app.put('/api/notifications/:id/read', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    await Notification.findByIdAndUpdate(id, { 
+      isRead: true, 
+      readAt: new Date() 
+    });
+    res.json({ message: '通知已标记为已读' });
+  } catch (error) {
+    console.error('标记通知失败:', error);
+    res.status(500).json({ error: '标记通知失败' });
+  }
+});
+
+// 标记所有通知为已读
+app.put('/api/notifications/:username/read-all', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    await Notification.updateMany(
+      { recipient: username, isRead: false },
+      { isRead: true, readAt: new Date() }
+    );
+    res.json({ message: '所有通知已标记为已读' });
+  } catch (error) {
+    console.error('标记所有通知失败:', error);
+    res.status(500).json({ error: '标记所有通知失败' });
+  }
+});
+
+// ==================== 团队协作功能 API ====================
+
+// 创建团队
+app.post('/api/teams', async (req, res) => {
+  const { name, description, creator } = req.body;
+  
+  if (!name || !creator) {
+    return res.status(400).json({ error: '请填写团队名称和创建者信息' });
+  }
+
+  try {
+    const team = await Team.create({
+      name,
+      description: description || '',
+      creator,
+      members: [{
+        username: creator,
+        role: 'owner'
+      }],
+      createdAt: new Date()
+    });
+
+    res.json(team);
+  } catch (error) {
+    console.error('创建团队失败:', error);
+    res.status(500).json({ error: '创建团队失败' });
+  }
+});
+
+// 获取用户参与的团队
+app.get('/api/teams/user/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const teams = await Team.find({
+      'members.username': username
+    }).sort({ updatedAt: -1 });
+    
+    res.json(teams);
+  } catch (error) {
+    console.error('获取团队列表失败:', error);
+    res.status(500).json({ error: '获取团队列表失败' });
+  }
+});
+
+// 获取团队详情
+app.get('/api/teams/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+    res.json(team);
+  } catch (error) {
+    console.error('获取团队详情失败:', error);
+    res.status(500).json({ error: '获取团队详情失败' });
+  }
+});
+
+// 邀请用户加入团队
+app.post('/api/teams/:id/invite', async (req, res) => {
+  const { id } = req.params;
+  const { inviter, invitee, role = 'member' } = req.body;
+  
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+
+    // 检查邀请者权限
+    const inviterMember = team.members.find(m => m.username === inviter);
+    if (!inviterMember || !['owner', 'admin'].includes(inviterMember.role)) {
+      return res.status(403).json({ error: '无权限邀请用户' });
+    }
+
+    // 检查用户是否已在团队中
+    if (team.members.some(m => m.username === invitee)) {
+      return res.status(400).json({ error: '用户已在团队中' });
+    }
+
+    // 添加成员
+    team.members.push({
+      username: invitee,
+      role,
+      joinedAt: new Date()
+    });
+    
+    await team.save();
+
+    // 创建通知
+    await Notification.create({
+      recipient: invitee,
+      sender: inviter,
+      type: 'team_invite',
+      content: `${inviter} 邀请你加入团队 "${team.name}"`,
+      relatedId: team._id,
+      relatedType: 'team'
+    });
+
+    res.json(team);
+  } catch (error) {
+    console.error('邀请用户失败:', error);
+    res.status(500).json({ error: '邀请用户失败' });
+  }
+});
+
+// 创建团队项目
+app.post('/api/teams/:id/projects', async (req, res) => {
+  const { id } = req.params;
+  const { title, description, type, content, media, creator } = req.body;
+  
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+
+    // 检查用户权限
+    const member = team.members.find(m => m.username === creator);
+    if (!member) {
+      return res.status(403).json({ error: '无权限创建项目' });
+    }
+
+    const project = {
+      title,
+      description: description || '',
+      type,
+      content: content || '',
+      media: media || [],
+      contributors: [creator],
+      versions: [{
+        version: '1.0',
+        content: content || '',
+        media: media || [],
+        author: creator,
+        message: '初始版本',
+        createdAt: new Date()
+      }],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    team.projects.push(project);
+    await team.save();
+
+    res.json(team);
+  } catch (error) {
+    console.error('创建项目失败:', error);
+    res.status(500).json({ error: '创建项目失败' });
+  }
+});
+
+// 更新团队项目
+app.put('/api/teams/:id/projects/:projectId', async (req, res) => {
+  const { id, projectId } = req.params;
+  const { content, media, author, message, version } = req.body;
+  
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+
+    const project = team.projects.id(projectId);
+    if (!project) {
+      return res.status(404).json({ error: '项目不存在' });
+    }
+
+    // 检查用户权限
+    const member = team.members.find(m => m.username === author);
+    if (!member) {
+      return res.status(403).json({ error: '无权限修改项目' });
+    }
+
+    // 添加新版本
+    const newVersion = {
+      version: version || `v${project.versions.length + 1}`,
+      content,
+      media: media || [],
+      author,
+      message: message || '更新内容',
+      createdAt: new Date()
+    };
+
+    project.versions.push(newVersion);
+    project.content = content;
+    project.media = media || [];
+    project.updatedAt = new Date();
+
+    if (!project.contributors.includes(author)) {
+      project.contributors.push(author);
+    }
+
+    await team.save();
+
+    // 通知团队成员
+    for (const member of team.members) {
+      if (member.username !== author) {
+        await Notification.create({
+          recipient: member.username,
+          sender: author,
+          type: 'team_update',
+          content: `${author} 更新了项目 "${project.title}"`,
+          relatedId: project._id,
+          relatedType: 'team'
+        });
+      }
+    }
+
+    res.json(team);
+  } catch (error) {
+    console.error('更新项目失败:', error);
+    res.status(500).json({ error: '更新项目失败' });
+  }
+});
+
+// ==================== 改进搜索功能 API ====================
+
+// 全局搜索（支持艺术作品和活动）
+app.get('/api/search', async (req, res) => {
+  const { q, type = 'all', limit = 20 } = req.query;
+  
+  if (!q || q.trim() === '') {
+    return res.json({ arts: [], activities: [], users: [] });
+  }
+
+  try {
+    const searchQuery = { $regex: q, $options: 'i' };
+    const results = { arts: [], activities: [], users: [] };
+
+    // 搜索艺术作品
+    if (type === 'all' || type === 'art') {
+      const arts = await Art.find({
+        $or: [
+          { title: searchQuery },
+          { content: searchQuery },
+          { authorName: searchQuery },
+          { authorClass: searchQuery }
+        ]
+      })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+      results.arts = arts;
+    }
+
+    // 搜索活动
+    if (type === 'all' || type === 'activity') {
+      const activities = await Activity.find({
+        $or: [
+          { title: searchQuery },
+          { description: searchQuery },
+          { authorName: searchQuery },
+          { authorClass: searchQuery }
+        ]
+      })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+      results.activities = activities;
+    }
+
+    // 搜索用户
+    if (type === 'all' || type === 'user') {
+      const users = await User.find({
+        $or: [
+          { name: searchQuery },
+          { class: searchQuery }
+        ]
+      })
+      .limit(parseInt(limit));
+      results.users = users;
+    }
+
+    res.json(results);
+  } catch (error) {
+    console.error('搜索失败:', error);
+    res.status(500).json({ error: '搜索失败' });
+  }
+});
+
+// 获取用户列表（用于@提及功能）
+app.get('/api/users/search', async (req, res) => {
+  const { q } = req.query;
+  
+  if (!q || q.trim() === '') {
+    return res.json([]);
+  }
+
+  try {
+    const users = await User.find({
+      name: { $regex: q, $options: 'i' }
+    })
+    .select('name class')
+    .limit(10);
+    
+    res.json(users);
+  } catch (error) {
+    console.error('搜索用户失败:', error);
+    res.status(500).json({ error: '搜索用户失败' });
   }
 });

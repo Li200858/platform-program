@@ -7,6 +7,11 @@ import MyCollection from './MyCollection';
 import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import UserSync from './UserSync';
+import Search from './Search';
+import Messages from './Messages';
+import Follow from './Follow';
+import Teams from './Teams';
+import Notifications from './Notifications';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
 import api from './api';
@@ -20,6 +25,7 @@ function MainApp() {
   const [userInfo, setUserInfo] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
+  const [notificationCount, setNotificationCount] = useState(0);
   const { userID } = useUserID();
 
   // 加载用户信息
@@ -59,6 +65,26 @@ function MainApp() {
       clearInterval(interval);
     };
   }, []);
+
+  // 加载通知计数
+  useEffect(() => {
+    const loadNotificationCount = async () => {
+      if (userInfo && userInfo.name) {
+        try {
+          const notifications = await api.notifications.getNotifications(userInfo.name);
+          const unreadCount = notifications.filter(n => !n.isRead).length;
+          setNotificationCount(unreadCount);
+        } catch (error) {
+          console.error('加载通知计数失败:', error);
+        }
+      }
+    };
+
+    loadNotificationCount();
+    // 每30秒刷新通知计数
+    const interval = setInterval(loadNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, [userInfo]);
 
   // 加载维护模式状态
   useEffect(() => {
@@ -126,6 +152,16 @@ function MainApp() {
       content = <MyWorks userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'admin') {
       content = <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'search') {
+      content = <Search userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'messages') {
+      content = <Messages userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'follow') {
+      content = <Follow userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'teams') {
+      content = <Teams userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'notifications') {
+      content = <Notifications userInfo={userInfo} onBack={() => setSection('art')} />;
     }
   } catch (error) {
     console.error('Error rendering content:', error);
@@ -188,11 +224,45 @@ function MainApp() {
           <button className={section === 'feedback' ? 'active' : ''} onClick={() => setSection('feedback')}>
             意见反馈
           </button>
+          <button className={section === 'search' ? 'active' : ''} onClick={() => setSection('search')}>
+            🔍 搜索
+          </button>
           <button className={section === 'collection' ? 'active' : ''} onClick={() => setSection('collection')}>
             我的收藏
           </button>
           <button className={section === 'myworks' ? 'active' : ''} onClick={() => setSection('myworks')}>
             我的作品
+          </button>
+          <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}>
+            💌 私信
+          </button>
+          <button className={section === 'follow' ? 'active' : ''} onClick={() => setSection('follow')}>
+            👥 关注
+          </button>
+          <button className={section === 'teams' ? 'active' : ''} onClick={() => setSection('teams')}>
+            🤝 团队
+          </button>
+          <button className={section === 'notifications' ? 'active' : ''} onClick={() => setSection('notifications')} style={{ position: 'relative' }}>
+            🔔 通知
+            {notificationCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                background: '#e74c3c',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                fontSize: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold'
+              }}>
+                {notificationCount > 9 ? '9+' : notificationCount}
+              </span>
+            )}
           </button>
           <button className={section === 'profile' ? 'active' : ''} onClick={() => setSection('profile')}>
             个人信息
