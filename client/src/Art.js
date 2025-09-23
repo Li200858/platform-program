@@ -76,7 +76,7 @@ export default function Art({ userInfo, maintenanceStatus }) {
           setList([]);
         });
     }
-  }, [tab, sort, tabs]);
+  }, [tab, sort]);
 
   const handleLike = async (id) => {
     if (!userInfo || !userInfo.name) {
