@@ -9,6 +9,8 @@ import AdminPanel from './AdminPanel';
 import UserSync from './UserSync';
 import Search from './Search';
 import Notifications from './Notifications';
+import Portfolio from './Portfolio';
+import ResourceLibrary from './ResourceLibrary';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
 import api from './api';
@@ -161,6 +163,10 @@ function MainApp() {
       content = <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'search') {
       content = <Search userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'portfolio') {
+      content = <Portfolio userInfo={userInfo} onBack={() => setSection('art')} />;
+    } else if (section === 'resources') {
+      content = <ResourceLibrary userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'notifications') {
       content = <Notifications userInfo={userInfo} onBack={() => setSection('art')} />;
     }
@@ -246,6 +252,12 @@ function MainApp() {
           </button>
           <button className={section === 'myworks' ? 'active' : ''} onClick={() => setSection('myworks')}>
             我的作品
+          </button>
+          <button className={section === 'portfolio' ? 'active' : ''} onClick={() => setSection('portfolio')}>
+            作品集
+          </button>
+          <button className={section === 'resources' ? 'active' : ''} onClick={() => setSection('resources')}>
+            资料库
           </button>
           <button className={section === 'notifications' ? 'active' : ''} onClick={() => setSection('notifications')} style={{ position: 'relative' }}>
             通知

@@ -13,6 +13,8 @@ const Feedback = require('./models/Feedback');
 const User = require('./models/User');
 const Maintenance = require('./models/Maintenance');
 const Notification = require('./models/Notification');
+const Portfolio = require('./models/Portfolio');
+const Resource = require('./models/Resource');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1396,5 +1398,259 @@ app.get('/api/users/search', async (req, res) => {
   } catch (error) {
     console.error('搜索用户失败:', error);
     res.status(500).json({ error: '搜索用户失败' });
+  }
+});
+
+// ==================== 作品集功能 API ====================
+
+// 创建作品集
+app.post('/api/portfolio', async (req, res) => {
+  const { title, description, category, tags, creator, isPublic, featured } = req.body;
+  
+  if (!title || !creator) {
+    return res.status(400).json({ error: '请填写作品集标题和创建者信息' });
+  }
+
+  try {
+    const portfolio = await Portfolio.create({
+      title,
+      description: description || '',
+      category: category || 'art',
+      tags: tags || [],
+      creator,
+      isPublic: isPublic !== false,
+      featured: featured || false
+    });
+
+    res.json(portfolio);
+  } catch (error) {
+    console.error('创建作品集失败:', error);
+    res.status(500).json({ error: '创建作品集失败' });
+  }
+});
+
+// 获取用户的作品集
+app.get('/api/portfolio/user/:username', async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const portfolios = await Portfolio.find({ creator: username })
+      .populate('works', 'title content media authorName createdAt')
+      .sort({ updatedAt: -1 });
+    
+    res.json(portfolios);
+  } catch (error) {
+    console.error('获取作品集失败:', error);
+    res.status(500).json({ error: '获取作品集失败' });
+  }
+});
+
+// 获取作品集详情
+app.get('/api/portfolio/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const portfolio = await Portfolio.findById(id)
+      .populate('works', 'title content media authorName authorClass createdAt');
+    
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+    
+    res.json(portfolio);
+  } catch (error) {
+    console.error('获取作品集详情失败:', error);
+    res.status(500).json({ error: '获取作品集详情失败' });
+  }
+});
+
+// 更新作品集
+app.put('/api/portfolio/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, description, category, tags, isPublic, featured } = req.body;
+  
+  try {
+    const portfolio = await Portfolio.findById(id);
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+
+    portfolio.title = title || portfolio.title;
+    portfolio.description = description || portfolio.description;
+    portfolio.category = category || portfolio.category;
+    portfolio.tags = tags || portfolio.tags;
+    portfolio.isPublic = isPublic !== undefined ? isPublic : portfolio.isPublic;
+    portfolio.featured = featured !== undefined ? featured : portfolio.featured;
+    portfolio.updatedAt = new Date();
+
+    await portfolio.save();
+    res.json(portfolio);
+  } catch (error) {
+    console.error('更新作品集失败:', error);
+    res.status(500).json({ error: '更新作品集失败' });
+  }
+});
+
+// 删除作品集
+app.delete('/api/portfolio/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const portfolio = await Portfolio.findByIdAndDelete(id);
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+    
+    res.json({ message: '作品集删除成功' });
+  } catch (error) {
+    console.error('删除作品集失败:', error);
+    res.status(500).json({ error: '删除作品集失败' });
+  }
+});
+
+// 添加作品到作品集
+app.post('/api/portfolio/:id/works', async (req, res) => {
+  const { id } = req.params;
+  const { workId } = req.body;
+  
+  try {
+    const portfolio = await Portfolio.findById(id);
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+
+    if (!portfolio.works.includes(workId)) {
+      portfolio.works.push(workId);
+      await portfolio.save();
+    }
+
+    res.json(portfolio);
+  } catch (error) {
+    console.error('添加作品失败:', error);
+    res.status(500).json({ error: '添加作品失败' });
+  }
+});
+
+// 从作品集移除作品
+app.delete('/api/portfolio/:id/works/:workId', async (req, res) => {
+  const { id, workId } = req.params;
+  
+  try {
+    const portfolio = await Portfolio.findById(id);
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+
+    portfolio.works = portfolio.works.filter(w => w.toString() !== workId);
+    await portfolio.save();
+
+    res.json(portfolio);
+  } catch (error) {
+    console.error('移除作品失败:', error);
+    res.status(500).json({ error: '移除作品失败' });
+  }
+});
+
+// ==================== 学习资料库功能 API ====================
+
+// 获取所有资料
+app.get('/api/resources', async (req, res) => {
+  try {
+    const resources = await Resource.find({ isPublic: true })
+      .sort({ createdAt: -1 });
+    
+    res.json(resources);
+  } catch (error) {
+    console.error('获取资料失败:', error);
+    res.status(500).json({ error: '获取资料失败' });
+  }
+});
+
+// 获取资料分类
+app.get('/api/resources/categories', async (req, res) => {
+  try {
+    const categories = ['template', 'image', 'video', 'audio', 'document', 'tutorial'];
+    res.json(categories);
+  } catch (error) {
+    console.error('获取分类失败:', error);
+    res.status(500).json({ error: '获取分类失败' });
+  }
+});
+
+// 上传资料
+app.post('/api/resources/upload', upload.array('files'), async (req, res) => {
+  const { title, description, category, tags, isPublic, uploader } = req.body;
+  
+  if (!title || !uploader) {
+    return res.status(400).json({ error: '请填写资料标题和上传者信息' });
+  }
+
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: '请选择要上传的文件' });
+  }
+
+  try {
+    const files = req.files.map(file => ({
+      filename: file.filename,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      path: file.path,
+      url: `/uploads/${file.filename}`
+    }));
+
+    const resource = await Resource.create({
+      title,
+      description: description || '',
+      category: category || 'template',
+      tags: tags ? JSON.parse(tags) : [],
+      uploader,
+      isPublic: isPublic !== 'false',
+      files
+    });
+
+    res.json(resource);
+  } catch (error) {
+    console.error('上传资料失败:', error);
+    res.status(500).json({ error: '上传资料失败' });
+  }
+});
+
+// 删除资料
+app.delete('/api/resources/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const resource = await Resource.findByIdAndDelete(id);
+    if (!resource) {
+      return res.status(404).json({ error: '资料不存在' });
+    }
+    
+    res.json({ message: '资料删除成功' });
+  } catch (error) {
+    console.error('删除资料失败:', error);
+    res.status(500).json({ error: '删除资料失败' });
+  }
+});
+
+// 下载资料
+app.get('/api/resources/:id/download', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const resource = await Resource.findById(id);
+    if (!resource) {
+      return res.status(404).json({ error: '资料不存在' });
+    }
+
+    // 增加下载次数
+    resource.downloads += 1;
+    await resource.save();
+
+    // 这里可以实现文件下载逻辑
+    res.json({ message: '下载成功', files: resource.files });
+  } catch (error) {
+    console.error('下载资料失败:', error);
+    res.status(500).json({ error: '下载资料失败' });
   }
 });

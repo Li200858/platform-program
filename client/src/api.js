@@ -211,6 +211,45 @@ export const api = {
   },
 
 
+  // 作品集功能API
+  portfolio: {
+    create: (data) => api.request('/api/portfolio', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    getUserPortfolios: (username) => api.request(`/api/portfolio/user/${username}`),
+    getPortfolio: (id) => api.request(`/api/portfolio/${id}`),
+    update: (id, data) => api.request(`/api/portfolio/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    delete: (id) => api.request(`/api/portfolio/${id}`, {
+      method: 'DELETE',
+    }),
+    addWork: (id, data) => api.request(`/api/portfolio/${id}/works`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    removeWork: (id, workId) => api.request(`/api/portfolio/${id}/works/${workId}`, {
+      method: 'DELETE',
+    }),
+  },
+
+  // 学习资料库API
+  resources: {
+    getAll: () => api.request('/api/resources'),
+    getCategories: () => api.request('/api/resources/categories'),
+    upload: (formData) => api.request('/api/resources/upload', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // 让浏览器自动设置Content-Type
+    }),
+    delete: (id) => api.request(`/api/resources/${id}`, {
+      method: 'DELETE',
+    }),
+    download: (id) => api.request(`/api/resources/${id}/download`),
+  },
+
   // 搜索功能API
   search: {
     global: (query, type = 'all', limit = 20) => {
