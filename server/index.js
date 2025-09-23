@@ -1551,6 +1551,48 @@ app.delete('/api/portfolio/:id/works/:workId', async (req, res) => {
   }
 });
 
+// 直接上传内容到作品集
+app.post('/api/portfolio/upload-content', upload.array('files'), async (req, res) => {
+  const { title, content, authorName, authorClass, category, portfolioId } = req.body;
+  
+  if (!title || !authorName || !portfolioId) {
+    return res.status(400).json({ error: '请填写必要信息' });
+  }
+
+  try {
+    const portfolio = await Portfolio.findById(portfolioId);
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+
+    const files = req.files ? req.files.map(file => ({
+      filename: file.filename,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      path: file.path,
+      url: `/uploads/${file.filename}`
+    })) : [];
+
+    const newContent = {
+      title,
+      content: content || '',
+      authorName,
+      authorClass: authorClass || '未知班级',
+      media: files,
+      createdAt: new Date()
+    };
+
+    portfolio.contents.push(newContent);
+    await portfolio.save();
+
+    res.json({ message: '内容上传成功', content: newContent });
+  } catch (error) {
+    console.error('上传内容失败:', error);
+    res.status(500).json({ error: '上传内容失败' });
+  }
+});
+
 // ==================== 学习资料库功能 API ====================
 
 // 获取所有资料

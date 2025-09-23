@@ -8,8 +8,10 @@ export default function Portfolio({ userInfo, onBack }) {
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showUploadContent, setShowUploadContent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [newPortfolio, setNewPortfolio] = useState({
     title: '',
     description: '',
@@ -17,6 +19,11 @@ export default function Portfolio({ userInfo, onBack }) {
     tags: [],
     isPublic: true,
     featured: false
+  });
+  const [newContent, setNewContent] = useState({
+    title: '',
+    content: '',
+    files: []
   });
 
   useEffect(() => {
@@ -88,6 +95,44 @@ export default function Portfolio({ userInfo, onBack }) {
     } catch (error) {
       console.error('加载作品集详情失败:', error);
       setMessage('加载作品集详情失败');
+    }
+  };
+
+  const handleUploadContent = async () => {
+    if (!newContent.title.trim()) {
+      setMessage('请输入作品标题');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('title', newContent.title);
+      formData.append('content', newContent.content);
+      formData.append('authorName', userInfo.name);
+      formData.append('authorClass', userInfo.class || '未知班级');
+      formData.append('category', selectedPortfolio.category);
+      formData.append('portfolioId', selectedPortfolio._id);
+      
+      newContent.files.forEach((file, index) => {
+        formData.append(`files`, file);
+      });
+
+      await api.portfolio.uploadContent(formData);
+      setMessage('内容上传成功！');
+      setShowUploadContent(false);
+      setNewContent({
+        title: '',
+        content: '',
+        files: []
+      });
+      // 重新加载作品集详情
+      handleViewPortfolio(selectedPortfolio._id);
+    } catch (error) {
+      console.error('上传内容失败:', error);
+      setMessage('上传内容失败，请重试');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -181,6 +226,19 @@ export default function Portfolio({ userInfo, onBack }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
           <h2 style={{ margin: 0, color: '#2c3e50' }}>{selectedPortfolio.title}</h2>
           <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => setShowUploadContent(true)}
+              style={{
+                padding: '10px 20px',
+                background: '#27ae60',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer'
+              }}
+            >
+              + 上传内容
+            </button>
             <button
               onClick={() => handleExportPortfolio(selectedPortfolio)}
               style={{
@@ -285,45 +343,88 @@ export default function Portfolio({ userInfo, onBack }) {
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <strong>作品列表 ({selectedPortfolio.works.length})</strong>
+          <strong>作品列表 ({selectedPortfolio.works.length + (selectedPortfolio.contents ? selectedPortfolio.contents.length : 0)})</strong>
         </div>
 
-        {selectedPortfolio.works.length === 0 ? (
+        {/* 直接上传的内容 */}
+        {selectedPortfolio.contents && selectedPortfolio.contents.length > 0 && (
+          <div style={{ marginBottom: 30 }}>
+            <h4 style={{ marginBottom: 15, color: '#34495e', fontSize: 16 }}>直接上传的内容</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+              {selectedPortfolio.contents.map((content, index) => (
+                <div key={`content-${index}`} style={{
+                  border: '1px solid #ecf0f1',
+                  borderRadius: 12,
+                  padding: 20,
+                  background: '#f8f9fa'
+                }}>
+                  <div style={{ marginBottom: 15 }}>
+                    <h5 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>
+                      {content.title}
+                    </h5>
+                    <p style={{ margin: '0 0 15px 0', color: '#7f8c8d', fontSize: '14px' }}>
+                      {content.content?.substring(0, 100) || '暂无内容描述'}...
+                    </p>
+                    {content.media && content.media.length > 0 && (
+                      <div style={{ marginBottom: 15 }}>
+                        <FilePreview files={content.media} />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#7f8c8d' }}>
+                    <span>{new Date(content.createdAt).toLocaleDateString()}</span>
+                    <span>{content.authorName}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 关联的艺术作品 */}
+        {selectedPortfolio.works && selectedPortfolio.works.length > 0 && (
+          <div style={{ marginBottom: 30 }}>
+            <h4 style={{ marginBottom: 15, color: '#34495e', fontSize: 16 }}>关联的艺术作品</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+              {selectedPortfolio.works.map(work => (
+                <div key={work._id} style={{
+                  border: '1px solid #ecf0f1',
+                  borderRadius: 12,
+                  padding: 20,
+                  background: '#f8f9fa'
+                }}>
+                  <div style={{ marginBottom: 15 }}>
+                    <h5 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>
+                      {work.title}
+                    </h5>
+                    <p style={{ margin: '0 0 15px 0', color: '#7f8c8d', fontSize: '14px' }}>
+                      {work.content?.substring(0, 100)}...
+                    </p>
+                  </div>
+
+                  {work.media && work.media.length > 0 && (
+                    <div style={{ marginBottom: 15 }}>
+                      <FilePreview files={work.media} />
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#7f8c8d' }}>
+                    <span>{new Date(work.createdAt).toLocaleDateString()}</span>
+                    <span>{work.authorName}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 空状态 */}
+        {(!selectedPortfolio.contents || selectedPortfolio.contents.length === 0) && 
+         (!selectedPortfolio.works || selectedPortfolio.works.length === 0) && (
           <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
             <div style={{ fontSize: '48px', marginBottom: '20px' }}>📁</div>
             <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无作品</div>
-            <div style={{ fontSize: '14px' }}>请先添加作品到此作品集</div>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-            {selectedPortfolio.works.map(work => (
-              <div key={work._id} style={{
-                border: '1px solid #ecf0f1',
-                borderRadius: 12,
-                padding: 20,
-                background: '#f8f9fa'
-              }}>
-                <div style={{ marginBottom: 15 }}>
-                  <h4 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>
-                    {work.title}
-                  </h4>
-                  <p style={{ margin: '0 0 15px 0', color: '#7f8c8d', fontSize: '14px' }}>
-                    {work.content?.substring(0, 100)}...
-                  </p>
-                </div>
-
-                {work.media && work.media.length > 0 && (
-                  <div style={{ marginBottom: 15 }}>
-                    <FilePreview files={work.media} />
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#7f8c8d' }}>
-                  <span>{new Date(work.createdAt).toLocaleDateString()}</span>
-                  <span>{work.authorName}</span>
-                </div>
-              </div>
-            ))}
+            <div style={{ fontSize: '14px' }}>点击"上传内容"来添加您的作品</div>
           </div>
         )}
 
@@ -640,6 +741,123 @@ export default function Portfolio({ userInfo, onBack }) {
                 }}
               >
                 创建
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 上传内容弹窗 */}
+      {showUploadContent && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: 15,
+            padding: 30,
+            width: '90%',
+            maxWidth: 600,
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>上传内容到作品集</h3>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>作品标题 *</label>
+              <input
+                type="text"
+                value={newContent.title}
+                onChange={(e) => setNewContent({ ...newContent, title: e.target.value })}
+                placeholder="请输入作品标题"
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  fontSize: 14
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>作品描述</label>
+              <textarea
+                value={newContent.content}
+                onChange={(e) => setNewContent({ ...newContent, content: e.target.value })}
+                placeholder="请输入作品描述..."
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>上传文件</label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setNewContent({ ...newContent, files });
+                }}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  fontSize: 14
+                }}
+              />
+              {newContent.files.length > 0 && (
+                <div style={{ marginTop: 10, fontSize: 12, color: '#666' }}>
+                  已选择 {newContent.files.length} 个文件
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowUploadContent(false)}
+                style={{
+                  padding: '10px 20px',
+                  background: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer'
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleUploadContent}
+                disabled={uploading}
+                style={{
+                  padding: '10px 20px',
+                  background: uploading ? '#bdc3c7' : '#27ae60',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: uploading ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {uploading ? '上传中...' : '上传'}
               </button>
             </div>
           </div>

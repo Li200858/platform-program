@@ -16,6 +16,21 @@ const PortfolioSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Art' 
   }], // 包含的作品ID
+  contents: [{ // 直接存储的内容
+    title: { type: String, required: true },
+    content: { type: String },
+    authorName: { type: String, required: true },
+    authorClass: { type: String },
+    media: [{
+      filename: String,
+      originalName: String,
+      mimetype: String,
+      size: Number,
+      path: String,
+      url: String,
+    }],
+    createdAt: { type: Date, default: Date.now }
+  }],
   views: { type: Number, default: 0 }, // 浏览次数
   likes: { type: Number, default: 0 }, // 点赞数
   createdAt: { type: Date, default: Date.now },

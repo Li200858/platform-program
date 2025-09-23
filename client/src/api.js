@@ -233,6 +233,11 @@ export const api = {
     removeWork: (id, workId) => api.request(`/api/portfolio/${id}/works/${workId}`, {
       method: 'DELETE',
     }),
+    uploadContent: (formData) => api.request('/api/portfolio/upload-content', {
+      method: 'POST',
+      body: formData,
+      headers: {}, // 让浏览器自动设置Content-Type
+    }),
   },
 
   // 学习资料库API
