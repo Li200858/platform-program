@@ -837,7 +837,28 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo, set
                 取消
               </button>
               <button
-                onClick={handleCreateProject}
+                onClick={async () => {
+                  if (!projectForm.title.trim()) {
+                    setMessage('请输入项目标题');
+                    return;
+                  }
+                  
+                  try {
+                    await onCreateProject(team._id, projectForm);
+                    setProjectForm({
+                      title: '',
+                      description: '',
+                      type: 'art',
+                      content: '',
+                      media: []
+                    });
+                    setShowCreateProject(false);
+                    setMessage('项目创建成功！');
+                  } catch (error) {
+                    console.error('创建项目失败:', error);
+                    setMessage('创建项目失败，请重试');
+                  }
+                }}
                 style={{
                   padding: '10px 20px',
                   background: '#27ae60',
