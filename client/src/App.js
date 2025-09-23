@@ -82,8 +82,8 @@ function MainApp() {
     };
 
     loadNotificationCount();
-    // 每30秒刷新通知计数
-    const interval = setInterval(loadNotificationCount, 30000);
+           // 每5秒刷新通知计数
+           const interval = setInterval(loadNotificationCount, 5000);
     return () => clearInterval(interval);
   }, [userInfo]);
 
@@ -307,11 +307,13 @@ function MainApp() {
               关闭
             </button>
           </div>
-          {searchResults.art && searchResults.art.length > 0 ? (
+          {(searchResults.arts && searchResults.arts.length > 0) || (searchResults.activities && searchResults.activities.length > 0) || (searchResults.users && searchResults.users.length > 0) ? (
+            <div>
+              {searchResults.arts && searchResults.arts.length > 0 && (
             <div style={{ marginBottom: 30 }}>
-              <h4>艺术作品 ({searchResults.art.length}条结果)</h4>
+              <h4>艺术作品 ({searchResults.arts.length}条结果)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {searchResults.art.map(item => (
+                {searchResults.arts.map(item => (
                   <div 
                     key={item._id} 
                     className="search-result-item"
@@ -362,11 +364,12 @@ function MainApp() {
                 ))}
               </div>
             </div>
-          ) : searchResults.activity && searchResults.activity.length > 0 ? (
+              )}
+              {searchResults.activities && searchResults.activities.length > 0 && (
             <div style={{ marginBottom: 30 }}>
-              <h4>活动展示 ({searchResults.activity.length}条结果)</h4>
+              <h4>活动展示 ({searchResults.activities.length}条结果)</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {searchResults.activity.map(item => (
+                {searchResults.activities.map(item => (
                   <div 
                     key={item._id} 
                     className="search-result-item"
@@ -397,7 +400,7 @@ function MainApp() {
                   >
                     <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>{item.title}</div>
                     <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '8px' }}>
-                      {item.content.substring(0, 100)}...
+                      {(item.description || item.content || '').substring(0, 100)}...
                     </div>
                     <div className="search-result-meta">
                       <span>组织者: {item.authorName || item.author}</span>
@@ -416,6 +419,48 @@ function MainApp() {
                   </div>
                 ))}
               </div>
+            </div>
+              )}
+              {searchResults.users && searchResults.users.length > 0 && (
+            <div style={{ marginBottom: 30 }}>
+              <h4>用户 ({searchResults.users.length}条结果)</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {searchResults.users.map(user => (
+                  <div 
+                    key={user._id || user.name} 
+                    className="search-result-item"
+                    onClick={() => {
+                      // 关闭搜索面板
+                      setShowSearch(false);
+                      setSearchQuery('');
+                      setSearchResults(null);
+                      // 可以跳转到用户详情页面或开始私信
+                      alert(`用户: ${user.name} (${user.class})`);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>{user.name}</div>
+                    <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '8px' }}>
+                      班级: {user.class}
+                    </div>
+                    <div className="search-result-meta">
+                      <span>用户ID: {user.userID || '未知'}</span>
+                      <span>角色: {user.role || '用户'}</span>
+                      {user.isAdmin && <span>管理员</span>}
+                    </div>
+                    <div style={{ 
+                      marginTop: '8px', 
+                      fontSize: '12px', 
+                      color: '#3498db',
+                      fontWeight: 'bold'
+                    }}>
+                      点击查看用户详情 →
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+              )}
             </div>
           ) : (
             <div style={{ textAlign: 'center', color: '#7f8c8d', padding: 40 }}>

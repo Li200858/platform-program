@@ -36,6 +36,12 @@ export default function Art({ userInfo, maintenanceStatus }) {
   const [showComments, setShowComments] = useState({});
   const [commentForm, setCommentForm] = useState({ author: '', authorClass: '', content: '' });
   const [message, setMessage] = useState('');
+  const [showCollaboratorModal, setShowCollaboratorModal] = useState(false);
+  const [selectedArt, setSelectedArt] = useState(null);
+  const [collaboratorSearch, setCollaboratorSearch] = useState('');
+  const [collaboratorResults, setCollaboratorResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [followStatus, setFollowStatus] = useState({});
 
   useEffect(() => {
     const currentTab = tabs.find(t => t.key === tab);
@@ -213,6 +219,128 @@ export default function Art({ userInfo, maintenanceStatus }) {
     />
   );
 
+  // 管理合作用户
+  const handleManageCollaborators = (art) => {
+    setSelectedArt(art);
+    setShowCollaboratorModal(true);
+    setCollaboratorSearch('');
+    setCollaboratorResults([]);
+  };
+
+  // 搜索用户
+  const handleSearchUsers = async () => {
+    if (!collaboratorSearch.trim()) {
+      setMessage('请输入搜索关键词');
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const data = await api.search.global(collaboratorSearch.trim(), 'user');
+      setCollaboratorResults(data.users || []);
+      if (data.users && data.users.length === 0) {
+        setMessage('未找到相关用户');
+      }
+    } catch (error) {
+      console.error('搜索用户失败:', error);
+      setMessage('搜索失败，请重试');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // 邀请合作用户
+  const handleInviteCollaborator = async (user) => {
+    if (!selectedArt) return;
+
+    try {
+      await api.art.inviteCollaborator(selectedArt._id, {
+        username: user.name,
+        name: user.name,
+        class: user.class,
+        invitedBy: userInfo.name
+      });
+      setMessage('邀请已发送');
+      // 重新加载作品列表
+      const currentTab = tabs.find(t => t.key === tab);
+      const dbTab = currentTab ? currentTab.dbValue : '';
+      const data = await api.art.getAll(dbTab, sort === 'hot' ? 'hot' : '');
+      setList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('邀请失败:', error);
+      setMessage('邀请失败：' + (error.message || '请重试'));
+    }
+  };
+
+  // 移除合作用户
+  const handleRemoveCollaborator = async (username) => {
+    if (!selectedArt) return;
+
+    try {
+      await api.art.removeCollaborator(selectedArt._id, username, userInfo.name);
+      setMessage('合作用户已移除');
+      // 重新加载作品列表
+      const currentTab = tabs.find(t => t.key === tab);
+      const dbTab = currentTab ? currentTab.dbValue : '';
+      const data = await api.art.getAll(dbTab, sort === 'hot' ? 'hot' : '');
+      setList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('移除失败:', error);
+      setMessage('移除失败：' + (error.message || '请重试'));
+    }
+  };
+
+  // 关注/取消关注用户
+  const handleFollow = async (username) => {
+    if (!userInfo || !userInfo.name) {
+      setMessage('请先完善个人信息');
+      return;
+    }
+
+    if (username === userInfo.name) {
+      setMessage('不能关注自己');
+      return;
+    }
+
+    try {
+      const isFollowing = followStatus[username];
+      if (isFollowing) {
+        await api.follow.unfollow(userInfo.name, username);
+        setMessage(`已取消关注 ${username}`);
+      } else {
+        await api.follow.follow({
+          follower: userInfo.name,
+          following: username
+        });
+        setMessage(`已关注 ${username}`);
+      }
+      
+      // 更新关注状态
+      setFollowStatus(prev => ({
+        ...prev,
+        [username]: !isFollowing
+      }));
+    } catch (error) {
+      console.error('关注操作失败:', error);
+      setMessage('操作失败：' + (error.message || '请重试'));
+    }
+  };
+
+  // 检查关注状态
+  const checkFollowStatus = async (username) => {
+    if (!userInfo || !userInfo.name || username === userInfo.name) return;
+    
+    try {
+      const status = await api.follow.getStatus(userInfo.name, username);
+      setFollowStatus(prev => ({
+        ...prev,
+        [username]: status.isFollowing
+      }));
+    } catch (error) {
+      console.error('检查关注状态失败:', error);
+    }
+  };
+
   if (showPublish) {
     return <PublishForm onBack={() => setShowPublish(false)} userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
   }
@@ -341,40 +469,100 @@ export default function Art({ userInfo, maintenanceStatus }) {
                 <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span>班级: {item.authorClass}</span>
                   <span>日期: {new Date(item.createdAt).toLocaleString()}</span>
+                  {/* 关注按钮 */}
+                  {userInfo && userInfo.name && item.authorName !== userInfo.name && (
+                    <button
+                      onClick={() => {
+                        checkFollowStatus(item.authorName);
+                        handleFollow(item.authorName);
+                      }}
+                      style={{
+                        padding: '4px 8px',
+                        background: followStatus[item.authorName] ? '#e74c3c' : '#3498db',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        marginLeft: '10px'
+                      }}
+                    >
+                      {followStatus[item.authorName] ? '取消关注' : '关注'}
+                    </button>
+                  )}
                 </div>
+                {/* 合作用户信息 */}
+                {item.collaborators && item.collaborators.length > 0 && (
+                  <div style={{ marginTop: 8, fontSize: '12px', color: '#7f8c8d' }}>
+                    <span style={{ fontWeight: 'bold' }}>合作用户: </span>
+                    {item.collaborators.map((collab, index) => (
+                      <span key={index}>
+                        {collab.name}
+                        {index < item.collaborators.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div style={{ marginBottom: 15 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <h3 style={{ margin: 0, fontSize: '20px', color: '#2c3e50', flex: 1 }}>{item.title}</h3>
-                {/* 删除按钮 - 只有作者可以删除自己的作品 */}
+                {/* 管理按钮 - 只有作者可以管理自己的作品 */}
                 {userInfo && userInfo.name && (item.authorName === userInfo.name || item.author === userInfo.name) && (
-                  <button
-                    onClick={() => handleDeleteArt(item._id)}
-                    style={{
-                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '20px',
-                      padding: '8px 16px',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      fontWeight: '500',
-                      transition: 'all 0.3s ease',
-                      marginLeft: '10px',
-                      boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.transform = 'scale(1.05)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.4)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 107, 0.3)';
-                    }}
-                  >
-                    删除作品
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleManageCollaborators(item)}
+                      style={{
+                        background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '8px 16px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(52, 152, 219, 0.3)'
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.transform = 'scale(1.05)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.4)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.transform = 'scale(1)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(52, 152, 219, 0.3)';
+                      }}
+                    >
+                      管理合作
+                    </button>
+                    <button
+                      onClick={() => handleDeleteArt(item._id)}
+                      style={{
+                        background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '8px 16px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
+                      }}
+                      onMouseOver={(e) => {
+                        e.target.style.transform = 'scale(1.05)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.4)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.target.style.transform = 'scale(1)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 107, 0.3)';
+                      }}
+                    >
+                      删除作品
+                    </button>
+                  </div>
                 )}
               </div>
               <p style={{ margin: 0, lineHeight: 1.6, color: '#34495e', fontSize: '15px' }}>{item.content}</p>
@@ -613,6 +801,21 @@ export default function Art({ userInfo, maintenanceStatus }) {
           />
         </div>
       )}
+
+      {/* 合作用户管理弹窗 */}
+      <CollaboratorModal
+        show={showCollaboratorModal}
+        onClose={() => setShowCollaboratorModal(false)}
+        art={selectedArt}
+        searchQuery={collaboratorSearch}
+        setSearchQuery={setCollaboratorSearch}
+        searchResults={collaboratorResults}
+        searchLoading={searchLoading}
+        onSearch={handleSearchUsers}
+        onInvite={handleInviteCollaborator}
+        onRemove={handleRemoveCollaborator}
+        message={message}
+      />
     </div>
   );
 }
@@ -929,6 +1132,202 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// 合作用户管理弹窗组件
+function CollaboratorModal({ 
+  show, 
+  onClose, 
+  art, 
+  searchQuery, 
+  setSearchQuery, 
+  searchResults, 
+  searchLoading, 
+  onSearch, 
+  onInvite, 
+  onRemove, 
+  message 
+}) {
+  if (!show || !art) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.8)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: 15,
+        padding: 30,
+        maxWidth: '600px',
+        width: '100%',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ margin: 0, color: '#2c3e50' }}>管理合作用户 - {art.title}</h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#7f8c8d'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* 消息显示 */}
+        {message && (
+          <div style={{ 
+            marginBottom: 20, 
+            padding: '10px 15px', 
+            backgroundColor: message.includes('成功') ? '#d4edda' : '#f8d7da',
+            color: message.includes('成功') ? '#155724' : '#721c24',
+            borderRadius: 6,
+            border: `1px solid ${message.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`
+          }}>
+            {message}
+          </div>
+        )}
+
+        {/* 当前合作用户 */}
+        <div style={{ marginBottom: 30 }}>
+          <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>当前合作用户</h4>
+          {art.collaborators && art.collaborators.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {art.collaborators.map((collab, index) => (
+                <div key={index} style={{
+                  border: '1px solid #ecf0f1',
+                  borderRadius: 8,
+                  padding: 15,
+                  background: '#f8f9fa',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{collab.name}</div>
+                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                      班级: {collab.class} • 加入时间: {new Date(collab.joinedAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onRemove(collab.username)}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    移除
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#7f8c8d' }}>
+              暂无合作用户
+            </div>
+          )}
+        </div>
+
+        {/* 搜索和邀请新用户 */}
+        <div>
+          <h4 style={{ marginBottom: 15, color: '#2c3e50' }}>邀请新合作用户</h4>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: 20 }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => { if (e.key === 'Enter') onSearch(); }}
+              placeholder="搜索用户姓名或班级..."
+              style={{ 
+                flex: 1, 
+                padding: '10px', 
+                border: '1px solid #ddd', 
+                borderRadius: 6, 
+                fontSize: '14px' 
+              }}
+            />
+            <button
+              onClick={onSearch}
+              disabled={searchLoading}
+              style={{
+                padding: '10px 20px',
+                background: searchLoading ? '#6c757d' : '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: searchLoading ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              {searchLoading ? '搜索中...' : '搜索'}
+            </button>
+          </div>
+
+          {/* 搜索结果 */}
+          {searchResults.length > 0 && (
+            <div>
+              <h5 style={{ marginBottom: 10, color: '#2c3e50' }}>搜索结果</h5>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {searchResults.map(user => (
+                  <div key={user._id || user.name} style={{
+                    border: '1px solid #ecf0f1',
+                    borderRadius: 6,
+                    padding: 12,
+                    background: '#f8f9fa',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>{user.name}</div>
+                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>班级: {user.class}</div>
+                    </div>
+                    <button
+                      onClick={() => onInvite(user)}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      邀请
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

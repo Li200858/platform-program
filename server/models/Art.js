@@ -7,6 +7,12 @@ const ArtSchema = new mongoose.Schema({
   author: { type: String, required: true },
   authorName: { type: String, required: true },
   authorClass: { type: String, required: true },
+  collaborators: [{ 
+    username: { type: String, required: true },
+    name: { type: String, required: true },
+    class: { type: String, required: true },
+    joinedAt: { type: Date, default: Date.now }
+  }],
   media: [String],
   likes: { type: Number, default: 0 },
   likedUsers: [String],

@@ -10,8 +10,8 @@ export default function Notifications({ userInfo, onBack }) {
   useEffect(() => {
     if (userInfo && userInfo.name) {
       loadNotifications();
-      // 每30秒刷新一次通知
-      const interval = setInterval(loadNotifications, 30000);
+      // 每5秒刷新一次通知
+      const interval = setInterval(loadNotifications, 5000);
       return () => clearInterval(interval);
     }
   }, [userInfo]);

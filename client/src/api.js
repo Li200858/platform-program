@@ -52,6 +52,16 @@ export const api = {
       body: JSON.stringify(data),
     }),
     
+    inviteCollaborator: (id, data) => api.request(`/api/art/${id}/collaborate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    removeCollaborator: (id, username, removedBy) => api.request(`/api/art/${id}/collaborate/${username}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ removedBy }),
+    }),
+    
     getMyWorks: (authorName) => api.request(`/api/art/my-works?authorName=${encodeURIComponent(authorName)}`),
     
     getFavorites: (authorName) => api.request(`/api/art/favorites?authorName=${encodeURIComponent(authorName)}`),
@@ -221,6 +231,18 @@ export const api = {
     getTeam: (id) => api.request(`/api/teams/${id}`),
     inviteUser: (teamId, data) => api.request(`/api/teams/${teamId}/invite`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    joinTeam: (teamId, data) => api.request(`/api/teams/${teamId}/join`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    processJoinRequest: (teamId, requestId, data) => api.request(`/api/teams/${teamId}/join-requests/${requestId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    disbandTeam: (teamId, data) => api.request(`/api/teams/${teamId}`, {
+      method: 'DELETE',
       body: JSON.stringify(data),
     }),
     createProject: (teamId, data) => api.request(`/api/teams/${teamId}/projects`, {

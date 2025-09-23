@@ -15,6 +15,7 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
     const saved = localStorage.getItem('favorite_activity_ids');
     return saved ? JSON.parse(saved) : [];
   });
+  const [followStatus, setFollowStatus] = useState({});
 
   useEffect(() => {
     loadActivities();
@@ -100,6 +101,57 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
     }
   };
 
+  // 关注/取消关注用户
+  const handleFollow = async (username) => {
+    if (!userInfo || !userInfo.name) {
+      setMessage('请先完善个人信息');
+      return;
+    }
+
+    if (username === userInfo.name) {
+      setMessage('不能关注自己');
+      return;
+    }
+
+    try {
+      const isFollowing = followStatus[username];
+      if (isFollowing) {
+        await api.follow.unfollow(userInfo.name, username);
+        setMessage(`已取消关注 ${username}`);
+      } else {
+        await api.follow.follow({
+          follower: userInfo.name,
+          following: username
+        });
+        setMessage(`已关注 ${username}`);
+      }
+      
+      // 更新关注状态
+      setFollowStatus(prev => ({
+        ...prev,
+        [username]: !isFollowing
+      }));
+    } catch (error) {
+      console.error('关注操作失败:', error);
+      setMessage('操作失败：' + (error.message || '请重试'));
+    }
+  };
+
+  // 检查关注状态
+  const checkFollowStatus = async (username) => {
+    if (!userInfo || !userInfo.name || username === userInfo.name) return;
+    
+    try {
+      const status = await api.follow.getStatus(userInfo.name, username);
+      setFollowStatus(prev => ({
+        ...prev,
+        [username]: status.isFollowing
+      }));
+    } catch (error) {
+      console.error('检查关注状态失败:', error);
+    }
+  };
+
   if (showCreate) {
     return <CreateActivityForm onBack={() => setShowCreate(false)} userInfo={userInfo} onSuccess={loadActivities} maintenanceStatus={maintenanceStatus} />;
   }
@@ -179,8 +231,30 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
                 <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: 4, color: '#2c3e50' }}>
                   {activity.authorName || activity.author}
                 </div>
-                <div style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {activity.authorClass} • {new Date(activity.createdAt).toLocaleString()}
+                <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span>{activity.authorClass} • {new Date(activity.createdAt).toLocaleString()}</span>
+                  {/* 关注按钮 */}
+                  {userInfo && userInfo.name && activity.authorName !== userInfo.name && (
+                    <button
+                      onClick={() => {
+                        checkFollowStatus(activity.authorName);
+                        handleFollow(activity.authorName);
+                      }}
+                      style={{
+                        padding: '4px 8px',
+                        background: followStatus[activity.authorName] ? '#e74c3c' : '#3498db',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        marginLeft: '10px'
+                      }}
+                    >
+                      {followStatus[activity.authorName] ? '取消关注' : '关注'}
+                    </button>
+                  )}
                 </div>
               </div>
               {/* 删除按钮 - 只有作者本人或管理员可以删除 */}

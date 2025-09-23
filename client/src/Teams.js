@@ -7,6 +7,10 @@ export default function Teams({ userInfo, onBack }) {
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showJoin, setShowJoin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
@@ -51,6 +55,45 @@ export default function Teams({ userInfo, onBack }) {
     } catch (error) {
       console.error('创建团队失败:', error);
       setMessage('创建团队失败，请重试');
+    }
+  };
+
+  const handleSearchTeams = async () => {
+    if (!searchQuery.trim()) {
+      setMessage('请输入搜索关键词');
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    setMessage('');
+    try {
+      const data = await api.search.global(searchQuery.trim(), 'team');
+      setSearchResults(data.teams || []);
+      if (data.teams && data.teams.length === 0) {
+        setMessage('未找到相关团队');
+      }
+    } catch (error) {
+      console.error('搜索团队失败:', error);
+      setMessage('搜索失败，请重试');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleJoinTeam = async (teamId) => {
+    try {
+      await api.teams.joinTeam(teamId, {
+        username: userInfo.name,
+        requestedBy: userInfo.name
+      });
+      setMessage('加入申请已发送，等待团队创建者审核');
+      setShowJoin(false);
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (error) {
+      console.error('加入团队失败:', error);
+      setMessage('加入团队失败：' + (error.message || '请重试'));
     }
   };
 
@@ -148,6 +191,22 @@ export default function Teams({ userInfo, onBack }) {
     );
   }
 
+  if (showJoin) {
+    return (
+      <JoinTeamForm 
+        onBack={() => setShowJoin(false)}
+        onSearch={handleSearchTeams}
+        onJoin={handleJoinTeam}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        searchResults={searchResults}
+        searchLoading={searchLoading}
+        message={message}
+        userInfo={userInfo}
+      />
+    );
+  }
+
   if (selectedTeam) {
     return (
       <TeamDetail 
@@ -178,21 +237,38 @@ export default function Teams({ userInfo, onBack }) {
           ←
         </button>
         <h2 style={{ margin: 0, color: '#2c3e50', flex: 1 }}>团队协作</h2>
-        <button 
-          onClick={() => setShowCreate(true)}
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#27ae60', 
-            color: 'white', 
-            border: 'none',
-            borderRadius: 8,
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}
-        >
-          + 创建团队
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setShowJoin(true)}
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: '#3498db', 
+              color: 'white', 
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            + 加入团队
+          </button>
+          <button 
+            onClick={() => setShowCreate(true)}
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: '#27ae60', 
+              color: 'white', 
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            + 创建团队
+          </button>
+        </div>
       </div>
 
       {/* 消息显示 */}
@@ -382,6 +458,7 @@ function CreateTeamForm({ onBack, onSubmit, userInfo }) {
 function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showJoinRequests, setShowJoinRequests] = useState(false);
   const [inviteUsername, setInviteUsername] = useState('');
   const [projectForm, setProjectForm] = useState({
     title: '',
@@ -390,10 +467,46 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
     content: '',
     media: []
   });
+  const [message, setMessage] = useState('');
 
   const userRole = team.members.find(m => m.username === userInfo.name)?.role || 'member';
   const canInvite = ['owner', 'admin'].includes(userRole);
   const canCreateProject = ['owner', 'admin', 'member'].includes(userRole);
+  const canManageRequests = ['owner', 'admin'].includes(userRole);
+
+  const handleProcessJoinRequest = async (requestId, action) => {
+    try {
+      await api.teams.processJoinRequest(team._id, requestId, {
+        action: action,
+        processedBy: userInfo.name
+      });
+      setMessage(`申请已${action === 'approve' ? '批准' : '拒绝'}`);
+      // 重新加载团队详情
+      window.location.reload();
+    } catch (error) {
+      console.error('处理申请失败:', error);
+      setMessage('处理申请失败：' + (error.message || '请重试'));
+    }
+  };
+
+  const handleDisbandTeam = async () => {
+    if (!window.confirm('确定要解散团队吗？此操作不可恢复，所有团队成员将被移除。')) {
+      return;
+    }
+
+    try {
+      await api.teams.disbandTeam(team._id, {
+        deletedBy: userInfo.name
+      });
+      setMessage('团队已解散');
+      setTimeout(() => {
+        onBack();
+      }, 2000);
+    } catch (error) {
+      console.error('解散团队失败:', error);
+      setMessage('解散团队失败：' + (error.message || '请重试'));
+    }
+  };
 
   const handleInvite = async () => {
     if (!inviteUsername.trim()) {
@@ -459,6 +572,23 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
             + 邀请成员
           </button>
         )}
+        {canManageRequests && team.joinRequests && team.joinRequests.length > 0 && (
+          <button 
+            onClick={() => setShowJoinRequests(true)}
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: '#f39c12', 
+              color: 'white', 
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            管理申请 ({team.joinRequests.filter(req => req.status === 'pending').length})
+          </button>
+        )}
         {canCreateProject && (
           <button 
             onClick={() => setShowCreateProject(true)}
@@ -474,6 +604,23 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
             }}
           >
             + 创建项目
+          </button>
+        )}
+        {userRole === 'owner' && (
+          <button 
+            onClick={handleDisbandTeam}
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: '#e74c3c', 
+              color: 'white', 
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            解散团队
           </button>
         )}
       </div>
@@ -772,6 +919,274 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* 消息显示 */}
+      {message && (
+        <div style={{ 
+          marginBottom: 20, 
+          padding: '10px 15px', 
+          backgroundColor: message.includes('成功') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') ? '#155724' : '#721c24',
+          borderRadius: 6,
+          border: `1px solid ${message.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`
+        }}>
+          {message}
+        </div>
+      )}
+
+      {/* 加入申请管理弹窗 */}
+      {showJoinRequests && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 15,
+            padding: 30,
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, color: '#2c3e50' }}>管理加入申请</h3>
+              <button
+                onClick={() => setShowJoinRequests(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#7f8c8d'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {team.joinRequests && team.joinRequests.length > 0 ? (
+              <div>
+                {team.joinRequests.map(request => (
+                  <div key={request._id} style={{
+                    border: '1px solid #ecf0f1',
+                    borderRadius: 8,
+                    padding: 15,
+                    marginBottom: 15,
+                    background: request.status === 'pending' ? '#fff3cd' : '#f8f9fa'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', color: '#2c3e50', marginBottom: 5 }}>
+                          {request.username}
+                        </div>
+                        <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: 5 }}>
+                          申请时间: {new Date(request.requestedAt).toLocaleString()}
+                        </div>
+                        {request.message && (
+                          <div style={{ color: '#34495e', fontSize: '14px', marginBottom: 10 }}>
+                            申请说明: {request.message}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                          状态: {
+                            request.status === 'pending' ? '待审核' :
+                            request.status === 'approved' ? '已批准' : '已拒绝'
+                          }
+                          {request.processedAt && ` • 处理时间: ${new Date(request.processedAt).toLocaleString()}`}
+                          {request.processedBy && ` • 处理人: ${request.processedBy}`}
+                        </div>
+                      </div>
+                      {request.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button
+                            onClick={() => handleProcessJoinRequest(request._id, 'approve')}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#28a745',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            批准
+                          </button>
+                          <button
+                            onClick={() => handleProcessJoinRequest(request._id, 'reject')}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            拒绝
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+                <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无加入申请</div>
+                <div style={{ fontSize: '14px' }}>当有用户申请加入团队时会显示在这里</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 加入团队表单组件
+function JoinTeamForm({ onBack, onSearch, onJoin, searchQuery, setSearchQuery, searchResults, searchLoading, message, userInfo }) {
+  const [joinMessage, setJoinMessage] = useState('');
+
+  const handleJoin = (teamId) => {
+    onJoin(teamId);
+  };
+
+  return (
+    <div style={{ maxWidth: 800, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+      {/* 头部 */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 30 }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            marginRight: '15px',
+            color: '#7f8c8d'
+          }}
+        >
+          ←
+        </button>
+        <h2 style={{ margin: 0, color: '#2c3e50' }}>加入团队</h2>
+      </div>
+
+      {/* 消息显示 */}
+      {message && (
+        <div style={{ 
+          marginBottom: 20, 
+          padding: '10px 15px', 
+          backgroundColor: message.includes('成功') ? '#d4edda' : '#f8d7da',
+          color: message.includes('成功') ? '#155724' : '#721c24',
+          borderRadius: 6,
+          border: `1px solid ${message.includes('成功') ? '#c3e6cb' : '#f5c6cb'}`
+        }}>
+          {message}
+        </div>
+      )}
+
+      {/* 搜索区域 */}
+      <div style={{ marginBottom: 30 }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: 20 }}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => { if (e.key === 'Enter') onSearch(); }}
+            placeholder="搜索团队名称或创建者..."
+            style={{ 
+              flex: 1, 
+              padding: '10px', 
+              border: '1px solid #ddd', 
+              borderRadius: 6, 
+              fontSize: '14px' 
+            }}
+          />
+          <button
+            onClick={onSearch}
+            disabled={searchLoading}
+            style={{
+              padding: '10px 20px',
+              background: searchLoading ? '#6c757d' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              cursor: searchLoading ? 'not-allowed' : 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            {searchLoading ? '搜索中...' : '搜索'}
+          </button>
+        </div>
+
+        {/* 搜索结果 */}
+        {searchResults.length > 0 && (
+          <div>
+            <h3 style={{ marginBottom: 15, color: '#2c3e50' }}>搜索结果</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {searchResults.map(team => (
+                <div key={team._id} style={{
+                  border: '1px solid #ecf0f1',
+                  borderRadius: 8,
+                  padding: 15,
+                  background: '#f8f9fa'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold', color: '#2c3e50', marginBottom: 5 }}>
+                        {team.name}
+                      </div>
+                      <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: 10 }}>
+                        {team.description || '暂无描述'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                        创建者: {team.creator} • {team.members.length} 成员 • {team.projects.length} 项目
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleJoin(team._id)}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      申请加入
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {searchQuery && searchResults.length === 0 && !searchLoading && (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
+            <div style={{ fontSize: '18px', marginBottom: '10px' }}>未找到相关团队</div>
+            <div style={{ fontSize: '14px' }}>请尝试其他关键词</div>
           </div>
         )}
       </div>

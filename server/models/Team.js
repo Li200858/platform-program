@@ -40,6 +40,19 @@ const TeamSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
   }],
+  joinRequests: [{
+    username: { type: String, required: true },
+    requestedBy: { type: String, required: true },
+    message: { type: String, default: '' },
+    status: { 
+      type: String, 
+      enum: ['pending', 'approved', 'rejected'], 
+      default: 'pending' 
+    },
+    requestedAt: { type: Date, default: Date.now },
+    processedAt: { type: Date },
+    processedBy: { type: String }
+  }],
   isPublic: { type: Boolean, default: true }, // 是否公开团队
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

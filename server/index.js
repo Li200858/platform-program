@@ -238,23 +238,92 @@ app.delete('/api/art/:artId/comment/:commentId', async (req, res) => {
   }
 });
 
-// 搜索功能
-app.get('/api/search', async (req, res) => {
-  const { q } = req.query;
-  if (!q) {
-    return res.json({ art: [] });
+// 邀请合作用户
+app.post('/api/art/:id/collaborate', async (req, res) => {
+  const { id } = req.params;
+  const { username, name, class: userClass, invitedBy } = req.body;
+  
+  if (!username || !name || !userClass || !invitedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
   }
 
   try {
-    const searchRegex = new RegExp(q, 'i');
-    const artResults = await Art.find({ 
-      $or: [{ title: searchRegex }, { content: searchRegex }] 
-    }).sort({ createdAt: -1 }).limit(20);
-    
-    res.json({ art: artResults });
+    const art = await Art.findById(id);
+    if (!art) {
+      return res.status(404).json({ error: '作品不存在' });
+    }
+
+    // 检查权限：只有作品作者可以邀请合作用户
+    if (art.authorName !== invitedBy) {
+      return res.status(403).json({ error: '只有作品作者可以邀请合作用户' });
+    }
+
+    // 检查是否已经是合作用户
+    const isCollaborator = art.collaborators.some(collab => collab.username === username);
+    if (isCollaborator) {
+      return res.status(400).json({ error: '该用户已经是合作用户' });
+    }
+
+    // 检查是否邀请自己
+    if (username === art.authorName) {
+      return res.status(400).json({ error: '不能邀请自己作为合作用户' });
+    }
+
+    // 添加合作用户
+    art.collaborators.push({
+      username,
+      name,
+      class: userClass,
+      joinedAt: new Date()
+    });
+
+    await art.save();
+
+    // 通知被邀请的用户
+    await Notification.create({
+      recipient: username,
+      sender: invitedBy,
+      type: 'team_invite',
+      content: `${invitedBy} 邀请您参与作品 "${art.title}" 的创作`,
+      relatedId: art._id,
+      relatedType: 'art'
+    });
+
+    res.json({ message: '邀请已发送', art });
   } catch (error) {
-    console.error('搜索失败:', error);
-    res.status(500).json({ error: '搜索失败' });
+    console.error('邀请合作用户失败:', error);
+    res.status(500).json({ error: '邀请合作用户失败' });
+  }
+});
+
+// 移除合作用户
+app.delete('/api/art/:id/collaborate/:username', async (req, res) => {
+  const { id, username } = req.params;
+  const { removedBy } = req.body;
+  
+  if (!removedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    const art = await Art.findById(id);
+    if (!art) {
+      return res.status(404).json({ error: '作品不存在' });
+    }
+
+    // 检查权限：只有作品作者可以移除合作用户
+    if (art.authorName !== removedBy) {
+      return res.status(403).json({ error: '只有作品作者可以移除合作用户' });
+    }
+
+    // 移除合作用户
+    art.collaborators = art.collaborators.filter(collab => collab.username !== username);
+    await art.save();
+
+    res.json({ message: '合作用户已移除', art });
+  } catch (error) {
+    console.error('移除合作用户失败:', error);
+    res.status(500).json({ error: '移除合作用户失败' });
   }
 });
 
@@ -1497,6 +1566,180 @@ app.put('/api/teams/:id/projects/:projectId', async (req, res) => {
   }
 });
 
+// 申请加入团队
+app.post('/api/teams/:id/join', async (req, res) => {
+  const { id } = req.params;
+  const { username, requestedBy, message } = req.body;
+  
+  if (!username || !requestedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+
+    // 检查是否已经是成员
+    const isMember = team.members.some(member => member.username === username);
+    if (isMember) {
+      return res.status(400).json({ error: '您已经是团队成员' });
+    }
+
+    // 检查是否已经有待处理的申请
+    const existingRequest = team.joinRequests.find(req => 
+      req.username === username && req.status === 'pending'
+    );
+    if (existingRequest) {
+      return res.status(400).json({ error: '您已经提交过加入申请，请等待审核' });
+    }
+
+    // 添加加入申请
+    team.joinRequests.push({
+      username,
+      requestedBy,
+      message: message || '',
+      status: 'pending'
+    });
+
+    await team.save();
+
+    // 通知团队创建者
+    await Notification.create({
+      recipient: team.creator,
+      sender: username,
+      type: 'team_invite',
+      content: `${username} 申请加入团队 "${team.name}"`,
+      relatedId: team._id,
+      relatedType: 'team'
+    });
+
+    res.json({ message: '加入申请已提交，等待团队创建者审核' });
+  } catch (error) {
+    console.error('申请加入团队失败:', error);
+    res.status(500).json({ error: '申请加入团队失败' });
+  }
+});
+
+// 处理加入申请
+app.put('/api/teams/:id/join-requests/:requestId', async (req, res) => {
+  const { id, requestId } = req.params;
+  const { action, processedBy } = req.body; // action: 'approve' or 'reject'
+  
+  if (!action || !processedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+
+    // 检查处理者是否有权限
+    const isOwner = team.creator === processedBy;
+    const isAdmin = team.members.some(member => 
+      member.username === processedBy && member.role === 'admin'
+    );
+    
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: '无权限处理加入申请' });
+    }
+
+    const request = team.joinRequests.id(requestId);
+    if (!request) {
+      return res.status(404).json({ error: '申请不存在' });
+    }
+
+    if (request.status !== 'pending') {
+      return res.status(400).json({ error: '申请已被处理' });
+    }
+
+    if (action === 'approve') {
+      // 批准申请，添加为成员
+      team.members.push({
+        username: request.username,
+        role: 'member',
+        joinedAt: new Date()
+      });
+
+      // 通知申请人
+      await Notification.create({
+        recipient: request.username,
+        sender: processedBy,
+        type: 'team_invite',
+        content: `您的加入团队 "${team.name}" 的申请已通过`,
+        relatedId: team._id,
+        relatedType: 'team'
+      });
+    } else if (action === 'reject') {
+      // 拒绝申请
+      await Notification.create({
+        recipient: request.username,
+        sender: processedBy,
+        type: 'team_invite',
+        content: `您的加入团队 "${team.name}" 的申请被拒绝`,
+        relatedId: team._id,
+        relatedType: 'team'
+      });
+    }
+
+    // 更新申请状态
+    request.status = action === 'approve' ? 'approved' : 'rejected';
+    request.processedAt = new Date();
+    request.processedBy = processedBy;
+
+    await team.save();
+    res.json({ message: `申请已${action === 'approve' ? '批准' : '拒绝'}` });
+  } catch (error) {
+    console.error('处理加入申请失败:', error);
+    res.status(500).json({ error: '处理加入申请失败' });
+  }
+});
+
+// 解散团队
+app.delete('/api/teams/:id', async (req, res) => {
+  const { id } = req.params;
+  const { deletedBy } = req.body;
+  
+  if (!deletedBy) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ error: '团队不存在' });
+    }
+
+    // 检查是否有权限解散团队
+    if (team.creator !== deletedBy) {
+      return res.status(403).json({ error: '只有团队创建者可以解散团队' });
+    }
+
+    // 通知所有成员团队已解散
+    for (const member of team.members) {
+      if (member.username !== deletedBy) {
+        await Notification.create({
+          recipient: member.username,
+          sender: deletedBy,
+          type: 'team_update',
+          content: `团队 "${team.name}" 已被解散`,
+          relatedId: team._id,
+          relatedType: 'team'
+        });
+      }
+    }
+
+    await Team.findByIdAndDelete(id);
+    res.json({ message: '团队已解散' });
+  } catch (error) {
+    console.error('解散团队失败:', error);
+    res.status(500).json({ error: '解散团队失败' });
+  }
+});
+
 // ==================== 改进搜索功能 API ====================
 
 // 全局搜索（支持艺术作品和活动）
@@ -1543,14 +1786,50 @@ app.get('/api/search', async (req, res) => {
 
     // 搜索用户
     if (type === 'all' || type === 'user') {
+      // 从User集合中搜索用户
       const users = await User.find({
         $or: [
           { name: searchQuery },
           { class: searchQuery }
         ]
+      }).select('name class userID role isAdmin createdAt').limit(parseInt(limit));
+
+      // 如果User集合中没有找到，则从Art和Feedback中搜索
+      if (users.length === 0) {
+        const artUsers = await Art.distinct('authorName', { 
+          authorName: searchQuery 
+        });
+        const feedbackUsers = await Feedback.distinct('authorName', { 
+          authorName: searchQuery 
+        });
+        
+        const allUsers = [...new Set([...artUsers, ...feedbackUsers])];
+        const fallbackUsers = allUsers.map(name => ({ 
+          name, 
+          class: '未知班级',
+          userID: 'unknown',
+          role: 'user',
+          isAdmin: false
+        }));
+        
+        results.users = fallbackUsers;
+      } else {
+        results.users = users;
+      }
+    }
+
+    // 搜索团队
+    if (type === 'all' || type === 'team') {
+      const teams = await Team.find({
+        $or: [
+          { name: searchQuery },
+          { description: searchQuery },
+          { creator: searchQuery }
+        ]
       })
+      .sort({ createdAt: -1 })
       .limit(parseInt(limit));
-      results.users = users;
+      results.teams = teams;
     }
 
     res.json(results);
