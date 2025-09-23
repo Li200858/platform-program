@@ -230,6 +230,7 @@ export default function Teams({ userInfo, onBack }) {
         onInviteUser={handleInviteUser}
         onCreateProject={handleCreateProject}
         userInfo={userInfo}
+        setSelectedProject={setSelectedProject}
       />
     );
   }
@@ -470,7 +471,7 @@ function CreateTeamForm({ onBack, onSubmit, userInfo }) {
 }
 
 // 团队详情组件
-function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
+function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo, setSelectedProject }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showJoinRequests, setShowJoinRequests] = useState(false);
