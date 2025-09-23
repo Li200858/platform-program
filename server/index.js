@@ -893,7 +893,18 @@ app.post('/api/user/sync', async (req, res) => {
     let user = await User.findOne({ userID });
     
     if (!user) {
-      // 如果没有找到用户，创建新用户
+      // 如果没有找到用户，检查姓名是否已被使用
+      if (name && name !== '用户') {
+        const existingUser = await User.findOne({ name });
+        if (existingUser) {
+          return res.status(400).json({ 
+            error: '该姓名已被注册，请使用其他姓名',
+            code: 'NAME_TAKEN'
+          });
+        }
+      }
+      
+      // 创建新用户
       user = await User.create({
         userID,
         name: name || '用户',
@@ -903,7 +914,18 @@ app.post('/api/user/sync', async (req, res) => {
         isAdmin: false
       });
     } else {
-      // 如果找到用户，更新用户信息（保持绑定关系）
+      // 如果找到用户，检查姓名是否被其他用户使用
+      if (name && name !== '用户' && name !== user.name) {
+        const existingUser = await User.findOne({ name });
+        if (existingUser && existingUser.userID !== userID) {
+          return res.status(400).json({ 
+            error: '该姓名已被其他用户注册，请使用其他姓名',
+            code: 'NAME_TAKEN'
+          });
+        }
+      }
+      
+      // 更新用户信息（保持绑定关系）
       // 姓名一旦设置就不能更改，只能更新班级和头像
       if (userClass && userClass !== '未知班级') user.class = userClass;
       if (avatar) user.avatar = avatar;
@@ -924,6 +946,38 @@ app.post('/api/user/sync', async (req, res) => {
   } catch (error) {
     console.error('用户同步失败:', error);
     res.status(500).json({ error: '用户同步失败' });
+  }
+});
+
+// 检查姓名是否可用
+app.post('/api/user/check-name', async (req, res) => {
+  const { name, userID } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: '缺少姓名参数' });
+  }
+  
+  try {
+    const existingUser = await User.findOne({ name });
+    
+    if (!existingUser) {
+      // 姓名可用
+      return res.json({ available: true });
+    }
+    
+    if (userID && existingUser.userID === userID) {
+      // 是当前用户自己的姓名
+      return res.json({ available: true, isOwn: true });
+    }
+    
+    // 姓名已被其他用户使用
+    return res.json({ 
+      available: false, 
+      error: '该姓名已被注册，请使用其他姓名' 
+    });
+  } catch (error) {
+    console.error('检查姓名失败:', error);
+    res.status(500).json({ error: '检查姓名失败' });
   }
 });
 

@@ -154,6 +154,11 @@ export const api = {
     }),
     
     getByID: (userID) => api.request(`/api/user/${userID}`),
+    
+    checkName: (data) => api.request('/api/user/check-name', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 
   // 管理员相关API

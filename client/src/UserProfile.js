@@ -13,6 +13,8 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
   const [userRole, setUserRole] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [nameEdited, setNameEdited] = useState(false);
+  const [nameChecking, setNameChecking] = useState(false);
+  const [nameStatus, setNameStatus] = useState(null); // null, 'checking', 'available', 'taken'
 
   useEffect(() => {
     const loadUserInfo = () => {
@@ -65,9 +67,44 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
     checkUserRole();
   }, [userInfo.name]);
 
+  // 检查姓名是否可用
+  const checkNameAvailability = async (name) => {
+    if (!name || name.trim() === '') {
+      setNameStatus(null);
+      return;
+    }
+
+    setNameChecking(true);
+    setNameStatus('checking');
+
+    try {
+      const result = await api.user.checkName({
+        name: name.trim(),
+        userID: userID
+      });
+
+      if (result.available) {
+        setNameStatus('available');
+      } else {
+        setNameStatus('taken');
+      }
+    } catch (error) {
+      console.error('检查姓名失败:', error);
+      setNameStatus('taken');
+    } finally {
+      setNameChecking(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!userInfo.name || !userInfo.class) {
       setMessage('请填写姓名和班级');
+      return;
+    }
+
+    // 如果姓名状态是taken，不允许保存
+    if (nameStatus === 'taken') {
+      setMessage('该姓名已被注册，请使用其他姓名');
       return;
     }
 
@@ -77,7 +114,6 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         setNameEdited(true);
         localStorage.setItem('name_edited', 'true');
       }
-
 
       // 保存到本地存储
       localStorage.setItem('user_profile', JSON.stringify(userInfo));
@@ -98,7 +134,11 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
         }
       } catch (error) {
         console.error('同步到后端失败:', error);
-        setMessage('本地保存成功，但同步到服务器失败，请检查网络连接');
+        if (error.message && error.message.includes('该姓名已被注册')) {
+          setMessage('该姓名已被其他用户注册，请使用其他姓名');
+        } else {
+          setMessage('本地保存成功，但同步到服务器失败，请检查网络连接');
+        }
       }
       
       // 通知父组件更新用户信息
@@ -192,6 +232,11 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
           onChange={(e) => {
             if (!nameEdited) {
               setUserInfo(prev => ({ ...prev, name: e.target.value }));
+              // 延迟检查姓名可用性
+              clearTimeout(window.nameCheckTimeout);
+              window.nameCheckTimeout = setTimeout(() => {
+                checkNameAvailability(e.target.value);
+              }, 500);
             }
           }}
           placeholder="请输入您的姓名"
@@ -200,15 +245,30 @@ export default function UserProfile({ onBack, onUserInfoUpdate }) {
             width: '100%', 
             padding: '12px', 
             borderRadius: 8, 
-            border: '2px solid #ecf0f1',
+            border: `2px solid ${
+              nameStatus === 'taken' ? '#e74c3c' : 
+              nameStatus === 'available' ? '#27ae60' : 
+              '#ecf0f1'
+            }`,
             fontSize: '16px',
             backgroundColor: nameEdited ? '#f8f9fa' : 'white',
             color: nameEdited ? '#6c757d' : '#2c3e50'
           }}
         />
         {!nameEdited && (
-          <div style={{ fontSize: '12px', color: '#e74c3c', marginTop: '5px' }}>
-            注意：姓名只能设置一次，请谨慎填写
+          <div style={{ fontSize: '12px', marginTop: '5px' }}>
+            {nameChecking && (
+              <span style={{ color: '#3498db' }}>检查姓名中...</span>
+            )}
+            {nameStatus === 'available' && (
+              <span style={{ color: '#27ae60' }}>✓ 该姓名可用</span>
+            )}
+            {nameStatus === 'taken' && (
+              <span style={{ color: '#e74c3c' }}>✗ 该姓名已被注册，请使用其他姓名</span>
+            )}
+            {!nameChecking && !nameStatus && userInfo.name && (
+              <span style={{ color: '#e74c3c' }}>注意：姓名只能设置一次，请谨慎填写</span>
+            )}
           </div>
         )}
       </div>
