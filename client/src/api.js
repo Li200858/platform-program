@@ -210,6 +210,10 @@ export const api = {
     markAllAsRead: (username) => api.request(`/api/notifications/${username}/read-all`, {
       method: 'PUT',
     }),
+    create: (data) => api.request('/api/notifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 
   // 团队协作功能API

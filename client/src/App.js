@@ -94,6 +94,17 @@ function MainApp() {
     };
   }, []);
 
+  // 暴露setMessageTarget函数给全局使用
+  useEffect(() => {
+    window.setMessageTarget = (targetUser) => {
+      // 这里可以设置私信目标用户
+      console.log('设置私信目标用户:', targetUser);
+    };
+    return () => {
+      delete window.setMessageTarget;
+    };
+  }, []);
+
   // 加载维护模式状态
   useEffect(() => {
     const loadMaintenanceStatus = async () => {
@@ -431,15 +442,7 @@ function MainApp() {
                   <div 
                     key={user._id || user.name} 
                     className="search-result-item"
-                    onClick={() => {
-                      // 关闭搜索面板
-                      setShowSearch(false);
-                      setSearchQuery('');
-                      setSearchResults(null);
-                      // 可以跳转到用户详情页面或开始私信
-                      alert(`用户: ${user.name} (${user.class})`);
-                    }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'default' }}
                   >
                     <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>{user.name}</div>
                     <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '8px' }}>
@@ -450,14 +453,59 @@ function MainApp() {
                       <span>角色: {user.role || '用户'}</span>
                       {user.isAdmin && <span>管理员</span>}
                     </div>
-                    <div style={{ 
-                      marginTop: '8px', 
-                      fontSize: '12px', 
-                      color: '#3498db',
-                      fontWeight: 'bold'
-                    }}>
-                      点击查看用户详情 →
-                    </div>
+                    {userInfo && userInfo.name && user.name !== userInfo.name && (
+                      <div style={{ 
+                        marginTop: '8px', 
+                        display: 'flex', 
+                        gap: '8px'
+                      }}>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api.follow.follow(userInfo.name, user.name);
+                              setMessage('关注成功');
+                            } catch (error) {
+                              setMessage('关注失败：' + (error.message || '请重试'));
+                            }
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#3498db',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          关注
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowSearch(false);
+                            setSearchQuery('');
+                            setSearchResults(null);
+                            setSection('messages');
+                            if (window.setMessageTarget) {
+                              window.setMessageTarget(user.name);
+                            }
+                          }}
+                          style={{
+                            padding: '4px 8px',
+                            background: '#27ae60',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          私信
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
