@@ -445,8 +445,6 @@ export default function Art({ userInfo, maintenanceStatus }) {
     closeButton.textContent = '关闭';
     closeButton.onclick = () => {
       document.body.removeChild(userDetailModal);
-      delete window.handleFollowUser;
-      delete window.handleMessageUser;
     };
 
     buttonContainer.appendChild(closeButton);
@@ -468,33 +466,9 @@ export default function Art({ userInfo, maintenanceStatus }) {
       followButton.onclick = () => {
         handleFollow(username);
         document.body.removeChild(userDetailModal);
-        delete window.handleFollowUser;
-        delete window.handleMessageUser;
-      };
-
-      const messageButton = document.createElement('button');
-      messageButton.style.cssText = `
-        padding: 10px 20px;
-        background: #27ae60;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
-      `;
-      messageButton.textContent = '私信';
-      messageButton.onclick = () => {
-        if (window.setSection) {
-          window.setSection('messages');
-        }
-        document.body.removeChild(userDetailModal);
-        delete window.handleFollowUser;
-        delete window.handleMessageUser;
       };
 
       buttonContainer.appendChild(followButton);
-      buttonContainer.appendChild(messageButton);
     }
 
     // 组装弹窗内容
@@ -676,7 +650,7 @@ export default function Art({ userInfo, maintenanceStatus }) {
                       >
                         私信
                       </button>
-                    </div>
+                </div>
                   )}
                 </div>
                 {/* 合作用户信息 */}
@@ -752,31 +726,31 @@ export default function Art({ userInfo, maintenanceStatus }) {
                     >
                       管理合作
                     </button>
-                    <button
-                      onClick={() => handleDeleteArt(item._id)}
-                      style={{
-                        background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '20px',
-                        padding: '8px 16px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
-                      }}
-                      onMouseOver={(e) => {
-                        e.target.style.transform = 'scale(1.05)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.4)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 107, 0.3)';
-                      }}
-                    >
-                      删除作品
-                    </button>
+                  <button
+                    onClick={() => handleDeleteArt(item._id)}
+                    style={{
+                      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '20px',
+                      padding: '8px 16px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 8px rgba(255, 107, 107, 0.3)'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.transform = 'scale(1.05)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.4)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(255, 107, 107, 0.3)';
+                    }}
+                  >
+                    删除作品
+                  </button>
                   </div>
                 )}
               </div>

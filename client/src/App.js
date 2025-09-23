@@ -94,16 +94,6 @@ function MainApp() {
     };
   }, []);
 
-  // 暴露setMessageTarget函数给全局使用
-  useEffect(() => {
-    window.setMessageTarget = (targetUser) => {
-      // 这里可以设置私信目标用户
-      console.log('设置私信目标用户:', targetUser);
-    };
-    return () => {
-      delete window.setMessageTarget;
-    };
-  }, []);
 
   // 加载维护模式状态
   useEffect(() => {
@@ -480,29 +470,6 @@ function MainApp() {
                           }}
                         >
                           关注
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowSearch(false);
-                            setSearchQuery('');
-                            setSearchResults(null);
-                            setSection('messages');
-                            if (window.setMessageTarget) {
-                              window.setMessageTarget(user.name);
-                            }
-                          }}
-                          style={{
-                            padding: '4px 8px',
-                            background: '#27ae60',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          私信
                         </button>
                       </div>
                     )}
