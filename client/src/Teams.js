@@ -6,6 +6,7 @@ import api from './api';
 export default function Teams({ userInfo, onBack }) {
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,6 +14,20 @@ export default function Teams({ userInfo, onBack }) {
   const [searchLoading, setSearchLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [showJoinRequests, setShowJoinRequests] = useState(false);
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [newProject, setNewProject] = useState({
+    title: '',
+    type: 'art',
+    description: '',
+    content: ''
+  });
+  const [showUploadVersion, setShowUploadVersion] = useState(false);
+  const [newVersion, setNewVersion] = useState({
+    changes: '',
+    content: '',
+    files: []
+  });
 
   useEffect(() => {
     if (userInfo && userInfo.name) {
@@ -878,12 +893,30 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
             {team.projects.map(project => (
-              <div key={project._id} style={{
-                border: '1px solid #ecf0f1',
-                borderRadius: 12,
-                padding: 20,
-                background: '#f8f9fa'
-              }}>
+              <div 
+                key={project._id} 
+                onClick={() => setSelectedProject(project)}
+                style={{
+                  border: '1px solid #ecf0f1',
+                  borderRadius: 12,
+                  padding: 20,
+                  background: '#f8f9fa',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  ':hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
                   <h4 style={{ margin: 0, color: '#2c3e50', fontSize: '16px' }}>
                     {project.title}
@@ -916,6 +949,10 @@ function TeamDetail({ team, onBack, onInviteUser, onCreateProject, userInfo }) {
                 
                 <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
                   版本: {project.versions.length} • 最后更新: {new Date(project.updatedAt).toLocaleString()}
+                </div>
+                
+                <div style={{ marginTop: 10, fontSize: '12px', color: '#3498db' }}>
+                  点击查看详情 →
                 </div>
               </div>
             ))}
@@ -1190,6 +1227,343 @@ function JoinTeamForm({ onBack, onSearch, onJoin, searchQuery, setSearchQuery, s
           </div>
         )}
       </div>
+
+      {/* 项目详情弹窗 */}
+      {selectedProject && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 15,
+            padding: 30,
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, color: '#2c3e50' }}>{selectedProject.title}</h3>
+              <button
+                onClick={() => setSelectedProject(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#7f8c8d'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 20, marginBottom: 15 }}>
+                <div>
+                  <strong>状态：</strong>
+                  <span style={{
+                    padding: '4px 8px',
+                    borderRadius: 12,
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    background: selectedProject.status === 'completed' ? '#27ae60' : 
+                               selectedProject.status === 'in_progress' ? '#3498db' : '#f39c12',
+                    color: 'white',
+                    marginLeft: 8
+                  }}>
+                    {selectedProject.status === 'completed' ? '已完成' : 
+                     selectedProject.status === 'in_progress' ? '进行中' : '草稿'}
+                  </span>
+                </div>
+                <div>
+                  <strong>类型：</strong> {selectedProject.type === 'art' ? '艺术作品' : '活动设计'}
+                </div>
+                <div>
+                  <strong>版本：</strong> {selectedProject.versions.length}
+                </div>
+              </div>
+
+              {selectedProject.description && (
+                <div style={{ marginBottom: 15 }}>
+                  <strong>描述：</strong>
+                  <p style={{ margin: '5px 0 0 0', color: '#34495e', lineHeight: 1.5 }}>
+                    {selectedProject.description}
+                  </p>
+                </div>
+              )}
+
+              <div style={{ marginBottom: 15 }}>
+                <strong>贡献者：</strong>
+                <div style={{ marginTop: 5 }}>
+                  {selectedProject.contributors.map((contributor, index) => (
+                    <span key={index} style={{
+                      display: 'inline-block',
+                      background: '#ecf0f1',
+                      padding: '4px 8px',
+                      borderRadius: 12,
+                      fontSize: '12px',
+                      margin: '2px 4px 2px 0'
+                    }}>
+                      {contributor}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <strong>项目内容：</strong>
+                <div style={{
+                  marginTop: 10,
+                  padding: 15,
+                  background: '#f8f9fa',
+                  borderRadius: 8,
+                  border: '1px solid #ecf0f1',
+                  minHeight: 100,
+                  whiteSpace: 'pre-wrap',
+                  color: '#2c3e50'
+                }}>
+                  {selectedProject.content || '暂无内容'}
+                </div>
+              </div>
+
+              {/* 版本历史 */}
+              {selectedProject.versions && selectedProject.versions.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <strong>版本历史：</strong>
+                  <div style={{ marginTop: 10, maxHeight: 200, overflow: 'auto' }}>
+                    {selectedProject.versions.map((version, index) => (
+                      <div key={index} style={{
+                        padding: 10,
+                        marginBottom: 8,
+                        background: '#f8f9fa',
+                        borderRadius: 6,
+                        border: '1px solid #ecf0f1'
+                      }}>
+                        <div style={{ fontSize: '12px', color: '#7f8c8d', marginBottom: 5 }}>
+                          版本 {version.version} • {new Date(version.createdAt).toLocaleString()} • {version.author}
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#2c3e50' }}>
+                          {version.changes}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 操作按钮 */}
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button
+                  onClick={() => {
+                    // 这里可以添加编辑项目的功能
+                    setMessage('编辑功能开发中...');
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#3498db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer'
+                  }}
+                >
+                  编辑项目
+                </button>
+                <button
+                  onClick={() => {
+                    setShowUploadVersion(true);
+                    setNewVersion({
+                      changes: '',
+                      content: '',
+                      files: []
+                    });
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer'
+                  }}
+                >
+                  上传新版本
+                </button>
+                <button
+                  onClick={() => setSelectedProject(null)}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#95a5a6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer'
+                  }}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 上传新版本弹窗 */}
+      {showUploadVersion && selectedProject && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          zIndex: 1001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 15,
+            padding: 30,
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, color: '#2c3e50' }}>上传新版本 - {selectedProject.title}</h3>
+              <button
+                onClick={() => setShowUploadVersion(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#7f8c8d'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>版本说明 *</label>
+              <textarea
+                value={newVersion.changes}
+                onChange={(e) => setNewVersion(prev => ({ ...prev, changes: e.target.value }))}
+                placeholder="请描述此版本的更新内容..."
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '2px solid #ecf0f1',
+                  fontSize: '14px',
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>版本内容</label>
+              <textarea
+                value={newVersion.content}
+                onChange={(e) => setNewVersion(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="请输入版本详细内容..."
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '2px solid #ecf0f1',
+                  fontSize: '14px',
+                  minHeight: '120px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>上传文件</label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setNewVersion(prev => ({ ...prev, files }));
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '2px solid #ecf0f1',
+                  fontSize: '14px'
+                }}
+              />
+              <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: 5 }}>
+                支持图片、文档等多种格式，可同时选择多个文件
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowUploadVersion(false)}
+                style={{
+                  padding: '10px 20px',
+                  background: '#95a5a6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer'
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={async () => {
+                  if (!newVersion.changes.trim()) {
+                    setMessage('请输入版本说明');
+                    return;
+                  }
+
+                  try {
+                    // 这里需要调用后端API上传新版本
+                    // await api.teams.uploadVersion(selectedProject._id, newVersion);
+                    setMessage('版本上传功能开发中...');
+                    setShowUploadVersion(false);
+                    setNewVersion({ changes: '', content: '', files: [] });
+                  } catch (error) {
+                    console.error('上传版本失败:', error);
+                    setMessage('上传版本失败，请重试');
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  background: '#27ae60',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer'
+                }}
+              >
+                上传版本
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
