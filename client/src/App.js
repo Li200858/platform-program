@@ -8,7 +8,6 @@ import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
 import UserSync from './UserSync';
 import Search from './Search';
-import Follow from './Follow';
 import Teams from './Teams';
 import Notifications from './Notifications';
 import ErrorBoundary from './ErrorBoundary';
@@ -163,8 +162,6 @@ function MainApp() {
       content = <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'search') {
       content = <Search userInfo={userInfo} onBack={() => setSection('art')} />;
-    } else if (section === 'follow') {
-      content = <Follow userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'teams') {
       content = <Teams userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'notifications') {
@@ -252,9 +249,6 @@ function MainApp() {
           </button>
           <button className={section === 'myworks' ? 'active' : ''} onClick={() => setSection('myworks')}>
             我的作品
-          </button>
-          <button className={section === 'follow' ? 'active' : ''} onClick={() => setSection('follow')}>
-            关注
           </button>
           <button className={section === 'teams' ? 'active' : ''} onClick={() => setSection('teams')}>
             团队
@@ -443,52 +437,6 @@ function MainApp() {
                       <span>角色: {user.role || '用户'}</span>
                       {user.isAdmin && <span>管理员</span>}
                     </div>
-                    {userInfo && userInfo.name && user.name !== userInfo.name && (
-                      <div style={{ 
-                        marginTop: '8px', 
-                        display: 'flex', 
-                        gap: '8px'
-                      }}>
-                        <button
-                          onClick={async () => {
-                            try {
-                              // 检查当前关注状态
-                              const status = await api.follow.getStatus(userInfo.name, user.name);
-                              const isFollowing = status.isFollowing;
-                              
-                              if (isFollowing) {
-                                // 显示确认对话框
-                                const confirmed = window.confirm(`确定要取消关注 ${user.name} 吗？`);
-                                if (!confirmed) return;
-                                
-                                await api.follow.unfollow(userInfo.name, user.name);
-                                setMessage(`已取消关注 ${user.name}`);
-                              } else {
-                                await api.follow.follow({
-                                  follower: userInfo.name,
-                                  following: user.name
-                                });
-                                setMessage(`已关注 ${user.name}`);
-                              }
-                            } catch (error) {
-                              setMessage('操作失败：' + (error.message || '请重试'));
-                            }
-                          }}
-                          style={{
-                            padding: '4px 8px',
-                            background: '#3498db',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 4,
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          关注
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

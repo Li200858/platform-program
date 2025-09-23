@@ -190,18 +190,6 @@ export const api = {
   },
 
 
-  follow: {
-    follow: (data) => api.request('/api/follow', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    unfollow: (follower, following) => api.request(`/api/follow/${follower}/${following}`, {
-      method: 'DELETE',
-    }),
-    getFollowing: (username) => api.request(`/api/follow/following/${username}`),
-    getFollowers: (username) => api.request(`/api/follow/followers/${username}`),
-    getStatus: (follower, following) => api.request(`/api/follow/status/${follower}/${following}`),
-  },
 
   notifications: {
     getNotifications: (username) => api.request(`/api/notifications/${username}`),

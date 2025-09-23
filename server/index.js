@@ -12,7 +12,6 @@ const Activity = require('./models/Activity');
 const Feedback = require('./models/Feedback');
 const User = require('./models/User');
 const Maintenance = require('./models/Maintenance');
-const Follow = require('./models/Follow');
 const Notification = require('./models/Notification');
 const Team = require('./models/Team');
 
@@ -901,7 +900,7 @@ app.post('/api/user/sync', async (req, res) => {
       });
     } else {
       // 如果找到用户，更新用户信息（保持绑定关系）
-      if (name && name !== '用户') user.name = name;
+      // 姓名一旦设置就不能更改，只能更新班级和头像
       if (userClass && userClass !== '未知班级') user.class = userClass;
       if (avatar) user.avatar = avatar;
       await user.save();
@@ -1162,89 +1161,6 @@ app.listen(PORT, async () => {
 // ==================== 用户互动功能 API ====================
 
 
-// 关注用户
-app.post('/api/follow', async (req, res) => {
-  const { follower, following } = req.body;
-  
-  if (!follower || !following || follower === following) {
-    return res.status(400).json({ error: '无效的关注请求' });
-  }
-
-  try {
-    const follow = await Follow.create({ follower, following });
-
-    // 创建通知
-    await Notification.create({
-      recipient: following,
-      sender: follower,
-      type: 'follow',
-      content: `${follower} 关注了你`,
-      relatedType: 'user'
-    });
-
-    res.json(follow);
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ error: '已经关注过该用户' });
-    }
-    console.error('关注用户失败:', error);
-    res.status(500).json({ error: '关注用户失败' });
-  }
-});
-
-// 取消关注
-app.delete('/api/follow/:follower/:following', async (req, res) => {
-  const { follower, following } = req.params;
-  
-  try {
-    await Follow.deleteOne({ follower, following });
-    res.json({ message: '取消关注成功' });
-  } catch (error) {
-    console.error('取消关注失败:', error);
-    res.status(500).json({ error: '取消关注失败' });
-  }
-});
-
-// 获取关注列表
-app.get('/api/follow/following/:username', async (req, res) => {
-  const { username } = req.params;
-  
-  try {
-    const following = await Follow.find({ follower: username })
-      .sort({ createdAt: -1 });
-    res.json(following);
-  } catch (error) {
-    console.error('获取关注列表失败:', error);
-    res.status(500).json({ error: '获取关注列表失败' });
-  }
-});
-
-// 获取粉丝列表
-app.get('/api/follow/followers/:username', async (req, res) => {
-  const { username } = req.params;
-  
-  try {
-    const followers = await Follow.find({ following: username })
-      .sort({ createdAt: -1 });
-    res.json(followers);
-  } catch (error) {
-    console.error('获取粉丝列表失败:', error);
-    res.status(500).json({ error: '获取粉丝列表失败' });
-  }
-});
-
-// 检查关注状态
-app.get('/api/follow/status/:follower/:following', async (req, res) => {
-  const { follower, following } = req.params;
-  
-  try {
-    const follow = await Follow.findOne({ follower, following });
-    res.json({ isFollowing: !!follow });
-  } catch (error) {
-    console.error('检查关注状态失败:', error);
-    res.status(500).json({ error: '检查关注状态失败' });
-  }
-});
 
 // 创建通知
 app.post('/api/notifications', async (req, res) => {
