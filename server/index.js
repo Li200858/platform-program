@@ -1300,6 +1300,30 @@ app.get('/api/follow/status/:follower/:following', async (req, res) => {
   }
 });
 
+// 创建通知
+app.post('/api/notifications', async (req, res) => {
+  const { recipient, sender, type, content, relatedId, relatedType } = req.body;
+  
+  try {
+    const notification = new Notification({
+      recipient,
+      sender,
+      type,
+      content,
+      relatedId,
+      relatedType,
+      isRead: false,
+      createdAt: new Date()
+    });
+    
+    await notification.save();
+    res.json(notification);
+  } catch (error) {
+    console.error('创建通知失败:', error);
+    res.status(500).json({ error: '创建通知失败' });
+  }
+});
+
 // 获取通知列表
 app.get('/api/notifications/:username', async (req, res) => {
   const { username } = req.params;

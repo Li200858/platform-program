@@ -152,6 +152,17 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
     }
   };
 
+  // 私信用户
+  const handleMessageUser = (username) => {
+    if (window.setSection) {
+      window.setSection('messages');
+      // 设置私信目标用户
+      if (window.setMessageTarget) {
+        window.setMessageTarget(username);
+      }
+    }
+  };
+
   if (showCreate) {
     return <CreateActivityForm onBack={() => setShowCreate(false)} userInfo={userInfo} onSuccess={loadActivities} maintenanceStatus={maintenanceStatus} />;
   }
@@ -233,27 +244,43 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
                 </div>
                 <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span>{activity.authorClass} • {new Date(activity.createdAt).toLocaleString()}</span>
-                  {/* 关注按钮 */}
+                  {/* 关注和私信按钮 */}
                   {userInfo && userInfo.name && activity.authorName !== userInfo.name && (
-                    <button
-                      onClick={() => {
-                        checkFollowStatus(activity.authorName);
-                        handleFollow(activity.authorName);
-                      }}
-                      style={{
-                        padding: '4px 8px',
-                        background: followStatus[activity.authorName] ? '#e74c3c' : '#3498db',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        marginLeft: '10px'
-                      }}
-                    >
-                      {followStatus[activity.authorName] ? '取消关注' : '关注'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '10px' }}>
+                      <button
+                        onClick={() => {
+                          checkFollowStatus(activity.authorName);
+                          handleFollow(activity.authorName);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          background: followStatus[activity.authorName] ? '#e74c3c' : '#3498db',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {followStatus[activity.authorName] ? '取消关注' : '关注'}
+                      </button>
+                      <button
+                        onClick={() => handleMessageUser(activity.authorName)}
+                        style={{
+                          padding: '4px 8px',
+                          background: '#27ae60',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        私信
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

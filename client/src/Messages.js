@@ -10,12 +10,29 @@ export default function Messages({ userInfo, onBack }) {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [targetUser, setTargetUser] = useState(null);
 
   useEffect(() => {
     if (userInfo && userInfo.name) {
       loadMessages();
     }
   }, [userInfo]);
+
+  // 监听全局setMessageTarget函数
+  useEffect(() => {
+    const originalSetMessageTarget = window.setMessageTarget;
+    window.setMessageTarget = (targetUsername) => {
+      setTargetUser(targetUsername);
+      // 自动选择目标用户
+      if (targetUsername) {
+        loadConversation(targetUsername);
+      }
+    };
+    
+    return () => {
+      window.setMessageTarget = originalSetMessageTarget;
+    };
+  }, []);
 
   const loadMessages = async () => {
     try {
@@ -54,6 +71,20 @@ export default function Messages({ userInfo, onBack }) {
       setNewMessage('');
       loadConversation(selectedUser); // 重新加载对话
       loadMessages(); // 重新加载消息列表
+      
+      // 发送私信通知
+      try {
+        await api.notifications.create({
+          recipient: selectedUser,
+          sender: userInfo.name,
+          type: 'message',
+          content: `${userInfo.name} 给您发送了一条私信`,
+          relatedId: selectedUser,
+          relatedType: 'user'
+        });
+      } catch (notificationError) {
+        console.error('发送私信通知失败:', notificationError);
+      }
     } catch (error) {
       console.error('发送消息失败:', error);
       setMessage('发送失败，请重试');
