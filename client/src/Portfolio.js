@@ -10,6 +10,7 @@ export default function Portfolio({ userInfo, onBack }) {
   const [showEdit, setShowEdit] = useState(false);
   const [showUploadContent, setShowUploadContent] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedContent, setSelectedContent] = useState(null);
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
   const [newPortfolio, setNewPortfolio] = useState({
@@ -87,6 +88,10 @@ export default function Portfolio({ userInfo, onBack }) {
       console.error('删除作品集失败:', error);
       setMessage('删除作品集失败，请重试');
     }
+  };
+
+  const handleViewContent = (content) => {
+    setSelectedContent(content);
   };
 
   const handleViewPortfolio = async (portfolioId) => {
@@ -337,14 +342,24 @@ export default function Portfolio({ userInfo, onBack }) {
         {/* 直接上传的内容 */}
         {selectedPortfolio.contents && selectedPortfolio.contents.length > 0 && (
           <div style={{ marginBottom: 30 }}>
-            <h4 style={{ marginBottom: 15, color: '#34495e', fontSize: 16 }}>直接上传的内容</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
               {selectedPortfolio.contents.map((content, index) => (
                 <div key={`content-${index}`} style={{
                   border: '1px solid #ecf0f1',
                   borderRadius: 12,
                   padding: 20,
-                  background: '#f8f9fa'
+                  background: '#f8f9fa',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() => handleViewContent(content)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}>
                   <div style={{ marginBottom: 15 }}>
                     <h5 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>
@@ -362,6 +377,9 @@ export default function Portfolio({ userInfo, onBack }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#7f8c8d' }}>
                     <span>{new Date(content.createdAt).toLocaleDateString()}</span>
                     <span>{content.authorName}</span>
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: '12px', color: '#3498db', fontWeight: 'bold' }}>
+                    点击查看详情 →
                   </div>
                 </div>
               ))}
@@ -551,6 +569,157 @@ export default function Portfolio({ userInfo, onBack }) {
                 >
                   {uploading ? '上传中...' : '上传'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 内容详情查看模态框 */}
+        {selectedContent && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: 15,
+              padding: 30,
+              width: '90%',
+              maxWidth: 800,
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ margin: 0, color: '#2c3e50' }}>{selectedContent.title}</h3>
+                <button
+                  onClick={() => setSelectedContent(null)}
+                  style={{
+                    background: '#e74c3c',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✕ 关闭
+                </button>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', gap: 20, marginBottom: 15, fontSize: '14px', color: '#7f8c8d' }}>
+                  <span>作者: {selectedContent.authorName}</span>
+                  <span>发布时间: {new Date(selectedContent.createdAt).toLocaleString()}</span>
+                </div>
+                
+                {selectedContent.content && (
+                  <div style={{ 
+                    background: '#f8f9fa', 
+                    padding: 15, 
+                    borderRadius: 8, 
+                    marginBottom: 20,
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.6
+                  }}>
+                    {selectedContent.content}
+                  </div>
+                )}
+
+                {selectedContent.media && selectedContent.media.length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 15px 0', color: '#2c3e50' }}>附件预览</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 15 }}>
+                      {selectedContent.media.map((file, index) => (
+                        <div key={index} style={{
+                          border: '1px solid #ecf0f1',
+                          borderRadius: 8,
+                          padding: 15,
+                          background: '#f8f9fa',
+                          textAlign: 'center'
+                        }}>
+                          {file.type?.startsWith('image/') ? (
+                            <div>
+                              <img 
+                                src={file.url} 
+                                alt={file.originalName}
+                                style={{ 
+                                  maxWidth: '100%', 
+                                  maxHeight: 150, 
+                                  borderRadius: 4,
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => window.open(file.url, '_blank')}
+                              />
+                              <div style={{ marginTop: 8, fontSize: '12px', color: '#7f8c8d' }}>
+                                {file.originalName}
+                              </div>
+                            </div>
+                          ) : file.type?.startsWith('video/') ? (
+                            <div>
+                              <video 
+                                controls 
+                                style={{ maxWidth: '100%', maxHeight: 150 }}
+                                onClick={() => window.open(file.url, '_blank')}
+                              >
+                                <source src={file.url} type={file.type} />
+                                您的浏览器不支持视频播放
+                              </video>
+                              <div style={{ marginTop: 8, fontSize: '12px', color: '#7f8c8d' }}>
+                                {file.originalName}
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{ 
+                                fontSize: '24px', 
+                                color: '#3498db', 
+                                marginBottom: 8 
+                              }}>
+                                📄
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#7f8c8d', marginBottom: 8 }}>
+                                {file.originalName}
+                              </div>
+                              <button
+                                onClick={() => window.open(file.url, '_blank')}
+                                style={{
+                                  background: '#3498db',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: 4,
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                预览文件
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ 
+                      marginTop: 15, 
+                      padding: 10, 
+                      background: '#fff3cd', 
+                      borderRadius: 4, 
+                      fontSize: '12px', 
+                      color: '#856404' 
+                    }}>
+                      ⚠️ 版权保护：附件仅供预览，不支持下载
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
