@@ -113,7 +113,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                       cursor: 'pointer'
                     }}
                   >
-                    下载
+                    预览
                   </button>
                 </div>
               ) : fileType === 'video' ? (
@@ -153,7 +153,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                       cursor: 'pointer'
                     }}
                   >
-                    下载
+                    预览
                   </button>
                 </div>
               ) : (
@@ -177,7 +177,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                       cursor: 'pointer'
                     }}
                   >
-                    下载
+                    预览
                   </button>
                 </div>
               )}
