@@ -21,6 +21,7 @@ const PortfolioSchema = new mongoose.Schema({
     content: { type: String },
     authorName: { type: String, required: true },
     authorClass: { type: String },
+    allowDownload: { type: Boolean, default: true }, // 是否允许下载
     media: [{
       filename: String,
       originalName: String,

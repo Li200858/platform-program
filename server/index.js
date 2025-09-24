@@ -24,17 +24,34 @@ console.log(`环境变量 PORT: ${process.env.PORT}`);
 console.log(`使用端口: ${PORT}`);
 
 // 中间件
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://platform-program-frontend.onrender.com',
-    'https://platform-program.onrender.com'
-  ],
+// CORS配置
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://platform-program-frontend.onrender.com',
+      'https://platform-program.onrender.com'
+    ];
+    
+    console.log('CORS请求来源:', origin);
+    
+    // 允许没有origin的请求（如移动应用）
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS拒绝来源:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   optionsSuccessStatus: 200
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // 额外的CORS处理
@@ -109,7 +126,7 @@ app.post('/api/upload', upload.array('files', 10), (req, res) => {
 
 // 艺术作品API
 app.post('/api/art', async (req, res) => {
-  const { tab, title, content, media, authorName, authorClass } = req.body;
+  const { tab, title, content, media, authorName, authorClass, allowDownload } = req.body;
   
   if (!tab || !title || !content || !authorName || !authorClass) {
     return res.status(400).json({ error: '请填写完整信息' });
@@ -124,6 +141,7 @@ app.post('/api/art', async (req, res) => {
       authorName,
       authorClass,
       media: media || [],
+      allowDownload: allowDownload !== false,
       likes: 0,
       likedUsers: [],
       favorites: []
@@ -1572,7 +1590,7 @@ app.post('/api/portfolio/upload-content', upload.array('files'), async (req, res
     files: req.files ? req.files.length : 0
   });
   
-  const { title, content, authorName, authorClass, category, portfolioId } = req.body;
+  const { title, content, authorName, authorClass, category, portfolioId, allowDownload } = req.body;
   
   if (!title || !authorName || !portfolioId) {
     console.log('缺少必要信息:', { title, authorName, portfolioId });
@@ -1603,6 +1621,7 @@ app.post('/api/portfolio/upload-content', upload.array('files'), async (req, res
       content: content || '',
       authorName,
       authorClass: authorClass || '未知班级',
+      allowDownload: allowDownload !== 'false',
       media: files,
       createdAt: new Date()
     };

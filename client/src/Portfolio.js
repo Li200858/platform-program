@@ -23,7 +23,8 @@ export default function Portfolio({ userInfo, onBack }) {
   const [newContent, setNewContent] = useState({
     title: '',
     content: '',
-    files: []
+    files: [],
+    allowDownload: true
   });
 
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function Portfolio({ userInfo, onBack }) {
       formData.append('authorClass', userInfo.class || '未知班级');
       formData.append('category', selectedPortfolio.category);
       formData.append('portfolioId', selectedPortfolio._id);
+      formData.append('allowDownload', newContent.allowDownload);
       
       console.log('FormData内容:', {
         title: newContent.title,
@@ -873,6 +875,21 @@ export default function Portfolio({ userInfo, onBack }) {
                   已选择 {newContent.files.length} 个文件
                 </div>
               )}
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={newContent.allowDownload}
+                  onChange={(e) => setNewContent({ ...newContent, allowDownload: e.target.checked })}
+                  style={{ margin: 0 }}
+                />
+                <span style={{ fontSize: 14 }}>允许其他用户下载此内容</span>
+              </label>
+              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                取消勾选后，其他用户将无法下载您上传的文件
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

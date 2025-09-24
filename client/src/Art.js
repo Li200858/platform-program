@@ -913,7 +913,8 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
     content: '',
     authorName: userInfo?.name || '',
     authorClass: userInfo?.class || '',
-    media: []
+    media: [],
+    allowDownload: true
   });
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
@@ -1055,6 +1056,21 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
             rows={4}
             style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px solid #ecf0f1', resize: 'vertical' }}
           />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={formData.allowDownload}
+              onChange={(e) => setFormData(prev => ({ ...prev, allowDownload: e.target.checked }))}
+              style={{ margin: 0 }}
+            />
+            <span style={{ fontSize: 14, color: '#2c3e50' }}>允许其他用户下载此作品</span>
+          </label>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+            取消勾选后，其他用户将无法下载您上传的文件
+          </div>
         </div>
 
         {/* 用户信息显示 */}

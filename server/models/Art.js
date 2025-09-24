@@ -14,6 +14,7 @@ const ArtSchema = new mongoose.Schema({
     joinedAt: { type: Date, default: Date.now }
   }],
   media: [String],
+  allowDownload: { type: Boolean, default: true }, // 是否允许下载
   likes: { type: Number, default: 0 },
   likedUsers: [String],
   views: { type: Number, default: 0 },
