@@ -85,7 +85,7 @@ function MainApp() {
            // 每5秒刷新通知计数
            const interval = setInterval(loadNotificationCount, 5000);
     return () => clearInterval(interval);
-  }, [userInfo]);
+  }, [userInfo?.name]);
 
   // 暴露setSection函数给全局使用
   useEffect(() => {

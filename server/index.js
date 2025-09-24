@@ -72,7 +72,7 @@ app.use((req, res, next) => {
   }
 });
 // 配置静态文件服务 - 支持持久化存储
-const uploadsDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : 'uploads';
+const uploadsDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/uploads' : 'uploads';
 app.use('/uploads', express.static(uploadsDir));
 
 // 确保uploads目录存在
@@ -84,7 +84,7 @@ if (!fs.existsSync(uploadsDir)) {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     // 在Render上使用持久化存储目录
-    const uploadDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : 'uploads';
+    const uploadDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/uploads' : 'uploads';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
