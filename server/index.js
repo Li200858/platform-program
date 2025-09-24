@@ -1038,6 +1038,40 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 磁盘使用情况监控
+app.get('/api/disk-usage', (req, res) => {
+  try {
+    const { monitorDiskUsage } = require('./monitor-disk-usage');
+    const usage = monitorDiskUsage();
+    
+    if (usage) {
+      res.json({
+        success: true,
+        data: {
+          totalSize: usage.totalSize,
+          sizeInMB: usage.sizeInMB,
+          sizeInGB: usage.sizeInGB,
+          usagePercent: usage.usagePercent,
+          remainingGB: (5 - usage.sizeInGB).toFixed(2),
+          warning: usage.usagePercent > 80,
+          critical: usage.usagePercent > 90
+        }
+      });
+    } else {
+      res.json({
+        success: false,
+        error: '无法获取磁盘使用情况'
+      });
+    }
+  } catch (error) {
+    console.error('获取磁盘使用情况失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取磁盘使用情况失败'
+    });
+  }
+});
+
 // 根路径
 app.get('/', (req, res) => {
   console.log('根路径请求');

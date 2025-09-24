@@ -14,6 +14,7 @@ import PublicPortfolio from './PublicPortfolio';
 import ResourceLibrary from './ResourceLibrary';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
+import { NetworkStatusIndicator } from './NetworkMonitor';
 import api from './api';
 import './App.css';
 
@@ -29,21 +30,38 @@ function MainApp() {
   const [notificationCount, setNotificationCount] = useState(0);
   const { userID } = useUserID();
 
-  // 加载用户信息
+  // 加载用户信息 - 优化版本
   useEffect(() => {
-    const loadUserInfo = () => {
-      const savedUserInfo = localStorage.getItem('user_profile');
-      if (savedUserInfo) {
-        const parsedInfo = JSON.parse(savedUserInfo);
-        setUserInfo(prevInfo => {
-          // 只有当用户信息真正改变时才更新
-          if (!prevInfo || prevInfo.name !== parsedInfo.name || prevInfo.class !== parsedInfo.class) {
-            return parsedInfo;
+    let isMounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const loadUserInfo = async () => {
+      try {
+        const savedUserInfo = localStorage.getItem('user_profile');
+        if (savedUserInfo) {
+          const parsedInfo = JSON.parse(savedUserInfo);
+          if (isMounted) {
+            setUserInfo(prevInfo => {
+              // 只有当用户信息真正改变时才更新
+              if (!prevInfo || prevInfo.name !== parsedInfo.name || prevInfo.class !== parsedInfo.class) {
+                return parsedInfo;
+              }
+              return prevInfo;
+            });
           }
-          return prevInfo;
-        });
-      } else {
-        setUserInfo(null);
+        } else {
+          if (isMounted) {
+            setUserInfo(null);
+          }
+        }
+        retryCount = 0; // 重置重试计数
+      } catch (error) {
+        console.error('加载用户信息失败:', error);
+        retryCount++;
+        if (retryCount < maxRetries && isMounted) {
+          setTimeout(loadUserInfo, 2000 * retryCount);
+        }
       }
     };
     
@@ -51,47 +69,55 @@ function MainApp() {
     
     // 监听localStorage变化，当用户信息被更新时自动刷新
     const handleStorageChange = (e) => {
-      if (e.key === 'user_profile') {
+      if (e.key === 'user_profile' && isMounted) {
         loadUserInfo();
       }
     };
     
     window.addEventListener('storage', handleStorageChange);
     
-    // 定期检查localStorage变化（用于同一窗口内的更新）
-    const interval = setInterval(loadUserInfo, 2000);
+    // 减少轮询频率，从2秒改为10秒
+    const interval = setInterval(() => {
+      if (isMounted) {
+        loadUserInfo();
+      }
+    }, 10000);
     
     return () => {
+      isMounted = false;
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(interval);
     };
   }, []);
 
-  // 加载通知计数
+  // 加载通知计数 - 优化版本
   useEffect(() => {
     let interval;
     let retryCount = 0;
     const maxRetries = 3;
     let isPageVisible = true;
+    let isMounted = true;
     
     const loadNotificationCount = async () => {
-      // 如果页面不可见，跳过请求
-      if (!isPageVisible) {
+      // 如果页面不可见或组件已卸载，跳过请求
+      if (!isPageVisible || !isMounted) {
         return;
       }
       
       if (userInfo && userInfo.name) {
         try {
           const notifications = await api.notifications.getNotifications(userInfo.name);
-          const unreadCount = notifications.filter(n => !n.isRead).length;
-          setNotificationCount(unreadCount);
-          retryCount = 0; // 重置重试计数
+          if (isMounted) {
+            const unreadCount = notifications.filter(n => !n.isRead).length;
+            setNotificationCount(unreadCount);
+            retryCount = 0; // 重置重试计数
+          }
         } catch (error) {
           console.error('加载通知计数失败:', error);
           retryCount++;
           
           // 如果连续失败超过最大重试次数，停止轮询
-          if (retryCount >= maxRetries) {
+          if (retryCount >= maxRetries && isMounted) {
             console.warn('通知轮询失败次数过多，停止轮询');
             if (interval) {
               clearInterval(interval);
@@ -104,7 +130,7 @@ function MainApp() {
     // 页面可见性变化处理
     const handleVisibilityChange = () => {
       isPageVisible = !document.hidden;
-      if (isPageVisible) {
+      if (isPageVisible && isMounted) {
         // 页面重新可见时，立即加载一次通知
         loadNotificationCount();
       }
@@ -112,15 +138,22 @@ function MainApp() {
 
     // 延迟加载通知，避免页面加载时的网络问题
     const timeoutId = setTimeout(() => {
-      loadNotificationCount();
-      // 每30秒刷新通知计数（增加间隔减少请求频率）
-      interval = setInterval(loadNotificationCount, 30000);
-    }, 2000);
+      if (isMounted) {
+        loadNotificationCount();
+        // 每60秒刷新通知计数（进一步增加间隔）
+        interval = setInterval(() => {
+          if (isMounted) {
+            loadNotificationCount();
+          }
+        }, 60000);
+      }
+    }, 5000); // 增加初始延迟
     
     // 监听页面可见性变化
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
+      isMounted = false;
       clearTimeout(timeoutId);
       if (interval) {
         clearInterval(interval);
@@ -228,6 +261,9 @@ function MainApp() {
 
   return (
     <div className="app-root">
+      {/* 网络状态指示器 */}
+      <NetworkStatusIndicator />
+      
       {/* 维护模式提示 */}
       {maintenanceStatus.isEnabled && !isAdmin && (
         <div style={{

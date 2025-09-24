@@ -5,23 +5,62 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
     : 'http://localhost:5000');
 
 export const api = {
-  // 通用fetch函数
+  // 通用fetch函数 - 添加超时和重试机制
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      credentials: 'include',
-      ...options,
-    });
+    const timeout = options.timeout || 10000; // 10秒超时
+    const maxRetries = options.maxRetries || 3;
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        const response = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+          credentials: 'include',
+          signal: controller.signal,
+          ...options,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          // 如果是认证错误，立即抛出
+          if (response.status === 401 || response.status === 403) {
+            throw new Error(`认证失败: ${response.status}`);
+          }
+          // 其他错误，根据重试次数决定是否重试
+          if (attempt < maxRetries && response.status >= 500) {
+            console.warn(`请求失败，第${attempt}次重试:`, response.status);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.warn(`请求超时，第${attempt}次重试`);
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+          throw new Error('请求超时，请检查网络连接');
+        }
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        console.warn(`请求失败，第${attempt}次重试:`, error.message);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
     }
-    
-    return response.json();
   },
 
   // 艺术作品相关API
