@@ -742,7 +742,6 @@ export default function Art({ userInfo, maintenanceStatus }) {
                       fontWeight: '600'
                     }}
                   >
-                    <span>⬇️</span>
                     <span>下载</span>
                   </button>
                 )}

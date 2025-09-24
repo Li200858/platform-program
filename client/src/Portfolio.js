@@ -266,7 +266,10 @@ export default function Portfolio({ userInfo, onBack }) {
           <h2 style={{ margin: 0, color: '#2c3e50' }}>{selectedPortfolio.title}</h2>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
-              onClick={() => setShowUploadContent(true)}
+              onClick={() => {
+                console.log('点击上传内容按钮', { selectedPortfolio, showUploadContent });
+                setShowUploadContent(true);
+              }}
               style={{
                 padding: '10px 20px',
                 background: '#27ae60',
@@ -796,6 +799,7 @@ export default function Portfolio({ userInfo, onBack }) {
 
       {/* 上传内容弹窗 */}
       {showUploadContent && (
+        console.log('显示上传内容弹窗', { showUploadContent, selectedPortfolio, newContent }),
         <div style={{
           position: 'fixed',
           top: 0,
