@@ -5,8 +5,8 @@ const PortfolioSchema = new mongoose.Schema({
   description: { type: String, default: '' }, // 作品集描述
   category: { 
     type: String, 
-    enum: ['art', 'activity'], 
-    default: 'art' 
+    enum: ['音乐', '绘画', '舞蹈', '写作', '摄影', '雕塑', '书法', '设计', '戏剧', '影视'], 
+    default: '绘画' 
   }, // 作品集分类
   tags: [{ type: String }], // 标签
   creator: { type: String, required: true }, // 创建者

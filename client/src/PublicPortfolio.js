@@ -69,13 +69,13 @@ export default function PublicPortfolio({ userInfo, onBack }) {
             <div>
               <strong>分类：</strong>
               <span style={{ 
-                background: selectedPortfolio.category === 'art' ? '#e8f4fd' : '#f0f8e8',
-                color: selectedPortfolio.category === 'art' ? '#2980b9' : '#27ae60',
+                background: '#e8f4fd',
+                color: '#2980b9',
                 padding: '4px 8px',
                 borderRadius: 4,
                 fontSize: 12
               }}>
-                {selectedPortfolio.category === 'art' ? '艺术作品' : '活动设计'}
+                {selectedPortfolio.category}
               </span>
             </div>
             <div>
@@ -292,13 +292,13 @@ export default function PublicPortfolio({ userInfo, onBack }) {
 
               <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexWrap: 'wrap' }}>
                 <span style={{
-                  background: portfolio.category === 'art' ? '#e8f4fd' : '#f0f8e8',
-                  color: portfolio.category === 'art' ? '#2980b9' : '#27ae60',
+                  background: '#e8f4fd',
+                  color: '#2980b9',
                   padding: '4px 8px',
                   borderRadius: 4,
                   fontSize: 12
                 }}>
-                  {portfolio.category === 'art' ? '艺术作品' : '活动设计'}
+                  {portfolio.category}
                 </span>
                 {portfolio.featured && (
                   <span style={{

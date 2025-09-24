@@ -15,7 +15,7 @@ export default function Portfolio({ userInfo, onBack }) {
   const [newPortfolio, setNewPortfolio] = useState({
     title: '',
     description: '',
-    category: 'art',
+    category: '绘画',
     tags: [],
     isPublic: true,
     featured: false
@@ -173,7 +173,7 @@ export default function Portfolio({ userInfo, onBack }) {
         <div class="header">
           <div class="title">${portfolio.title}</div>
           <div class="meta">
-            分类: ${portfolio.category === 'art' ? '艺术作品' : '活动设计'} | 
+            分类: ${portfolio.category} | 
             创建时间: ${new Date(portfolio.createdAt).toLocaleString()} | 
             作品数量: ${portfolio.works.length}
           </div>
@@ -290,7 +290,7 @@ export default function Portfolio({ userInfo, onBack }) {
                 color: 'white',
                 marginLeft: 8
               }}>
-                {selectedPortfolio.category === 'art' ? '艺术作品' : '活动设计'}
+                {selectedPortfolio.category}
               </span>
             </div>
             <div>
@@ -566,7 +566,7 @@ export default function Portfolio({ userInfo, onBack }) {
                   background: '#3498db',
                   color: 'white'
                 }}>
-                  {portfolio.category === 'art' ? '艺术作品' : '活动设计'}
+                  {portfolio.category}
                 </span>
               </div>
 
@@ -663,8 +663,16 @@ export default function Portfolio({ userInfo, onBack }) {
                   border: '1px solid #ddd'
                 }}
               >
-                <option value="art">艺术作品</option>
-                <option value="activity">活动设计</option>
+                <option value="音乐">音乐</option>
+                <option value="绘画">绘画</option>
+                <option value="舞蹈">舞蹈</option>
+                <option value="写作">写作</option>
+                <option value="摄影">摄影</option>
+                <option value="雕塑">雕塑</option>
+                <option value="书法">书法</option>
+                <option value="设计">设计</option>
+                <option value="戏剧">戏剧</option>
+                <option value="影视">影视</option>
               </select>
             </div>
 
