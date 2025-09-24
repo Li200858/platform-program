@@ -69,22 +69,60 @@ function MainApp() {
 
   // 加载通知计数
   useEffect(() => {
+    let interval;
+    let retryCount = 0;
+    const maxRetries = 3;
+    let isPageVisible = true;
+    
     const loadNotificationCount = async () => {
+      // 如果页面不可见，跳过请求
+      if (!isPageVisible) {
+        return;
+      }
+      
       if (userInfo && userInfo.name) {
         try {
           const notifications = await api.notifications.getNotifications(userInfo.name);
           const unreadCount = notifications.filter(n => !n.isRead).length;
           setNotificationCount(unreadCount);
+          retryCount = 0; // 重置重试计数
         } catch (error) {
           console.error('加载通知计数失败:', error);
+          retryCount++;
+          
+          // 如果连续失败超过最大重试次数，停止轮询
+          if (retryCount >= maxRetries) {
+            console.warn('通知轮询失败次数过多，停止轮询');
+            if (interval) {
+              clearInterval(interval);
+            }
+          }
         }
       }
     };
 
+    // 页面可见性变化处理
+    const handleVisibilityChange = () => {
+      isPageVisible = !document.hidden;
+      if (isPageVisible) {
+        // 页面重新可见时，立即加载一次通知
+        loadNotificationCount();
+      }
+    };
+
     loadNotificationCount();
-           // 每5秒刷新通知计数
-           const interval = setInterval(loadNotificationCount, 5000);
-    return () => clearInterval(interval);
+    // 每15秒刷新通知计数（进一步增加间隔）
+    interval = setInterval(loadNotificationCount, 15000);
+    
+    // 监听页面可见性变化
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [userInfo?.name]);
 
   // 暴露setSection函数给全局使用

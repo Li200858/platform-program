@@ -197,11 +197,11 @@ export const api = {
 
 
   notifications: {
-    getNotifications: (username) => api.request(`/api/notifications/${username}`),
+    getNotifications: (username) => api.request(`/api/notifications/${encodeURIComponent(username)}`),
     markAsRead: (id) => api.request(`/api/notifications/${id}/read`, {
       method: 'PUT',
     }),
-    markAllAsRead: (username) => api.request(`/api/notifications/${username}/read-all`, {
+    markAllAsRead: (username) => api.request(`/api/notifications/${encodeURIComponent(username)}/read-all`, {
       method: 'PUT',
     }),
     create: (data) => api.request('/api/notifications', {
