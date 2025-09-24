@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FilePreview from './FilePreview';
 import api from './api';
 
-export default function ResourceLibrary({ userInfo, onBack }) {
+export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
   const [resources, setResources] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -383,7 +383,7 @@ export default function ResourceLibrary({ userInfo, onBack }) {
                     </div>
                   </div>
                 </div>
-                {(userInfo && (resource.uploader === userInfo.name || userInfo.isAdmin)) && (
+                {(userInfo && (resource.uploader === userInfo.name || isAdmin)) && (
                   <button
                     onClick={() => handleDeleteResource(resource._id)}
                     style={{

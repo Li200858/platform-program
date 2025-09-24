@@ -3,7 +3,7 @@ import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
 
-export default function Activity({ userInfo, onBack, maintenanceStatus }) {
+export default function Activity({ userInfo, isAdmin, onBack, maintenanceStatus }) {
   const [activities, setActivities] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [message, setMessage] = useState('');
@@ -185,7 +185,7 @@ export default function Activity({ userInfo, onBack, maintenanceStatus }) {
                 </div>
               </div>
               {/* 删除按钮 - 只有作者本人或管理员可以删除 */}
-              {(userInfo && (activity.authorName === userInfo.name || userInfo.isAdmin)) && (
+              {(userInfo && (activity.authorName === userInfo.name || isAdmin)) && (
                 <button
                   onClick={() => handleDelete(activity._id)}
                   style={{

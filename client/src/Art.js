@@ -4,7 +4,7 @@ import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
 
-export default function Art({ userInfo, maintenanceStatus }) {
+export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
   const tabs = [
     { key: 'all', label: '全部', dbValue: '' },
     { key: 'music', label: '音乐', dbValue: '音乐' },
@@ -581,7 +581,7 @@ export default function Art({ userInfo, maintenanceStatus }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <h3 style={{ margin: 0, fontSize: '20px', color: '#2c3e50', flex: 1 }}>{item.title}</h3>
                 {/* 管理按钮 - 作者可以管理自己的作品，管理员可以删除任何作品 */}
-                {userInfo && userInfo.name && ((item.authorName === userInfo.name || item.author === userInfo.name) || userInfo.isAdmin) && (
+                {userInfo && userInfo.name && ((item.authorName === userInfo.name || item.author === userInfo.name) || isAdmin) && (
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => handleManageCollaborators(item)}

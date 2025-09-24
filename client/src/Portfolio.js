@@ -3,7 +3,7 @@ import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
 
-export default function Portfolio({ userInfo, onBack }) {
+export default function Portfolio({ userInfo, isAdmin, onBack }) {
   const [portfolios, setPortfolios] = useState([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -890,7 +890,7 @@ export default function Portfolio({ userInfo, onBack }) {
                     {portfolio.isPublic ? '公开' : '私密'}
                   </span>
                   {/* 只有作者或管理员可以删除作品集 */}
-                  {(userInfo && (portfolio.creator === userInfo.name || userInfo.isAdmin)) && (
+                  {(userInfo && (portfolio.creator === userInfo.name || isAdmin)) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

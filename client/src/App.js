@@ -328,9 +328,9 @@ function MainApp() {
   let content = null;
   try {
     if (section === 'art') {
-      content = <Art userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
+      content = <Art userInfo={userInfo} isAdmin={isAdmin} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'activity') {
-      content = <Activity userInfo={userInfo} onBack={() => setSection('art')} maintenanceStatus={maintenanceStatus} />;
+      content = <Activity userInfo={userInfo} isAdmin={isAdmin} onBack={() => setSection('art')} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'feedback') {
       content = <Feedback userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'profile') {
@@ -342,15 +342,15 @@ function MainApp() {
     } else if (section === 'myworks') {
       content = <MyWorks userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'admin') {
-      content = <AdminPanel userInfo={userInfo} onBack={() => setSection('art')} />;
+      content = <AdminPanel userInfo={userInfo} isAdmin={isAdmin} onBack={() => setSection('art')} />;
     } else if (section === 'search') {
       content = <Search userInfo={userInfo} onBack={() => setSection('art')} />;
         } else if (section === 'portfolio') {
-          content = <Portfolio userInfo={userInfo} onBack={() => setSection('art')} />;
+          content = <Portfolio userInfo={userInfo} isAdmin={isAdmin} onBack={() => setSection('art')} />;
         } else if (section === 'public-portfolio') {
           content = <PublicPortfolio userInfo={userInfo} onBack={() => setSection('art')} />;
         } else if (section === 'resources') {
-          content = <ResourceLibrary userInfo={userInfo} onBack={() => setSection('art')} />;
+          content = <ResourceLibrary userInfo={userInfo} isAdmin={isAdmin} onBack={() => setSection('art')} />;
     } else if (section === 'notifications') {
       content = <Notifications userInfo={userInfo} onBack={() => setSection('art')} />;
     }

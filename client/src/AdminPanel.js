@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import FilePreview from './FilePreview';
 import api from './api';
 
-export default function AdminPanel({ userInfo, onBack }) {
+export default function AdminPanel({ userInfo, isAdmin, onBack }) {
   const [activeTab, setActiveTab] = useState('feedbacks');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [feedbacks, setFeedbacks] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,22 @@ export default function AdminPanel({ userInfo, onBack }) {
       loadMaintenanceStatus();
     }
   }, [activeTab]);
+
+  // 检查超级管理员权限
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      if (userInfo && userInfo.name) {
+        try {
+          const data = await api.admin.check(userInfo.name);
+          setIsSuperAdmin(data.isInitial || false);
+        } catch (error) {
+          console.error('检查超级管理员权限失败:', error);
+          setIsSuperAdmin(false);
+        }
+      }
+    };
+    checkSuperAdmin();
+  }, [userInfo]);
 
   // 加载维护模式状态
   const loadMaintenanceStatus = async () => {
@@ -246,21 +263,24 @@ export default function AdminPanel({ userInfo, onBack }) {
         >
           意见反馈
         </button>
-        <button
-          onClick={() => setActiveTab('users')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 8,
-            border: activeTab === 'users' ? '2px solid #3498db' : '2px solid #ecf0f1',
-            background: activeTab === 'users' ? '#3498db' : '#fff',
-            color: activeTab === 'users' ? '#fff' : '#2c3e50',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}
-        >
-          用户管理
-        </button>
+        {/* 只有超级管理员可以看到用户管理 */}
+        {isSuperAdmin && (
+          <button
+            onClick={() => setActiveTab('users')}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 8,
+              border: activeTab === 'users' ? '2px solid #3498db' : '2px solid #ecf0f1',
+              background: activeTab === 'users' ? '#3498db' : '#fff',
+              color: activeTab === 'users' ? '#fff' : '#2c3e50',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          >
+            用户管理
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('maintenance')}
           style={{
@@ -504,7 +524,7 @@ export default function AdminPanel({ userInfo, onBack }) {
         </div>
       )}
 
-      {activeTab === 'users' && (
+      {activeTab === 'users' && isSuperAdmin && (
         <div>
           <h3 style={{ marginBottom: 20, color: '#2c3e50' }}>用户管理</h3>
           
