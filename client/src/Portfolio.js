@@ -889,24 +889,27 @@ export default function Portfolio({ userInfo, onBack }) {
                   }}>
                     {portfolio.isPublic ? '公开' : '私密'}
                   </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeletePortfolio(portfolio._id);
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#e74c3c',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      padding: '2px 6px',
-                      borderRadius: 4
-                    }}
-                    title="删除作品集"
-                  >
-                    ×
-                  </button>
+                  {/* 只有作者或管理员可以删除作品集 */}
+                  {(userInfo && (portfolio.creator === userInfo.name || userInfo.isAdmin)) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePortfolio(portfolio._id);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#e74c3c',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        padding: '2px 6px',
+                        borderRadius: 4
+                      }}
+                      title="删除作品集"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               </div>
 

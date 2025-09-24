@@ -383,7 +383,7 @@ export default function ResourceLibrary({ userInfo, onBack }) {
                     </div>
                   </div>
                 </div>
-                {resource.uploader === userInfo.name && (
+                {(userInfo && (resource.uploader === userInfo.name || userInfo.isAdmin)) && (
                   <button
                     onClick={() => handleDeleteResource(resource._id)}
                     style={{
