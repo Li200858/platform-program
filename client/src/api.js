@@ -234,22 +234,28 @@ export const api = {
     removeWork: (id, workId) => api.request(`/api/portfolio/${id}/works/${workId}`, {
       method: 'DELETE',
     }),
-    uploadContent: (formData) => api.request('/api/portfolio/upload-content', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // 让浏览器自动设置Content-Type
-    }),
+    uploadContent: (formData) => {
+      const url = `${API_BASE_URL}/api/portfolio/upload-content`;
+      return fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      }).then(response => response.json());
+    },
   },
 
   // 学习资料库API
   resources: {
     getAll: () => api.request('/api/resources'),
     getCategories: () => api.request('/api/resources/categories'),
-    upload: (formData) => api.request('/api/resources/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {}, // 让浏览器自动设置Content-Type
-    }),
+    upload: (formData) => {
+      const url = `${API_BASE_URL}/api/resources/upload`;
+      return fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      }).then(response => response.json());
+    },
     delete: (id) => api.request(`/api/resources/${id}`, {
       method: 'DELETE',
     }),

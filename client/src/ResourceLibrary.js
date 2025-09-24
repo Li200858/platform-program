@@ -124,6 +124,30 @@ export default function ResourceLibrary({ userInfo, onBack }) {
     }
   };
 
+  const handleDownloadFile = async (file) => {
+    try {
+      const apiBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://platform-program.onrender.com' 
+        : 'http://localhost:5000';
+      
+      const downloadUrl = `${apiBaseUrl}/api/resources/file/${file.filename}`;
+      
+      // 创建一个临时的a标签来触发下载
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = file.originalName || file.filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setMessage(`开始下载 ${file.originalName || file.filename}`);
+    } catch (error) {
+      console.error('下载文件失败:', error);
+      setMessage('下载文件失败，请重试');
+    }
+  };
+
   const filteredResources = resources.filter(resource => {
     const matchesCategory = selectedCategory === 'all' || resource.category === selectedCategory;
     const matchesSearch = !searchQuery || 
@@ -328,10 +352,42 @@ export default function ResourceLibrary({ userInfo, onBack }) {
                   <div style={{ fontSize: '12px', color: '#7f8c8d', marginBottom: 8 }}>
                     文件 ({resource.files.length}):
                   </div>
-                  <FilePreview 
-                    urls={resource.files.map(file => file.url || file.filename)} 
-                    apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {resource.files.map((file, index) => (
+                      <div key={index} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: '#f8f9fa',
+                        borderRadius: 6,
+                        border: '1px solid #e9ecef'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#2c3e50' }}>
+                            {file.originalName || file.filename}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDownloadFile(file)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#3498db',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          下载
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

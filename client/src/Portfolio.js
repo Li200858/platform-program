@@ -75,7 +75,7 @@ export default function Portfolio({ userInfo, onBack }) {
   };
 
   const handleDeletePortfolio = async (portfolioId) => {
-    if (!window.confirm('确定要删除这个作品集吗？')) {
+    if (!window.confirm('确定要删除这个作品集吗？删除后无法恢复！')) {
       return;
     }
 
@@ -151,6 +151,14 @@ export default function Portfolio({ userInfo, onBack }) {
       formData.append('portfolioId', selectedPortfolio._id);
       formData.append('allowDownload', newContent.allowDownload);
       
+      // 处理文件上传 - 如果有文件需要上传
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        Array.from(fileInput.files).forEach(file => {
+          formData.append('files', file);
+        });
+      }
+      
       console.log('FormData内容:', {
         title: newContent.title,
         content: newContent.content,
@@ -158,33 +166,12 @@ export default function Portfolio({ userInfo, onBack }) {
         authorClass: userInfo.class || '未知班级',
         category: selectedPortfolio.category,
         portfolioId: selectedPortfolio._id,
-        filesCount: newContent.files.length
-      });
-      
-      newContent.files.forEach((file, index) => {
-        formData.append(`files`, file);
-        console.log(`添加文件 ${index}:`, file.name, file.size);
+        filesCount: fileInput ? fileInput.files.length : 0
       });
 
       console.log('发送请求到:', '/api/portfolio/upload-content');
-      const response = await fetch('/api/portfolio/upload-content', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-        headers: {
-          // 不要设置Content-Type，让浏览器自动设置multipart/form-data
-        }
-      });
+      const result = await api.portfolio.uploadContent(formData);
       
-      console.log('响应状态:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('上传失败响应:', errorText);
-        throw new Error(`上传失败: ${response.status} ${response.statusText}`);
-      }
-      
-      const result = await response.json();
       console.log('上传成功:', result);
       setMessage('内容上传成功！');
       setShowUploadContent(false);
@@ -322,6 +309,19 @@ export default function Portfolio({ userInfo, onBack }) {
               }}
             >
               导出HTML
+            </button>
+            <button
+              onClick={() => handleDeletePortfolio(selectedPortfolio._id)}
+              style={{
+                padding: '10px 20px',
+                background: '#e74c3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer'
+              }}
+            >
+              删除作品集
             </button>
             <button
               onClick={() => setSelectedPortfolio(null)}
@@ -591,7 +591,7 @@ export default function Portfolio({ userInfo, onBack }) {
                 <h3 style={{ margin: 0, color: '#2c3e50', fontSize: '16px' }}>
                   {portfolio.title}
                 </h3>
-                <div style={{ display: 'flex', gap: 5 }}>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                   {portfolio.featured && (
                     <span style={{
                       padding: '2px 6px',
@@ -612,6 +612,24 @@ export default function Portfolio({ userInfo, onBack }) {
                   }}>
                     {portfolio.isPublic ? '公开' : '私密'}
                   </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeletePortfolio(portfolio._id);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#e74c3c',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      padding: '2px 6px',
+                      borderRadius: 4
+                    }}
+                    title="删除作品集"
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
 
@@ -891,7 +909,12 @@ export default function Portfolio({ userInfo, onBack }) {
               <input
                 type="file"
                 multiple
-                onChange={handleFileUpload}
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files.length > 0) {
+                    setMessage(`已选择 ${files.length} 个文件，点击上传按钮开始上传`);
+                  }
+                }}
                 style={{
                   width: '100%',
                   padding: 12,
@@ -900,11 +923,9 @@ export default function Portfolio({ userInfo, onBack }) {
                   fontSize: 14
                 }}
               />
-              {newContent.files.length > 0 && (
-                <div style={{ marginTop: 10, fontSize: 12, color: '#666' }}>
-                  已选择 {newContent.files.length} 个文件
-                </div>
-              )}
+              <div style={{ fontSize: 12, color: '#666', marginTop: 5 }}>
+                支持多种格式，可同时选择多个文件
+              </div>
             </div>
 
             <div style={{ marginBottom: 20 }}>

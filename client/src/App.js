@@ -110,14 +110,18 @@ function MainApp() {
       }
     };
 
-    loadNotificationCount();
-    // 每15秒刷新通知计数（进一步增加间隔）
-    interval = setInterval(loadNotificationCount, 15000);
+    // 延迟加载通知，避免页面加载时的网络问题
+    const timeoutId = setTimeout(() => {
+      loadNotificationCount();
+      // 每30秒刷新通知计数（增加间隔减少请求频率）
+      interval = setInterval(loadNotificationCount, 30000);
+    }, 2000);
     
     // 监听页面可见性变化
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
+      clearTimeout(timeoutId);
       if (interval) {
         clearInterval(interval);
       }
@@ -285,24 +289,35 @@ function MainApp() {
           <button className={section === 'activity' ? 'active' : ''} onClick={() => setSection('activity')}>
             活动展示
           </button>
-          <button className={section === 'feedback' ? 'active' : ''} onClick={() => setSection('feedback')}>
-            意见反馈
+          <button className={section === 'public-portfolio' ? 'active' : ''} onClick={() => setSection('public-portfolio')}>
+            公开作品集
           </button>
-          <button className={section === 'collection' ? 'active' : ''} onClick={() => setSection('collection')}>
-            我的收藏
+          <button className={section === 'portfolio' ? 'active' : ''} onClick={() => setSection('portfolio')}>
+            我的作品集
           </button>
           <button className={section === 'myworks' ? 'active' : ''} onClick={() => setSection('myworks')}>
             我的作品
           </button>
-        <button className={section === 'portfolio' ? 'active' : ''} onClick={() => setSection('portfolio')}>
-          我的作品集
-        </button>
-        <button className={section === 'public-portfolio' ? 'active' : ''} onClick={() => setSection('public-portfolio')}>
-          公开作品集
-        </button>
-        <button className={section === 'resources' ? 'active' : ''} onClick={() => setSection('resources')}>
-          资料库
-        </button>
+          <button className={section === 'collection' ? 'active' : ''} onClick={() => setSection('collection')}>
+            我的收藏
+          </button>
+          <button className={section === 'resources' ? 'active' : ''} onClick={() => setSection('resources')}>
+            资料库
+          </button>
+          <button className={section === 'feedback' ? 'active' : ''} onClick={() => setSection('feedback')}>
+            意见反馈
+          </button>
+          <button className={section === 'profile' ? 'active' : ''} onClick={() => setSection('profile')}>
+            个人信息
+          </button>
+          <button className={section === 'sync' ? 'active' : ''} onClick={() => setSection('sync')}>
+            数据同步
+          </button>
+          {isAdmin && (
+            <button className={section === 'admin' ? 'active' : ''} onClick={() => setSection('admin')}>
+              管理面板
+            </button>
+          )}
           <button className={section === 'notifications' ? 'active' : ''} onClick={() => setSection('notifications')} style={{ position: 'relative' }}>
             通知
             {notificationCount > 0 && (
@@ -325,17 +340,6 @@ function MainApp() {
               </span>
             )}
           </button>
-          <button className={section === 'profile' ? 'active' : ''} onClick={() => setSection('profile')}>
-            个人信息
-          </button>
-          <button className={section === 'sync' ? 'active' : ''} onClick={() => setSection('sync')}>
-            数据同步
-          </button>
-          {isAdmin && (
-            <button className={section === 'admin' ? 'active' : ''} onClick={() => setSection('admin')}>
-              管理面板
-            </button>
-          )}
         </nav>
       </header>
 

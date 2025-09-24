@@ -1687,6 +1687,8 @@ app.post('/api/resources/upload', upload.array('files'), async (req, res) => {
       url: `/uploads/${file.filename}`
     }));
 
+    console.log('上传的文件信息:', files);
+
     const resource = await Resource.create({
       title,
       description: description || '',
@@ -1697,6 +1699,7 @@ app.post('/api/resources/upload', upload.array('files'), async (req, res) => {
       files
     });
 
+    console.log('资料创建成功:', resource._id);
     res.json(resource);
   } catch (error) {
     console.error('上传资料失败:', error);
@@ -1735,10 +1738,37 @@ app.get('/api/resources/:id/download', async (req, res) => {
     resource.downloads += 1;
     await resource.save();
 
-    // 这里可以实现文件下载逻辑
-    res.json({ message: '下载成功', files: resource.files });
+    // 返回文件信息，让前端处理下载
+    res.json({ 
+      message: '下载成功', 
+      files: resource.files.map(file => ({
+        filename: file.filename,
+        originalName: file.originalName,
+        url: file.url,
+        size: file.size,
+        mimetype: file.mimetype
+      }))
+    });
   } catch (error) {
     console.error('下载资料失败:', error);
     res.status(500).json({ error: '下载资料失败' });
   }
+});
+
+// 直接下载文件
+app.get('/api/resources/file/:filename', (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(uploadsDir, filename);
+  
+  // 检查文件是否存在
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: '文件不存在' });
+  }
+  
+  // 设置下载头
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  
+  // 发送文件
+  res.sendFile(filePath);
 });
