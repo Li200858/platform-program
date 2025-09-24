@@ -91,7 +91,9 @@ export default function Portfolio({ userInfo, onBack }) {
 
   const handleViewPortfolio = async (portfolioId) => {
     try {
+      console.log('加载作品集详情:', portfolioId);
       const data = await api.portfolio.getPortfolio(portfolioId);
+      console.log('作品集详情加载成功:', data);
       setSelectedPortfolio(data);
     } catch (error) {
       console.error('加载作品集详情失败:', error);
@@ -134,6 +136,7 @@ export default function Portfolio({ userInfo, onBack }) {
     }
 
     if (!selectedPortfolio || !selectedPortfolio._id) {
+      console.error('作品集信息丢失:', selectedPortfolio);
       setMessage('作品集信息错误，请重试');
       return;
     }
@@ -191,79 +194,6 @@ export default function Portfolio({ userInfo, onBack }) {
     }
   };
 
-  const handleExportPortfolio = (portfolio) => {
-    // 创建一个简单的HTML文档用于导出
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${portfolio.title} - 作品集</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-          .header { text-align: center; margin-bottom: 40px; }
-          .title { font-size: 28px; color: #2c3e50; margin-bottom: 10px; }
-          .meta { color: #7f8c8d; font-size: 14px; }
-          .description { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; }
-          .works { margin-top: 30px; }
-          .work-item { margin-bottom: 30px; padding: 20px; border: 1px solid #ecf0f1; border-radius: 8px; }
-          .work-title { font-size: 18px; color: #2c3e50; margin-bottom: 10px; }
-          .work-content { color: #34495e; margin-bottom: 15px; }
-          .work-meta { font-size: 12px; color: #7f8c8d; }
-          .tags { margin: 15px 0; }
-          .tag { display: inline-block; background: #ecf0f1; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-right: 5px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">${portfolio.title}</div>
-          <div class="meta">
-            分类: ${portfolio.category} | 
-            创建时间: ${new Date(portfolio.createdAt).toLocaleString()} | 
-            作品数量: ${portfolio.works.length}
-          </div>
-        </div>
-        
-        ${portfolio.description ? `<div class="description">${portfolio.description}</div>` : ''}
-        
-        ${portfolio.tags && portfolio.tags.length > 0 ? `
-          <div class="tags">
-            <strong>标签:</strong>
-            ${portfolio.tags.map(tag => `<span class="tag">#${tag}</span>`).join('')}
-          </div>
-        ` : ''}
-        
-        <div class="works">
-          <h2>作品列表</h2>
-          ${portfolio.works.map(work => `
-            <div class="work-item">
-              <div class="work-title">${work.title}</div>
-              <div class="work-content">${work.content || '暂无内容描述'}</div>
-              <div class="work-meta">
-                作者: ${work.authorName} | 
-                班级: ${work.authorClass} | 
-                创建时间: ${new Date(work.createdAt).toLocaleString()}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </body>
-      </html>
-    `;
-
-    // 创建Blob对象并下载
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${portfolio.title}_作品集.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    setMessage('作品集导出成功！');
-  };
 
   if (loading) {
     return (
@@ -296,19 +226,6 @@ export default function Portfolio({ userInfo, onBack }) {
               }}
             >
               + 上传内容
-            </button>
-            <button
-              onClick={() => handleExportPortfolio(selectedPortfolio)}
-              style={{
-                padding: '10px 20px',
-                background: '#f39c12',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer'
-              }}
-            >
-              导出HTML
             </button>
             <button
               onClick={() => handleDeletePortfolio(selectedPortfolio._id)}
@@ -506,6 +423,138 @@ export default function Portfolio({ userInfo, onBack }) {
             作品数量: {selectedPortfolio.works.length}
           </div>
         </div>
+
+        {/* 上传内容弹窗 - 移到作品集详情页面 */}
+        {showUploadContent && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: 15,
+              padding: 30,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>上传内容到作品集</h3>
+              
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>作品标题 *</label>
+                <input
+                  type="text"
+                  value={newContent.title}
+                  onChange={(e) => setNewContent({ ...newContent, title: e.target.value })}
+                  placeholder="请输入作品标题"
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    border: '1px solid #ddd',
+                    borderRadius: 8,
+                    fontSize: 14
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>作品描述</label>
+                <textarea
+                  value={newContent.content}
+                  onChange={(e) => setNewContent({ ...newContent, content: e.target.value })}
+                  placeholder="请输入作品描述..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    border: '1px solid #ddd',
+                    borderRadius: 8,
+                    fontSize: 14,
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>上传文件</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files.length > 0) {
+                      setMessage(`已选择 ${files.length} 个文件，点击上传按钮开始上传`);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: 12,
+                    border: '1px solid #ddd',
+                    borderRadius: 8,
+                    fontSize: 14
+                  }}
+                />
+                <div style={{ fontSize: 12, color: '#666', marginTop: 5 }}>
+                  支持多种格式，可同时选择多个文件
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={newContent.allowDownload}
+                    onChange={(e) => setNewContent({ ...newContent, allowDownload: e.target.checked })}
+                    style={{ margin: 0 }}
+                  />
+                  <span style={{ fontSize: 14 }}>允许其他用户下载此内容</span>
+                </label>
+                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                  取消勾选后，其他用户将无法下载您上传的文件
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowUploadContent(false)}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#95a5a6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    cursor: 'pointer'
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleUploadContent}
+                  disabled={uploading}
+                  style={{
+                    padding: '10px 20px',
+                    background: uploading ? '#bdc3c7' : '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    cursor: uploading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {uploading ? '上传中...' : '上传'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -844,137 +893,6 @@ export default function Portfolio({ userInfo, onBack }) {
         </div>
       )}
 
-      {/* 上传内容弹窗 */}
-      {showUploadContent && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: 15,
-            padding: 30,
-            width: '90%',
-            maxWidth: 600,
-            maxHeight: '80vh',
-            overflow: 'auto'
-          }}>
-            <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>上传内容到作品集</h3>
-            
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>作品标题 *</label>
-              <input
-                type="text"
-                value={newContent.title}
-                onChange={(e) => setNewContent({ ...newContent, title: e.target.value })}
-                placeholder="请输入作品标题"
-                style={{
-                  width: '100%',
-                  padding: 12,
-                  border: '1px solid #ddd',
-                  borderRadius: 8,
-                  fontSize: 14
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>作品描述</label>
-              <textarea
-                value={newContent.content}
-                onChange={(e) => setNewContent({ ...newContent, content: e.target.value })}
-                placeholder="请输入作品描述..."
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: 12,
-                  border: '1px solid #ddd',
-                  borderRadius: 8,
-                  fontSize: 14,
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>上传文件</label>
-              <input
-                type="file"
-                multiple
-                onChange={(e) => {
-                  const files = e.target.files;
-                  if (files.length > 0) {
-                    setMessage(`已选择 ${files.length} 个文件，点击上传按钮开始上传`);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: 12,
-                  border: '1px solid #ddd',
-                  borderRadius: 8,
-                  fontSize: 14
-                }}
-              />
-              <div style={{ fontSize: 12, color: '#666', marginTop: 5 }}>
-                支持多种格式，可同时选择多个文件
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={newContent.allowDownload}
-                  onChange={(e) => setNewContent({ ...newContent, allowDownload: e.target.checked })}
-                  style={{ margin: 0 }}
-                />
-                <span style={{ fontSize: 14 }}>允许其他用户下载此内容</span>
-              </label>
-              <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                取消勾选后，其他用户将无法下载您上传的文件
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowUploadContent(false)}
-                style={{
-                  padding: '10px 20px',
-                  background: '#95a5a6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              >
-                取消
-              </button>
-              <button
-                onClick={handleUploadContent}
-                disabled={uploading}
-                style={{
-                  padding: '10px 20px',
-                  background: uploading ? '#bdc3c7' : '#27ae60',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: uploading ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {uploading ? '上传中...' : '上传'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
