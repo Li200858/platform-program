@@ -144,7 +144,10 @@ export default function Portfolio({ userInfo, onBack }) {
       const response = await fetch('/api/portfolio/upload-content', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          // 不要设置Content-Type，让浏览器自动设置multipart/form-data
+        }
       });
       
       console.log('响应状态:', response.status, response.statusText);
@@ -798,8 +801,9 @@ export default function Portfolio({ userInfo, onBack }) {
       )}
 
       {/* 上传内容弹窗 */}
-      {showUploadContent && (
-        console.log('显示上传内容弹窗', { showUploadContent, selectedPortfolio, newContent }),
+      {showUploadContent && (() => {
+        console.log('显示上传内容弹窗', { showUploadContent, selectedPortfolio, newContent });
+        return (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -928,7 +932,8 @@ export default function Portfolio({ userInfo, onBack }) {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

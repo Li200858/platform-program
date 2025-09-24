@@ -101,7 +101,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => window.open(fullUrl, '_blank')}
+                    onClick={() => handleDownload(url)}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
@@ -113,7 +113,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                       cursor: 'pointer'
                     }}
                   >
-                    打开
+                    下载
                   </button>
                 </div>
               ) : fileType === 'video' ? (
@@ -141,7 +141,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => window.open(fullUrl, '_blank')}
+                    onClick={() => handleDownload(url)}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
@@ -153,7 +153,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                       cursor: 'pointer'
                     }}
                   >
-                    打开
+                    下载
                   </button>
                 </div>
               ) : (
@@ -165,7 +165,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => window.open(fullUrl, '_blank')}
+                    onClick={() => handleDownload(url)}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
@@ -177,7 +177,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                       cursor: 'pointer'
                     }}
                   >
-                    打开
+                    下载
                   </button>
                 </div>
               )}

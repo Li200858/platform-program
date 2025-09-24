@@ -312,7 +312,10 @@ export default function ResourceLibrary({ userInfo, onBack }) {
                   <div style={{ fontSize: '12px', color: '#7f8c8d', marginBottom: 8 }}>
                     文件 ({resource.files.length}):
                   </div>
-                  <FilePreview urls={resource.files.map(file => file.url || file.filename)} />
+                  <FilePreview 
+                    urls={resource.files.map(file => file.url || file.filename)} 
+                    apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'}
+                  />
                 </div>
               )}
 
