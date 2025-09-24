@@ -48,30 +48,17 @@ export default function ResourceLibrary({ userInfo, onBack }) {
     }
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = (e) => {
     const files = e.target.files;
     if (!files.length) return;
 
     setMessage('');
-    setUploading(true);
-    
-    const uploadFormData = new FormData();
-    Array.from(files).forEach(file => uploadFormData.append('files', file));
-
-    try {
-      const data = await api.upload(uploadFormData);
-      if (data && data.urls && data.urls.length > 0) {
-        setNewResource(prev => ({ ...prev, files: [...prev.files, ...data.urls] }));
-        setMessage(`成功上传 ${data.urls.length} 个文件`);
-      } else {
-        setMessage('文件上传失败，请重试');
-      }
-    } catch (error) {
-      console.error('文件上传失败:', error);
-      setMessage('文件上传失败：' + (error.message || '请检查文件大小和格式'));
-    } finally {
-      setUploading(false);
-    }
+    // 只显示文件选择状态，不立即上传
+    setNewResource(prev => ({ 
+      ...prev, 
+      files: Array.from(files).map(file => file.name) // 只保存文件名用于显示
+    }));
+    setMessage(`已选择 ${files.length} 个文件，点击"上传"按钮开始上传`);
   };
 
   const handleUploadResource = async () => {
@@ -80,7 +67,9 @@ export default function ResourceLibrary({ userInfo, onBack }) {
       return;
     }
 
-    if (newResource.files.length === 0) {
+    // 检查是否有文件需要上传
+    const fileInput = document.querySelector('input[type="file"]');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
       setMessage('请选择要上传的文件');
       return;
     }
@@ -95,8 +84,9 @@ export default function ResourceLibrary({ userInfo, onBack }) {
       formData.append('isPublic', newResource.isPublic);
       formData.append('uploader', userInfo.name);
       
-      newResource.files.forEach((file, index) => {
-        formData.append(`files`, file);
+      // 直接添加原始文件到FormData
+      Array.from(fileInput.files).forEach(file => {
+        formData.append('files', file);
       });
 
       await api.resources.upload(formData);

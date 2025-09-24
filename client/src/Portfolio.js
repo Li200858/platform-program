@@ -828,7 +828,6 @@ export default function Portfolio({ userInfo, onBack }) {
 
       {/* 上传内容弹窗 */}
       {showUploadContent && (
-        console.log('显示上传内容弹窗', { showUploadContent, selectedPortfolio, newContent }),
         <div style={{
           position: 'fixed',
           top: 0,
