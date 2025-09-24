@@ -99,13 +99,22 @@ export default function Portfolio({ userInfo, onBack }) {
   };
 
   const handleUploadContent = async () => {
+    console.log('开始上传内容...', { newContent, selectedPortfolio, userInfo });
+    
     if (!newContent.title.trim()) {
       setMessage('请输入作品标题');
       return;
     }
 
+    if (!selectedPortfolio || !selectedPortfolio._id) {
+      setMessage('作品集信息错误，请重试');
+      return;
+    }
+
     try {
       setUploading(true);
+      setMessage('正在上传...');
+      
       const formData = new FormData();
       formData.append('title', newContent.title);
       formData.append('content', newContent.content);
@@ -114,21 +123,38 @@ export default function Portfolio({ userInfo, onBack }) {
       formData.append('category', selectedPortfolio.category);
       formData.append('portfolioId', selectedPortfolio._id);
       
+      console.log('FormData内容:', {
+        title: newContent.title,
+        content: newContent.content,
+        authorName: userInfo.name,
+        authorClass: userInfo.class || '未知班级',
+        category: selectedPortfolio.category,
+        portfolioId: selectedPortfolio._id,
+        filesCount: newContent.files.length
+      });
+      
       newContent.files.forEach((file, index) => {
         formData.append(`files`, file);
+        console.log(`添加文件 ${index}:`, file.name, file.size);
       });
 
+      console.log('发送请求到:', '/api/portfolio/upload-content');
       const response = await fetch('/api/portfolio/upload-content', {
         method: 'POST',
         body: formData,
         credentials: 'include'
       });
       
+      console.log('响应状态:', response.status, response.statusText);
+      
       if (!response.ok) {
-        throw new Error('上传失败');
+        const errorText = await response.text();
+        console.error('上传失败响应:', errorText);
+        throw new Error(`上传失败: ${response.status} ${response.statusText}`);
       }
       
       const result = await response.json();
+      console.log('上传成功:', result);
       setMessage('内容上传成功！');
       setShowUploadContent(false);
       setNewContent({
@@ -140,7 +166,7 @@ export default function Portfolio({ userInfo, onBack }) {
       handleViewPortfolio(selectedPortfolio._id);
     } catch (error) {
       console.error('上传内容失败:', error);
-      setMessage('上传内容失败，请重试');
+      setMessage(`上传内容失败: ${error.message}`);
     } finally {
       setUploading(false);
     }

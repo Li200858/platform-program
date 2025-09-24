@@ -1567,15 +1567,23 @@ app.delete('/api/portfolio/:id/works/:workId', async (req, res) => {
 
 // 直接上传内容到作品集
 app.post('/api/portfolio/upload-content', upload.array('files'), async (req, res) => {
+  console.log('收到上传内容请求:', {
+    body: req.body,
+    files: req.files ? req.files.length : 0
+  });
+  
   const { title, content, authorName, authorClass, category, portfolioId } = req.body;
   
   if (!title || !authorName || !portfolioId) {
+    console.log('缺少必要信息:', { title, authorName, portfolioId });
     return res.status(400).json({ error: '请填写必要信息' });
   }
 
   try {
+    console.log('查找作品集:', portfolioId);
     const portfolio = await Portfolio.findById(portfolioId);
     if (!portfolio) {
+      console.log('作品集不存在:', portfolioId);
       return res.status(404).json({ error: '作品集不存在' });
     }
 
@@ -1588,6 +1596,8 @@ app.post('/api/portfolio/upload-content', upload.array('files'), async (req, res
       url: `/uploads/${file.filename}`
     })) : [];
 
+    console.log('处理文件:', files);
+
     const newContent = {
       title,
       content: content || '',
@@ -1597,9 +1607,11 @@ app.post('/api/portfolio/upload-content', upload.array('files'), async (req, res
       createdAt: new Date()
     };
 
+    console.log('添加新内容到作品集:', newContent);
     portfolio.contents.push(newContent);
     await portfolio.save();
 
+    console.log('内容上传成功');
     res.json({ message: '内容上传成功', content: newContent });
   } catch (error) {
     console.error('上传内容失败:', error);
