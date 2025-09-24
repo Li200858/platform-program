@@ -99,6 +99,32 @@ export default function Portfolio({ userInfo, onBack }) {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
+
+    setMessage('');
+    setUploading(true);
+    
+    const uploadFormData = new FormData();
+    Array.from(files).forEach(file => uploadFormData.append('files', file));
+
+    try {
+      const data = await api.upload(uploadFormData);
+      if (data && data.urls && data.urls.length > 0) {
+        setNewContent(prev => ({ ...prev, files: [...prev.files, ...data.urls] }));
+        setMessage(`成功上传 ${data.urls.length} 个文件`);
+      } else {
+        setMessage('文件上传失败，请重试');
+      }
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      setMessage('文件上传失败：' + (error.message || '请检查文件大小和格式'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUploadContent = async () => {
     console.log('开始上传内容...', { newContent, selectedPortfolio, userInfo });
     
@@ -866,10 +892,7 @@ export default function Portfolio({ userInfo, onBack }) {
               <input
                 type="file"
                 multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files);
-                  setNewContent({ ...newContent, files });
-                }}
+                onChange={handleFileUpload}
                 style={{
                   width: '100%',
                   padding: 12,

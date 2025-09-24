@@ -48,6 +48,32 @@ export default function ResourceLibrary({ userInfo, onBack }) {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
+
+    setMessage('');
+    setUploading(true);
+    
+    const uploadFormData = new FormData();
+    Array.from(files).forEach(file => uploadFormData.append('files', file));
+
+    try {
+      const data = await api.upload(uploadFormData);
+      if (data && data.urls && data.urls.length > 0) {
+        setNewResource(prev => ({ ...prev, files: [...prev.files, ...data.urls] }));
+        setMessage(`成功上传 ${data.urls.length} 个文件`);
+      } else {
+        setMessage('文件上传失败，请重试');
+      }
+    } catch (error) {
+      console.error('文件上传失败:', error);
+      setMessage('文件上传失败：' + (error.message || '请检查文件大小和格式'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUploadResource = async () => {
     if (!newResource.title.trim()) {
       setMessage('请输入资料标题');
@@ -466,10 +492,7 @@ export default function ResourceLibrary({ userInfo, onBack }) {
               <input
                 type="file"
                 multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files);
-                  setNewResource(prev => ({ ...prev, files }));
-                }}
+                onChange={handleFileUpload}
                 style={{
                   width: '100%',
                   padding: '10px',
