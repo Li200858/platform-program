@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000', showDownloadButton = false, onDownload }) {
+export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000', showDownloadButton = false, onDownload, allowDownload = true }) {
   const [selectedImage, setSelectedImage] = useState(null);
 
   if (!urls || urls.length === 0) {
@@ -101,7 +101,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => handleDownload(url)}
+                    onClick={() => window.open(fullUrl, '_blank')}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
@@ -115,6 +115,24 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                   >
                     预览
                   </button>
+                  {allowDownload && (
+                    <button
+                      onClick={() => handleDownload(url)}
+                      style={{
+                        marginTop: '5px',
+                        marginLeft: '5px',
+                        padding: '4px 8px',
+                        fontSize: '10px',
+                        background: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      下载
+                    </button>
+                  )}
                 </div>
               ) : fileType === 'video' ? (
                 <div>
@@ -141,7 +159,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => handleDownload(url)}
+                    onClick={() => window.open(fullUrl, '_blank')}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
@@ -155,6 +173,24 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                   >
                     预览
                   </button>
+                  {allowDownload && (
+                    <button
+                      onClick={() => handleDownload(url)}
+                      style={{
+                        marginTop: '5px',
+                        marginLeft: '5px',
+                        padding: '4px 8px',
+                        fontSize: '10px',
+                        background: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      下载
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -165,7 +201,7 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => handleDownload(url)}
+                    onClick={() => window.open(fullUrl, '_blank')}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
@@ -179,6 +215,24 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                   >
                     预览
                   </button>
+                  {allowDownload && (
+                    <button
+                      onClick={() => handleDownload(url)}
+                      style={{
+                        marginTop: '5px',
+                        marginLeft: '5px',
+                        padding: '4px 8px',
+                        fontSize: '10px',
+                        background: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      下载
+                    </button>
+                  )}
                 </div>
               )}
             </div>
