@@ -74,6 +74,10 @@ app.use((req, res, next) => {
 // 配置静态文件服务 - 支持持久化存储
 const uploadsDir = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/uploads' : 'uploads';
 console.log('静态文件服务目录:', uploadsDir);
+console.log('目录是否存在:', fs.existsSync(uploadsDir));
+if (fs.existsSync(uploadsDir)) {
+  console.log('目录内容:', fs.readdirSync(uploadsDir));
+}
 app.use('/uploads', express.static(uploadsDir));
 
 // 确保uploads目录存在
@@ -1794,8 +1798,13 @@ app.get('/api/resources/file/:filename', (req, res) => {
   const { filename } = req.params;
   const filePath = path.join(uploadsDir, filename);
   
+  console.log('请求文件:', filename);
+  console.log('文件路径:', filePath);
+  console.log('文件是否存在:', fs.existsSync(filePath));
+  
   // 检查文件是否存在
   if (!fs.existsSync(filePath)) {
+    console.log('文件不存在，返回404');
     return res.status(404).json({ error: '文件不存在' });
   }
   
@@ -1805,4 +1814,29 @@ app.get('/api/resources/file/:filename', (req, res) => {
   
   // 发送文件
   res.sendFile(filePath);
+});
+
+// 调试文件访问端点
+app.get('/api/debug/files', (req, res) => {
+  try {
+    const files = fs.readdirSync(uploadsDir);
+    const fileInfo = files.map(file => {
+      const filePath = path.join(uploadsDir, file);
+      const stats = fs.statSync(filePath);
+      return {
+        name: file,
+        size: stats.size,
+        created: stats.birthtime,
+        url: `/uploads/${file}`
+      };
+    });
+    
+    res.json({
+      uploadsDir,
+      files: fileInfo,
+      totalFiles: files.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
