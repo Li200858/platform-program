@@ -162,7 +162,8 @@ export default function Portfolio({ userInfo, onBack }) {
       setNewContent({
         title: '',
         content: '',
-        files: []
+        files: [],
+        allowDownload: true
       });
       // 重新加载作品集详情
       handleViewPortfolio(selectedPortfolio._id);

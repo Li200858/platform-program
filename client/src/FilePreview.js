@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000' }) {
+export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000', showDownloadButton = false, onDownload }) {
   const [selectedImage, setSelectedImage] = useState(null);
 
   if (!urls || urls.length === 0) {
@@ -101,19 +101,19 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => handleDownload(url)}
+                    onClick={() => window.open(fullUrl, '_blank')}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
                       fontSize: '10px',
-                      background: '#007bff',
+                      background: '#28a745',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
                       cursor: 'pointer'
                     }}
                   >
-                    下载
+                    打开
                   </button>
                 </div>
               ) : fileType === 'video' ? (
@@ -141,19 +141,19 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => handleDownload(url)}
+                    onClick={() => window.open(fullUrl, '_blank')}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
                       fontSize: '10px',
-                      background: '#007bff',
+                      background: '#28a745',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
                       cursor: 'pointer'
                     }}
                   >
-                    下载
+                    打开
                   </button>
                 </div>
               ) : (
@@ -165,19 +165,19 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
                     {fileName}
                   </div>
                   <button
-                    onClick={() => handleDownload(url)}
+                    onClick={() => window.open(fullUrl, '_blank')}
                     style={{
                       marginTop: '5px',
                       padding: '4px 8px',
                       fontSize: '10px',
-                      background: '#007bff',
+                      background: '#28a745',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
                       cursor: 'pointer'
                     }}
                   >
-                    下载
+                    打开
                   </button>
                 </div>
               )}

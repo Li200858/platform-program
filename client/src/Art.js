@@ -713,6 +713,40 @@ export default function Art({ userInfo, maintenanceStatus }) {
                   <span>评论 ({item.comments?.length || 0})</span>
                 </button>
 
+                {item.media && item.media.length > 0 && item.allowDownload !== false && (
+                  <button
+                    onClick={() => {
+                      item.media.forEach(url => {
+                        const link = document.createElement('a');
+                        const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+                        const apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000';
+                        link.href = `${apiBaseUrl}/uploads${cleanUrl}`;
+                        link.download = url.split('/').pop();
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      });
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '20px',
+                      border: '2px solid #28a745',
+                      background: '#fff',
+                      color: '#28a745',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      fontSize: '13px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <span>⬇️</span>
+                    <span>下载</span>
+                  </button>
+                )}
+
               </div>
             </div>
 
