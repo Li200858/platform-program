@@ -600,6 +600,7 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
             创建活动
           </button>
         </div>
+        </div>
       </form>
     </div>
   );

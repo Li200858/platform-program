@@ -608,7 +608,7 @@ export default function Art({ userInfo, maintenanceStatus }) {
                     >
                       管理合作
                     </button>
-                  <button
+                    <button
                     onClick={() => handleDeleteArt(item._id)}
                     style={{
                       background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
@@ -1322,6 +1322,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
           >
             {uploading ? '上传中...' : '发布作品'}
           </button>
+        </div>
         </div>
       </form>
     </div>
