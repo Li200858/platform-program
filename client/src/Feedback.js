@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
@@ -10,10 +10,64 @@ export default function Feedback({ userInfo }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]); // 保存选择的文件
+
+  // 保存草稿到localStorage
+  const saveDraft = () => {
+    const draft = {
+      formData,
+      selectedFiles
+    };
+    localStorage.setItem('feedback_draft', JSON.stringify(draft));
+  };
+
+  // 从localStorage恢复草稿
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem('feedback_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setFormData(draft.formData || {
+          content: '',
+          media: []
+        });
+        setSelectedFiles(draft.selectedFiles || []);
+      } catch (error) {
+        console.error('恢复草稿失败:', error);
+      }
+    }
+  };
+
+  // 清除草稿
+  const clearDraft = () => {
+    localStorage.removeItem('feedback_draft');
+    setFormData({
+      content: '',
+      media: []
+    });
+    setSelectedFiles([]);
+  };
+
+  // 组件加载时恢复草稿
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // 当表单数据变化时自动保存草稿
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 1000); // 1秒后保存，避免频繁保存
+
+    return () => clearTimeout(timer);
+  }, [formData, selectedFiles]);
 
   const handleFileUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
+
+    // 保存选择的文件
+    setSelectedFiles(Array.from(files));
 
     setUploading(true);
     
@@ -55,7 +109,8 @@ export default function Feedback({ userInfo }) {
       });
       
       alert('反馈提交成功！感谢您的建议。');
-      setFormData({ content: '', media: [] });
+      // 提交成功后清除草稿
+      clearDraft();
     } catch (error) {
       alert('提交失败：' + (error.message || '请重试'));
     } finally {

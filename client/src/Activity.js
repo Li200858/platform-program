@@ -307,10 +307,78 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
     media: []
   });
   const [uploading, setUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]); // 保存选择的文件
+
+  // 保存草稿到localStorage
+  const saveDraft = () => {
+    const draft = {
+      title: formData.title,
+      description: formData.description,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      image: formData.image,
+      media: formData.media,
+      selectedFiles: selectedFiles
+    };
+    localStorage.setItem('activity_draft', JSON.stringify(draft));
+  };
+
+  // 从localStorage恢复草稿
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem('activity_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setFormData(prev => ({
+          ...prev,
+          title: draft.title || '',
+          description: draft.description || '',
+          startDate: draft.startDate || '',
+          endDate: draft.endDate || '',
+          image: draft.image || '',
+          media: draft.media || []
+        }));
+        setSelectedFiles(draft.selectedFiles || []);
+      } catch (error) {
+        console.error('恢复草稿失败:', error);
+      }
+    }
+  };
+
+  // 清除草稿
+  const clearDraft = () => {
+    localStorage.removeItem('activity_draft');
+    setFormData({
+      title: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      image: '',
+      media: []
+    });
+    setSelectedFiles([]);
+  };
+
+  // 组件加载时恢复草稿
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // 当表单数据变化时自动保存草稿
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 1000); // 1秒后保存，避免频繁保存
+
+    return () => clearTimeout(timer);
+  }, [formData, selectedFiles]);
 
   const handleFileUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
+
+    // 保存选择的文件
+    setSelectedFiles(Array.from(files));
 
     setUploading(true);
     
@@ -351,6 +419,8 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
       });
       
       alert('活动创建成功！');
+      // 创建成功后清除草稿
+      clearDraft();
       onSuccess();
       onBack();
     } catch (error) {
@@ -463,24 +533,59 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 15, justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={onBack}
-            style={{
-              padding: '12px 24px',
-              background: '#95a5a6',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            取消
-          </button>
-          <button
-            type="submit"
+        <div style={{ display: 'flex', gap: 15, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              onClick={saveDraft}
+              style={{
+                padding: '8px 16px',
+                background: '#f39c12',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}
+            >
+              保存草稿
+            </button>
+            <button
+              type="button"
+              onClick={clearDraft}
+              style={{
+                padding: '8px 16px',
+                background: '#e67e22',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}
+            >
+              清除草稿
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 15 }}>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                padding: '12px 24px',
+                background: '#95a5a6',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: '16px'
+              }}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
             style={{
               padding: '12px 24px',
               background: '#27ae60',

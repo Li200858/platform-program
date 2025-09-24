@@ -920,6 +920,70 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
   });
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]); // 保存选择的文件
+
+  // 保存草稿到localStorage
+  const saveDraft = () => {
+    const draft = {
+      tab: formData.tab,
+      title: formData.title,
+      content: formData.content,
+      media: formData.media,
+      allowDownload: formData.allowDownload,
+      selectedFiles: selectedFiles
+    };
+    localStorage.setItem('art_draft', JSON.stringify(draft));
+  };
+
+  // 从localStorage恢复草稿
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem('art_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setFormData(prev => ({
+          ...prev,
+          tab: draft.tab || '音乐',
+          title: draft.title || '',
+          content: draft.content || '',
+          media: draft.media || [],
+          allowDownload: draft.allowDownload !== undefined ? draft.allowDownload : true
+        }));
+        setSelectedFiles(draft.selectedFiles || []);
+      } catch (error) {
+        console.error('恢复草稿失败:', error);
+      }
+    }
+  };
+
+  // 清除草稿
+  const clearDraft = () => {
+    localStorage.removeItem('art_draft');
+    setFormData({
+      tab: '音乐',
+      title: '',
+      content: '',
+      authorName: userInfo?.name || '',
+      authorClass: userInfo?.class || '',
+      media: [],
+      allowDownload: true
+    });
+    setSelectedFiles([]);
+  };
+
+  // 组件加载时恢复草稿
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // 当表单数据变化时自动保存草稿
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 1000); // 1秒后保存，避免频繁保存
+
+    return () => clearTimeout(timer);
+  }, [formData, selectedFiles]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -957,6 +1021,8 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
       
       if (result) {
         setMessage('作品发布成功！');
+        // 发布成功后清除草稿
+        clearDraft();
         // 延迟1秒后返回，让用户看到成功消息
         setTimeout(() => {
           onBack();
@@ -973,6 +1039,9 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
   const handleFileUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
+
+    // 保存选择的文件
+    setSelectedFiles(Array.from(files));
 
     // 清除之前的消息
     setMessage('');
@@ -1170,26 +1239,61 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 15, justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={uploading}
-            style={{
-              padding: '12px 24px',
-              background: uploading ? '#bdc3c7' : '#95a5a6',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              cursor: uploading ? 'not-allowed' : 'pointer',
-              fontSize: '16px',
-              opacity: uploading ? 0.6 : 1
-            }}
-          >
-            取消
-          </button>
-          <button
-            type="submit"
+        <div style={{ display: 'flex', gap: 15, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              onClick={saveDraft}
+              style={{
+                padding: '8px 16px',
+                background: '#f39c12',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}
+            >
+              保存草稿
+            </button>
+            <button
+              type="button"
+              onClick={clearDraft}
+              style={{
+                padding: '8px 16px',
+                background: '#e67e22',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}
+            >
+              清除草稿
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 15 }}>
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={uploading}
+              style={{
+                padding: '12px 24px',
+                background: uploading ? '#bdc3c7' : '#95a5a6',
+                color: 'white',
+                border: 'none',
+                borderRadius: 8,
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                fontSize: '16px',
+                opacity: uploading ? 0.6 : 1
+              }}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
             disabled={uploading}
             style={{
               padding: '12px 24px',

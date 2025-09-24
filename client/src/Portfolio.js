@@ -27,6 +27,78 @@ export default function Portfolio({ userInfo, onBack }) {
     files: [],
     allowDownload: true
   });
+  const [selectedFiles, setSelectedFiles] = useState([]); // 保存选择的文件
+
+  // 保存草稿到localStorage
+  const saveDraft = () => {
+    const draft = {
+      newPortfolio,
+      newContent,
+      selectedFiles
+    };
+    localStorage.setItem('portfolio_draft', JSON.stringify(draft));
+  };
+
+  // 从localStorage恢复草稿
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem('portfolio_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setNewPortfolio(draft.newPortfolio || {
+          title: '',
+          description: '',
+          category: '绘画',
+          tags: [],
+          isPublic: true,
+          featured: false
+        });
+        setNewContent(draft.newContent || {
+          title: '',
+          content: '',
+          files: [],
+          allowDownload: true
+        });
+        setSelectedFiles(draft.selectedFiles || []);
+      } catch (error) {
+        console.error('恢复草稿失败:', error);
+      }
+    }
+  };
+
+  // 清除草稿
+  const clearDraft = () => {
+    localStorage.removeItem('portfolio_draft');
+    setNewPortfolio({
+      title: '',
+      description: '',
+      category: '绘画',
+      tags: [],
+      isPublic: true,
+      featured: false
+    });
+    setNewContent({
+      title: '',
+      content: '',
+      files: [],
+      allowDownload: true
+    });
+    setSelectedFiles([]);
+  };
+
+  // 组件加载时恢复草稿
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // 当表单数据变化时自动保存草稿
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 1000); // 1秒后保存，避免频繁保存
+
+    return () => clearTimeout(timer);
+  }, [newPortfolio, newContent, selectedFiles]);
 
   useEffect(() => {
     if (userInfo && userInfo.name) {
@@ -59,15 +131,9 @@ export default function Portfolio({ userInfo, onBack }) {
         creator: userInfo.name
       });
       setMessage('作品集创建成功！');
+      // 创建成功后清除草稿
+      clearDraft();
       setShowCreate(false);
-      setNewPortfolio({
-        title: '',
-        description: '',
-        category: 'art',
-        tags: [],
-        isPublic: true,
-        featured: false
-      });
       loadPortfolios();
     } catch (error) {
       console.error('创建作品集失败:', error);
@@ -109,6 +175,9 @@ export default function Portfolio({ userInfo, onBack }) {
   const handleFileUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
+
+    // 保存选择的文件
+    setSelectedFiles(Array.from(files));
 
     setMessage('');
     setUploading(true);

@@ -19,6 +19,65 @@ export default function ResourceLibrary({ userInfo, onBack }) {
     files: [],
     isPublic: true
   });
+  const [selectedFiles, setSelectedFiles] = useState([]); // 保存选择的文件
+
+  // 保存草稿到localStorage
+  const saveDraft = () => {
+    const draft = {
+      newResource,
+      selectedFiles
+    };
+    localStorage.setItem('resource_draft', JSON.stringify(draft));
+  };
+
+  // 从localStorage恢复草稿
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem('resource_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setNewResource(draft.newResource || {
+          title: '',
+          description: '',
+          category: 'template',
+          tags: [],
+          files: [],
+          isPublic: true
+        });
+        setSelectedFiles(draft.selectedFiles || []);
+      } catch (error) {
+        console.error('恢复草稿失败:', error);
+      }
+    }
+  };
+
+  // 清除草稿
+  const clearDraft = () => {
+    localStorage.removeItem('resource_draft');
+    setNewResource({
+      title: '',
+      description: '',
+      category: 'template',
+      tags: [],
+      files: [],
+      isPublic: true
+    });
+    setSelectedFiles([]);
+  };
+
+  // 组件加载时恢复草稿
+  useEffect(() => {
+    loadDraft();
+  }, []);
+
+  // 当表单数据变化时自动保存草稿
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 1000); // 1秒后保存，避免频繁保存
+
+    return () => clearTimeout(timer);
+  }, [newResource, selectedFiles]);
 
   useEffect(() => {
     loadResources();
@@ -51,6 +110,9 @@ export default function ResourceLibrary({ userInfo, onBack }) {
   const handleFileUpload = (e) => {
     const files = e.target.files;
     if (!files.length) return;
+
+    // 保存选择的文件
+    setSelectedFiles(Array.from(files));
 
     setMessage('');
     // 只显示文件选择状态，不立即上传
@@ -91,15 +153,9 @@ export default function ResourceLibrary({ userInfo, onBack }) {
 
       await api.resources.upload(formData);
       setMessage('资料上传成功！');
+      // 上传成功后清除草稿
+      clearDraft();
       setShowUpload(false);
-      setNewResource({
-        title: '',
-        description: '',
-        category: 'template',
-        tags: [],
-        files: [],
-        isPublic: true
-      });
       loadResources();
     } catch (error) {
       console.error('上传资料失败:', error);
