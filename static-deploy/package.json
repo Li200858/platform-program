@@ -1,0 +1,12 @@
+{
+  "name": "platform-program-static",
+  "version": "1.0.0",
+  "description": "Static site deployment for platform program",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -s . -l 3000"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
