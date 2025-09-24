@@ -14,7 +14,6 @@ import PublicPortfolio from './PublicPortfolio';
 import ResourceLibrary from './ResourceLibrary';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
-import { NetworkStatusIndicator } from './NetworkMonitor';
 import api from './api';
 import './App.css';
 
@@ -76,12 +75,12 @@ function MainApp() {
     
     window.addEventListener('storage', handleStorageChange);
     
-    // 减少轮询频率，从2秒改为10秒
+    // 大幅减少轮询频率，从10秒改为30秒
     const interval = setInterval(() => {
       if (isMounted) {
         loadUserInfo();
       }
-    }, 10000);
+    }, 30000);
     
     return () => {
       isMounted = false;
@@ -123,6 +122,12 @@ function MainApp() {
               clearInterval(interval);
             }
           }
+          
+          // 如果是网络错误，增加重试间隔
+          if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_CLOSED')) {
+            console.warn('检测到网络问题，延长重试间隔');
+            retryCount = maxRetries; // 立即停止重试
+          }
         }
       }
     };
@@ -140,14 +145,14 @@ function MainApp() {
     const timeoutId = setTimeout(() => {
       if (isMounted) {
         loadNotificationCount();
-        // 每60秒刷新通知计数（进一步增加间隔）
+        // 每120秒刷新通知计数（大幅增加间隔）
         interval = setInterval(() => {
           if (isMounted) {
             loadNotificationCount();
           }
-        }, 60000);
+        }, 120000); // 2分钟间隔
       }
-    }, 5000); // 增加初始延迟
+    }, 10000); // 增加初始延迟到10秒
     
     // 监听页面可见性变化
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -261,9 +266,6 @@ function MainApp() {
 
   return (
     <div className="app-root">
-      {/* 网络状态指示器 */}
-      <NetworkStatusIndicator />
-      
       {/* 维护模式提示 */}
       {maintenanceStatus.isEnabled && !isAdmin && (
         <div style={{
