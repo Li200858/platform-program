@@ -16,6 +16,34 @@ const Notification = require('./models/Notification');
 const Portfolio = require('./models/Portfolio');
 const Resource = require('./models/Resource');
 
+// 文件删除工具函数
+const deleteFile = (filePath) => {
+  try {
+    if (filePath && filePath.startsWith('/uploads/')) {
+      const fullPath = path.join(__dirname, filePath);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        console.log('文件已删除:', fullPath);
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('删除文件失败:', filePath, error.message);
+  }
+  return false;
+};
+
+// 删除多个文件
+const deleteFiles = (filePaths) => {
+  if (!filePaths || !Array.isArray(filePaths)) return;
+  
+  filePaths.forEach(filePath => {
+    if (filePath) {
+      deleteFile(filePath);
+    }
+  });
+};
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -446,6 +474,11 @@ app.delete('/api/art/:id', async (req, res) => {
       return res.status(403).json({ error: '无权限删除此作品' });
     }
 
+    // 删除相关文件
+    if (work.media && Array.isArray(work.media)) {
+      deleteFiles(work.media);
+    }
+
     await Art.findByIdAndDelete(id);
     res.json({ message: '作品已删除' });
   } catch (error) {
@@ -763,6 +796,14 @@ app.delete('/api/activities/:id', async (req, res) => {
     // 检查权限：只有作者本人或管理员可以删除
     if (activity.authorName !== authorName && !isAdmin) {
       return res.status(403).json({ error: '没有权限删除此活动' });
+    }
+
+    // 删除相关文件
+    if (activity.image) {
+      deleteFile(activity.image);
+    }
+    if (activity.media && Array.isArray(activity.media)) {
+      deleteFiles(activity.media);
     }
 
     await Activity.findByIdAndDelete(id);
@@ -1567,11 +1608,17 @@ app.delete('/api/portfolio/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    const portfolio = await Portfolio.findByIdAndDelete(id);
+    const portfolio = await Portfolio.findById(id);
     if (!portfolio) {
       return res.status(404).json({ error: '作品集不存在' });
     }
-    
+
+    // 删除作品集封面图片
+    if (portfolio.coverImage) {
+      deleteFile(portfolio.coverImage);
+    }
+
+    await Portfolio.findByIdAndDelete(id);
     res.json({ message: '作品集删除成功' });
   } catch (error) {
     console.error('删除作品集失败:', error);
@@ -1750,11 +1797,17 @@ app.delete('/api/resources/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    const resource = await Resource.findByIdAndDelete(id);
+    const resource = await Resource.findById(id);
     if (!resource) {
       return res.status(404).json({ error: '资料不存在' });
     }
-    
+
+    // 删除相关文件
+    if (resource.files && Array.isArray(resource.files)) {
+      deleteFiles(resource.files);
+    }
+
+    await Resource.findByIdAndDelete(id);
     res.json({ message: '资料删除成功' });
   } catch (error) {
     console.error('删除资料失败:', error);
