@@ -662,6 +662,97 @@ app.get('/api/admin/check', async (req, res) => {
   }
 });
 
+// 设置超级管理员
+app.post('/api/admin/set-super-admin', async (req, res) => {
+  const { targetUserName, setByUserName } = req.body;
+  
+  if (!targetUserName || !setByUserName) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    // 检查操作者是否是超级管理员
+    const operator = await User.findOne({ name: setByUserName });
+    if (!operator || operator.role !== 'super_admin') {
+      return res.status(403).json({ error: '只有超级管理员可以设置其他超级管理员' });
+    }
+
+    // 检查目标用户是否存在
+    const targetUser = await User.findOne({ name: targetUserName });
+    if (!targetUser) {
+      return res.status(404).json({ error: '目标用户不存在' });
+    }
+
+    // 检查是否已经有其他超级管理员
+    const existingSuperAdmin = await User.findOne({ 
+      role: 'super_admin', 
+      name: { $ne: setByUserName } 
+    });
+    
+    if (existingSuperAdmin) {
+      return res.status(400).json({ error: '只能有一个超级管理员，请先移除现有的超级管理员' });
+    }
+
+    // 设置目标用户为超级管理员
+    targetUser.role = 'super_admin';
+    targetUser.isAdmin = true;
+    await targetUser.save();
+
+    // 将操作者降级为普通管理员
+    operator.role = 'admin';
+    await operator.save();
+
+    res.json({ 
+      message: '超级管理员设置成功',
+      newSuperAdmin: targetUserName,
+      previousSuperAdmin: setByUserName
+    });
+  } catch (error) {
+    console.error('设置超级管理员失败:', error);
+    res.status(500).json({ error: '设置失败' });
+  }
+});
+
+// 移除超级管理员权限
+app.post('/api/admin/remove-super-admin', async (req, res) => {
+  const { targetUserName, setByUserName } = req.body;
+  
+  if (!targetUserName || !setByUserName) {
+    return res.status(400).json({ error: '缺少必要参数' });
+  }
+
+  try {
+    // 检查操作者是否是超级管理员
+    const operator = await User.findOne({ name: setByUserName });
+    if (!operator || operator.role !== 'super_admin') {
+      return res.status(403).json({ error: '只有超级管理员可以移除超级管理员权限' });
+    }
+
+    // 检查目标用户是否存在
+    const targetUser = await User.findOne({ name: targetUserName });
+    if (!targetUser) {
+      return res.status(404).json({ error: '目标用户不存在' });
+    }
+
+    // 不能移除自己的超级管理员权限
+    if (targetUserName === setByUserName) {
+      return res.status(400).json({ error: '不能移除自己的超级管理员权限' });
+    }
+
+    // 将目标用户降级为普通管理员
+    targetUser.role = 'admin';
+    await targetUser.save();
+
+    res.json({ 
+      message: '超级管理员权限已移除',
+      targetUser: targetUserName
+    });
+  } catch (error) {
+    console.error('移除超级管理员权限失败:', error);
+    res.status(500).json({ error: '操作失败' });
+  }
+});
+
 // 获取所有反馈
 app.get('/api/admin/feedback', async (req, res) => {
   try {

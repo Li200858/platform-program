@@ -219,6 +219,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+    setSuperAdmin: (data) => api.request('/api/admin/set-super-admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    removeSuperAdmin: (data) => api.request('/api/admin/remove-super-admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 
   // 维护模式相关API

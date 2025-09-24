@@ -16,6 +16,8 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
   const [replyContent, setReplyContent] = useState('');
   const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
+  const [superAdminTarget, setSuperAdminTarget] = useState('');
+  const [showSuperAdminModal, setShowSuperAdminModal] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'feedbacks') {
@@ -52,6 +54,59 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
     } catch (error) {
       console.error('加载维护状态失败:', error);
       setMessage('加载维护状态失败');
+    }
+  };
+
+  // 设置超级管理员
+  const handleSetSuperAdmin = async () => {
+    if (!superAdminTarget.trim()) {
+      setMessage('请输入目标用户名');
+      return;
+    }
+
+    if (!window.confirm(`确定要将 ${superAdminTarget} 设置为超级管理员吗？\n\n注意：设置后您将失去超级管理员权限，变为普通管理员。`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.admin.setSuperAdmin({
+        targetUserName: superAdminTarget.trim(),
+        setByUserName: userInfo.name
+      });
+      setMessage('超级管理员设置成功！');
+      setSuperAdminTarget('');
+      setShowSuperAdminModal(false);
+      // 重新加载用户列表
+      loadUsers();
+    } catch (error) {
+      console.error('设置超级管理员失败:', error);
+      setMessage('设置失败：' + (error.message || '请重试'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 移除超级管理员权限
+  const handleRemoveSuperAdmin = async (targetUserName) => {
+    if (!window.confirm(`确定要移除 ${targetUserName} 的超级管理员权限吗？`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.admin.removeSuperAdmin({
+        targetUserName: targetUserName,
+        setByUserName: userInfo.name
+      });
+      setMessage('超级管理员权限已移除！');
+      // 重新加载用户列表
+      loadUsers();
+    } catch (error) {
+      console.error('移除超级管理员权限失败:', error);
+      setMessage('操作失败：' + (error.message || '请重试'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -526,7 +581,24 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
 
       {activeTab === 'users' && isSuperAdmin && (
         <div>
-          <h3 style={{ marginBottom: 20, color: '#2c3e50' }}>用户管理</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ margin: 0, color: '#2c3e50' }}>用户管理</h3>
+            <button
+              onClick={() => setShowSuperAdminModal(true)}
+              style={{
+                padding: '8px 16px',
+                background: '#e74c3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              设置超级管理员
+            </button>
+          </div>
           
           {/* 搜索用户 */}
           <div style={{ marginBottom: 30 }}>
@@ -666,15 +738,45 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
                         {user.name}
+                        {user.role === 'super_admin' && (
+                          <span style={{
+                            marginLeft: 8,
+                            padding: '2px 6px',
+                            background: '#e74c3c',
+                            color: 'white',
+                            borderRadius: 4,
+                            fontSize: '10px',
+                            fontWeight: 'bold'
+                          }}>
+                            超级管理员
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                        班级: {user.class}
+                        班级: {user.class} | 角色: {user.role === 'super_admin' ? '超级管理员' : '普通管理员'}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRemoveAdmin(user.name)}
-                      style={{
-                        padding: '6px 12px',
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {user.role === 'super_admin' && user.name !== userInfo.name && (
+                        <button
+                          onClick={() => handleRemoveSuperAdmin(user.name)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#f39c12',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          移除超级权限
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleRemoveAdmin(user.name)}
+                        style={{
+                          padding: '6px 12px',
                         background: '#dc3545',
                         color: 'white',
                         border: 'none',
@@ -839,6 +941,105 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
               <li>管理员可以正常使用所有功能</li>
               <li>维护模式可以随时开启或关闭</li>
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* 超级管理员设置模态框 */}
+      {showSuperAdminModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: 12,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            maxWidth: 500,
+            width: '90%'
+          }}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#2c3e50' }}>设置超级管理员</h3>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
+                目标用户名：
+              </label>
+              <input
+                type="text"
+                value={superAdminTarget}
+                onChange={(e) => setSuperAdminTarget(e.target.value)}
+                placeholder="请输入要设置为超级管理员的用户名"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{
+              padding: '15px',
+              background: '#fff3cd',
+              border: '1px solid #ffeaa7',
+              borderRadius: 6,
+              marginBottom: 20
+            }}>
+              <div style={{ fontWeight: 'bold', color: '#856404', marginBottom: 8 }}>
+                ⚠️ 重要提示：
+              </div>
+              <div style={{ fontSize: '14px', color: '#856404', lineHeight: 1.5 }}>
+                1. 设置新的超级管理员后，您将失去超级管理员权限，变为普通管理员<br/>
+                2. 系统中只能有一个超级管理员<br/>
+                3. 请确保目标用户已存在且为普通管理员
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowSuperAdminModal(false);
+                  setSuperAdminTarget('');
+                }}
+                style={{
+                  padding: '10px 20px',
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSetSuperAdmin}
+                disabled={loading || !superAdminTarget.trim()}
+                style={{
+                  padding: '10px 20px',
+                  background: loading || !superAdminTarget.trim() ? '#ccc' : '#e74c3c',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: loading || !superAdminTarget.trim() ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                {loading ? '设置中...' : '确认设置'}
+              </button>
+            </div>
           </div>
         </div>
       )}
