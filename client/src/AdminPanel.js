@@ -777,13 +777,13 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
                         onClick={() => handleRemoveAdmin(user.name)}
                         style={{
                           padding: '6px 12px',
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
+                          background: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
                     >
                       移除管理员
                     </button>
