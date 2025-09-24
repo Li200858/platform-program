@@ -369,16 +369,6 @@ export default function PublicPortfolio({ userInfo, onBack }) {
                         </div>
                       ))}
                     </div>
-                    <div style={{ 
-                      marginTop: 15, 
-                      padding: 10, 
-                      background: '#fff3cd', 
-                      borderRadius: 4, 
-                      fontSize: '12px', 
-                      color: '#856404' 
-                    }}>
-                      ⚠️ 版权保护：附件仅供预览，不支持下载
-                    </div>
                   </div>
                 )}
               </div>

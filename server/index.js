@@ -794,7 +794,10 @@ app.delete('/api/activities/:id', async (req, res) => {
     }
 
     // 检查权限：只有作者本人或管理员可以删除
-    if (activity.authorName !== authorName && !isAdmin) {
+    const isAuthor = activity.authorName === authorName;
+    const isAdminUser = isAdmin === 'true';
+    
+    if (!isAuthor && !isAdminUser) {
       return res.status(403).json({ error: '没有权限删除此活动' });
     }
 
@@ -1606,11 +1609,20 @@ app.put('/api/portfolio/:id', async (req, res) => {
 // 删除作品集
 app.delete('/api/portfolio/:id', async (req, res) => {
   const { id } = req.params;
+  const { authorName, isAdmin } = req.query;
   
   try {
     const portfolio = await Portfolio.findById(id);
     if (!portfolio) {
       return res.status(404).json({ error: '作品集不存在' });
+    }
+
+    // 检查权限：只有作者本人或管理员可以删除
+    const isAuthor = portfolio.creator === authorName;
+    const isAdminUser = isAdmin === 'true';
+    
+    if (!isAuthor && !isAdminUser) {
+      return res.status(403).json({ error: '没有权限删除此作品集' });
     }
 
     // 删除作品集封面图片
@@ -1795,11 +1807,20 @@ app.post('/api/resources/upload', upload.array('files'), async (req, res) => {
 // 删除资料
 app.delete('/api/resources/:id', async (req, res) => {
   const { id } = req.params;
+  const { authorName, isAdmin } = req.query;
   
   try {
     const resource = await Resource.findById(id);
     if (!resource) {
       return res.status(404).json({ error: '资料不存在' });
+    }
+
+    // 检查权限：只有作者本人或管理员可以删除
+    const isAuthor = resource.authorName === authorName;
+    const isAdminUser = isAdmin === 'true';
+    
+    if (!isAuthor && !isAdminUser) {
+      return res.status(403).json({ error: '没有权限删除此资料' });
     }
 
     // 删除相关文件
