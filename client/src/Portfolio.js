@@ -118,7 +118,17 @@ export default function Portfolio({ userInfo, onBack }) {
         formData.append(`files`, file);
       });
 
-      await api.portfolio.uploadContent(formData);
+      const response = await fetch('/api/portfolio/upload-content', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('上传失败');
+      }
+      
+      const result = await response.json();
       setMessage('内容上传成功！');
       setShowUploadContent(false);
       setNewContent({
@@ -422,7 +432,7 @@ export default function Portfolio({ userInfo, onBack }) {
         {(!selectedPortfolio.contents || selectedPortfolio.contents.length === 0) && 
          (!selectedPortfolio.works || selectedPortfolio.works.length === 0) && (
           <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>📁</div>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>[文件夹]</div>
             <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无作品</div>
             <div style={{ fontSize: '14px' }}>点击"上传内容"来添加您的作品</div>
           </div>
@@ -477,7 +487,7 @@ export default function Portfolio({ userInfo, onBack }) {
       {/* 作品集列表 */}
       {portfolios.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#7f8c8d' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>📚</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>[作品集]</div>
           <div style={{ fontSize: '20px', marginBottom: '10px' }}>还没有作品集</div>
           <div style={{ fontSize: '14px', marginBottom: '30px' }}>创建您的第一个作品集，展示您的优秀作品</div>
           <button

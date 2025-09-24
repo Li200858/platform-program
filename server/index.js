@@ -1445,6 +1445,20 @@ app.get('/api/portfolio/user/:username', async (req, res) => {
   }
 });
 
+// 获取所有公开作品集
+app.get('/api/portfolio/public', async (req, res) => {
+  try {
+    const portfolios = await Portfolio.find({ isPublic: true })
+      .populate('works', 'title content media authorName authorClass createdAt')
+      .sort({ updatedAt: -1 });
+    
+    res.json(portfolios);
+  } catch (error) {
+    console.error('获取公开作品集失败:', error);
+    res.status(500).json({ error: '获取公开作品集失败' });
+  }
+});
+
 // 获取作品集详情
 app.get('/api/portfolio/:id', async (req, res) => {
   const { id } = req.params;

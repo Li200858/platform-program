@@ -218,6 +218,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
     getUserPortfolios: (username) => api.request(`/api/portfolio/user/${username}`),
+    getPublicPortfolios: () => api.request('/api/portfolio/public'),
     getPortfolio: (id) => api.request(`/api/portfolio/${id}`),
     update: (id, data) => api.request(`/api/portfolio/${id}`, {
       method: 'PUT',

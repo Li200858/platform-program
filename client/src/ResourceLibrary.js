@@ -119,13 +119,13 @@ export default function ResourceLibrary({ userInfo, onBack }) {
 
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'template': return '📄';
-      case 'image': return '🖼️';
-      case 'video': return '🎥';
-      case 'audio': return '🎵';
-      case 'document': return '📋';
-      case 'tutorial': return '📚';
-      default: return '📁';
+      case 'template': return '[模板]';
+      case 'image': return '[图片]';
+      case 'video': return '[视频]';
+      case 'audio': return '[音频]';
+      case 'document': return '[文档]';
+      case 'tutorial': return '[教程]';
+      default: return '[文件]';
     }
   };
 
@@ -243,7 +243,7 @@ export default function ResourceLibrary({ userInfo, onBack }) {
       {/* 资料列表 */}
       {filteredResources.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#7f8c8d' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>📚</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>[资料库]</div>
           <div style={{ fontSize: '20px', marginBottom: '10px' }}>
             {searchQuery || selectedCategory !== 'all' ? '没有找到相关资料' : '还没有资料'}
           </div>

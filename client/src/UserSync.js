@@ -140,7 +140,7 @@ export default function UserSync({ onBack }) {
             border: '1px solid #c3e6c3'
           }}>
             <div style={{ fontSize: '14px', color: '#27ae60', fontWeight: 'bold', marginBottom: '5px' }}>
-              ✅ 已绑定用户信息
+              [已绑定] 已绑定用户信息
             </div>
             <div style={{ fontSize: '13px', color: '#2c3e50' }}>
               <strong>姓名：</strong>{currentUserInfo.name}
@@ -161,7 +161,7 @@ export default function UserSync({ onBack }) {
             border: '1px solid #ffeaa7'
           }}>
             <div style={{ fontSize: '14px', color: '#856404', fontWeight: 'bold', marginBottom: '5px' }}>
-              ⚠️ 未绑定用户信息
+              [警告] 未绑定用户信息
             </div>
             <div style={{ fontSize: '12px', color: '#856404' }}>
               此ID尚未绑定任何用户信息，需要先在个人信息页面填写姓名和班级
