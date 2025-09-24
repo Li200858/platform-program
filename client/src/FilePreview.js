@@ -47,8 +47,9 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
 
   const handleDownload = (url) => {
     const link = document.createElement('a');
-    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    link.href = `${apiBaseUrl}/uploads${cleanUrl}`;
+    // 如果URL已经包含完整路径，直接使用；否则构建完整URL
+    const downloadUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
+    link.href = downloadUrl;
     link.download = url.split('/').pop();
     document.body.appendChild(link);
     link.click();
@@ -60,9 +61,8 @@ export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV ==
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
         {urls.map((url, index) => {
           const fileType = getFileType(url);
-          // 确保URL格式正确
-          const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-          const fullUrl = `${apiBaseUrl}/uploads${cleanUrl}`;
+          // 如果URL已经包含完整路径，直接使用；否则构建完整URL
+          const fullUrl = url.startsWith('http') ? url : `${apiBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
           const fileName = url.split('/').pop();
 
           return (
