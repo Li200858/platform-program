@@ -26,18 +26,32 @@ const deleteFile = (filePath) => {
     
     // 处理不同的路径格式
     let fullPath;
+    const fileName = path.basename(filePath);
+    
     if (filePath.startsWith('/uploads/')) {
+      // 处理 /uploads/filename 格式
       fullPath = path.join(__dirname, filePath);
     } else if (filePath.startsWith('uploads/')) {
+      // 处理 uploads/filename 格式
       fullPath = path.join(__dirname, filePath);
     } else if (filePath.includes('uploads/')) {
-      // 如果路径包含uploads但格式不同，尝试构建完整路径
-      const fileName = path.basename(filePath);
+      // 处理完整URL格式，提取文件名
       fullPath = path.join(__dirname, 'uploads', fileName);
+    } else if (filePath.includes('/uploads/')) {
+      // 处理包含 /uploads/ 的路径
+      fullPath = path.join(__dirname, filePath);
     } else {
       console.log('文件路径格式不支持:', filePath);
       return false;
     }
+    
+    // 在生产环境中，使用正确的上传目录
+    if (process.env.NODE_ENV === 'production') {
+      const productionUploadDir = '/opt/render/project/src/uploads';
+      fullPath = path.join(productionUploadDir, fileName);
+    }
+    
+    console.log('尝试删除文件:', fullPath);
     
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
@@ -79,7 +93,9 @@ const deleteFiles = (filePaths) => {
 const cleanupOrphanedFiles = async () => {
   try {
     console.log('开始清理孤立文件...');
-    const uploadsDir = path.join(__dirname, 'uploads');
+    const uploadsDir = process.env.NODE_ENV === 'production' ? 
+      '/opt/render/project/src/uploads' : 
+      path.join(__dirname, 'uploads');
     
     if (!fs.existsSync(uploadsDir)) {
       console.log('uploads目录不存在，跳过清理');
