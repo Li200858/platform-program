@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="艺术平台">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>移动端Safari兼容性测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            /* 移动端Safari兼容性修复 */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000px;
+            perspective: 1000px;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            /* 移动端Safari特殊修复 */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .test-section h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .test-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+        }
+        
+        .button:hover {
+            background: #2980b9;
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .browser-info {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 移动端Safari兼容性测试</h1>
+            <p>测试艺术平台在移动端Safari中的显示效果</p>
+        </div>
+        
+        <div class="status">
+            ✅ 页面已加载完成
+        </div>
+        
+        <div class="browser-info" id="browserInfo">
+            正在检测浏览器信息...
+        </div>
+        
+        <div class="test-section">
+            <h2>功能测试</h2>
+            <div class="test-item">
+                <h3>背景渐变</h3>
+                <p>检查背景渐变是否正常显示</p>
+            </div>
+            <div class="test-item">
+                <h3>毛玻璃效果</h3>
+                <p>检查backdrop-filter是否正常工作</p>
+            </div>
+            <div class="test-item">
+                <h3>按钮交互</h3>
+                <p>检查按钮点击是否正常响应</p>
+                <button class="button" onclick="testButton()">测试按钮</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>兼容性信息</h2>
+            <div class="info">
+                <strong>已应用的修复：</strong><br>
+                • 强制硬件加速 (translateZ(0))<br>
+                • 防止内容隐藏 (backface-visibility: hidden)<br>
+                • 移动端Safari特殊样式<br>
+                • 触摸事件优化<br>
+                • 文本大小调整禁用
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>操作测试</h2>
+            <div class="info">
+                <strong>请测试以下操作：</strong><br>
+                1. 滚动页面 - 检查是否流畅<br>
+                2. 点击按钮 - 检查响应是否正常<br>
+                3. 缩放页面 - 检查内容是否正常显示<br>
+                4. 旋转设备 - 检查布局是否适应
+            </div>
+            <button class="button" onclick="window.location.reload()">刷新页面</button>
+            <button class="button" onclick="testScroll()">测试滚动</button>
+        </div>
+    </div>
+
+    <script>
+        // 检测浏览器信息
+        function detectBrowser() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isWeChat = /micromessenger/i.test(userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            
+            var browserInfo = document.getElementById('browserInfo');
+            browserInfo.innerHTML = `
+                <strong>浏览器信息：</strong><br>
+                用户代理: ${navigator.userAgent}<br>
+                微信浏览器: ${isWeChat ? '是' : '否'}<br>
+                Safari浏览器: ${isSafari ? '是' : '否'}<br>
+                移动设备: ${isMobile ? '是' : '否'}<br>
+                iOS设备: ${isIOS ? '是' : '否'}<br>
+                屏幕尺寸: ${window.innerWidth} x ${window.innerHeight}
+            `;
+        }
+        
+        // 测试按钮功能
+        function testButton() {
+            alert('按钮点击测试成功！');
+        }
+        
+        // 测试滚动功能
+        function testScroll() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+        
+        // 移动端Safari特殊修复
+        function applySafariFixes() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            
+            if (isIOS || (isSafari && isMobile)) {
+                console.log('检测到iOS设备或移动端Safari，应用特殊修复');
+                
+                // 强制硬件加速
+                document.body.style.webkitTransform = 'translateZ(0)';
+                document.body.style.transform = 'translateZ(0)';
+                document.body.style.webkitBackfaceVisibility = 'hidden';
+                document.body.style.backfaceVisibility = 'hidden';
+                document.body.style.webkitPerspective = '1000px';
+                document.body.style.perspective = '1000px';
+                
+                // 防止iOS Safari的缩放问题
+                document.addEventListener('touchstart', function(e) {
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+                
+                // 防止iOS Safari的滚动问题
+                document.addEventListener('touchmove', function(e) {
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            }
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            detectBrowser();
+            applySafariFixes();
+        });
+        
+        // 窗口大小变化处理
+        window.addEventListener('resize', function() {
+            detectBrowser();
+        });
+    </script>
+</body>
+</html>

@@ -3,29 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#667eea" />
     <meta
       name="description"
       content="海淀外国语国际部艺术平台 - 展示学生艺术作品，分享创作灵感"
     />
     <meta name="keywords" content="艺术,作品,学生,创作,分享,海淀外国语" />
     <meta name="author" content="海淀外国语国际部" />
-    <!-- Safari和微信浏览器兼容性修复 -->
-    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- 移动端Safari兼容性优化 -->
+    <meta name="format-detection" content="telephone=no, email=no, address=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="艺术平台" />
-    <!-- 微信浏览器特定设置 -->
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- 微信浏览器兼容性 -->
     <meta name="x5-orientation" content="portrait" />
     <meta name="x5-fullscreen" content="true" />
     <meta name="x5-page-mode" content="app" />
     <meta name="browsermode" content="application" />
     <meta name="x5-cache" content="false" />
-    <!-- 防止微信浏览器缓存问题 -->
+    
+    <!-- 防止缓存问题 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    
+    <!-- 移动端Safari特殊优化 -->
+    <meta name="apple-mobile-web-app-status-bar-inset" content="no" />
+    <meta name="apple-mobile-web-app-orientations" content="portrait" />
     <title>海淀外国语国际部艺术平台</title>
   </head>
   <body>
@@ -48,31 +57,76 @@
       </div>
     </div>
     <script>
-      // 微信浏览器和Safari兼容性检查和错误处理
+      // 移动端Safari和微信浏览器兼容性优化
       (function() {
         var loadingFallback = document.getElementById('loading-fallback');
         var root = document.getElementById('root');
-        
-        // 立即显示加载提示
-        if (loadingFallback) {
-          loadingFallback.style.display = 'block';
-        }
         
         // 检测浏览器类型
         var userAgent = navigator.userAgent.toLowerCase();
         var isWeChat = /micromessenger/i.test(userAgent);
         var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+        var isIOS = /iphone|ipad|ipod/i.test(userAgent);
         
         console.log('浏览器检测:', {
           isWeChat: isWeChat,
           isSafari: isSafari,
           isMobile: isMobile,
+          isIOS: isIOS,
           userAgent: userAgent
         });
         
-        // 微信浏览器特定修复
+        // 立即显示加载提示
+        if (loadingFallback) {
+          loadingFallback.style.display = 'block';
+        }
+        
+        // 移动端Safari和iOS设备特殊修复
+        if (isIOS || (isSafari && isMobile)) {
+          console.log('检测到iOS设备或移动端Safari，应用特殊修复');
+          
+          // 强制硬件加速
+          document.body.style.webkitTransform = 'translateZ(0)';
+          document.body.style.transform = 'translateZ(0)';
+          document.body.style.webkitBackfaceVisibility = 'hidden';
+          document.body.style.backfaceVisibility = 'hidden';
+          document.body.style.webkitPerspective = '1000px';
+          document.body.style.perspective = '1000px';
+          
+          // 确保root元素可见
+          if (root) {
+            root.style.webkitTransform = 'translateZ(0)';
+            root.style.transform = 'translateZ(0)';
+            root.style.webkitBackfaceVisibility = 'hidden';
+            root.style.backfaceVisibility = 'hidden';
+            root.style.position = 'relative';
+            root.style.zIndex = '1';
+            root.style.minHeight = '100vh';
+            root.style.display = 'block';
+            root.style.visibility = 'visible';
+            root.style.opacity = '1';
+          }
+          
+          // 防止iOS Safari的缩放问题
+          document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+              e.preventDefault();
+            }
+          }, { passive: false });
+          
+          // 防止iOS Safari的滚动问题
+          document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) {
+              e.preventDefault();
+            }
+          }, { passive: false });
+        }
+        
+        // 微信浏览器特殊修复
         if (isWeChat) {
+          console.log('检测到微信浏览器，应用特殊修复');
+          
           // 微信浏览器需要特殊的CSS修复
           document.body.style.webkitTransform = 'translateZ(0)';
           document.body.style.transform = 'translateZ(0)';
@@ -81,12 +135,6 @@
           
           // 强制重绘
           document.body.offsetHeight;
-        }
-        
-        // Safari特定修复
-        if (isSafari) {
-          document.body.style.webkitTransform = 'translateZ(0)';
-          document.body.style.transform = 'translateZ(0)';
         }
         
         // 检查React应用是否加载成功
@@ -122,13 +170,13 @@
             }
           }, 500);
           
-          // 10秒后强制隐藏加载提示
+          // 8秒后强制隐藏加载提示
           setTimeout(function() {
             clearInterval(checkInterval);
             if (loadingFallback) {
               loadingFallback.style.display = 'none';
             }
-          }, 10000);
+          }, 8000);
         }
         
         // 错误处理
@@ -139,153 +187,26 @@
           }
         });
         
-        // 微信浏览器特殊处理
-        if (isWeChat) {
-          console.log('检测到微信浏览器，应用特殊处理');
-          // 微信浏览器需要特殊的CSS修复
-          document.body.style.webkitTransform = 'translateZ(0)';
-          document.body.style.transform = 'translateZ(0)';
-          document.body.style.webkitBackfaceVisibility = 'hidden';
-          document.body.style.backfaceVisibility = 'hidden';
-          
-          // 强制重绘
-          document.body.offsetHeight;
-          
-          // 微信浏览器特殊处理：如果React加载失败，显示降级内容
-          setTimeout(function() {
-            if (!checkReactLoaded()) {
-              console.log('微信浏览器中React加载失败，显示降级内容');
-              showWeChatFallback();
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+          if (!document.hidden) {
+            // 页面重新可见时，强制重绘
+            if (root) {
+              root.style.webkitTransform = 'translateZ(0)';
+              root.style.transform = 'translateZ(0)';
             }
-          }, 5000);
-        }
-        
-        // 微信浏览器降级方案
-        function showWeChatFallback() {
-          var root = document.getElementById('root');
-          if (root) {
-            root.innerHTML = `
-              <div style="
-                min-height: 100vh;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-                padding: 20px;
-                text-align: center;
-              ">
-                <div style="
-                  max-width: 600px;
-                  margin: 0 auto;
-                  background: rgba(255, 255, 255, 0.1);
-                  border-radius: 15px;
-                  padding: 30px;
-                  backdrop-filter: blur(10px);
-                ">
-                  <h1 style="font-size: 28px; margin-bottom: 20px;">🎨 海淀外国语国际部艺术平台</h1>
-                  <p style="font-size: 16px; margin-bottom: 30px; opacity: 0.9;">HFLS International Art Platform</p>
-                  
-                  <div style="
-                    background: rgba(39, 174, 96, 0.3);
-                    padding: 15px;
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                  ">
-                    ✅ 微信浏览器优化版本
-                  </div>
-                  
-                  <div style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                    text-align: left;
-                  ">
-                    <h3 style="margin-bottom: 15px;">平台功能</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">🎨</div>
-                        <div style="font-size: 14px; font-weight: bold;">艺术作品</div>
-                      </div>
-                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">📅</div>
-                        <div style="font-size: 14px; font-weight: bold;">活动展示</div>
-                      </div>
-                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">📁</div>
-                        <div style="font-size: 14px; font-weight: bold;">作品集</div>
-                      </div>
-                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">💬</div>
-                        <div style="font-size: 14px; font-weight: bold;">意见反馈</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style="
-                    background: rgba(255, 255, 255, 0.1);
-                    padding: 15px;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                    font-size: 14px;
-                  ">
-                    <strong>使用说明：</strong><br>
-                    • 在微信中浏览学生艺术作品<br>
-                    • 查看最新的艺术活动信息<br>
-                    • 探索各种艺术创作形式<br>
-                    • 参与平台互动和反馈
-                  </div>
-                  
-                  <div style="margin-top: 30px;">
-                    <button onclick="window.location.reload()" style="
-                      padding: 12px 24px;
-                      background: #3498db;
-                      color: white;
-                      border: none;
-                      border-radius: 6px;
-                      font-size: 16px;
-                      cursor: pointer;
-                      margin: 5px;
-                    ">刷新页面</button>
-                    <button onclick="window.open('https://www.hfls.com.cn', '_blank')" style="
-                      padding: 12px 24px;
-                      background: #27ae60;
-                      color: white;
-                      border: none;
-                      border-radius: 6px;
-                      font-size: 16px;
-                      cursor: pointer;
-                      margin: 5px;
-                    ">访问官网</button>
-                  </div>
-                  
-                  <div style="margin-top: 20px; font-size: 12px; opacity: 0.7;">
-                    © 2024 海淀外国语国际部艺术平台
-                  </div>
-                </div>
-              </div>
-            `;
           }
-        }
+        });
         
-        // 移动端Safari特殊处理
-        if (isSafari && isMobile) {
-          console.log('检测到移动端Safari，应用特殊修复');
-          // 强制硬件加速
-          document.body.style.webkitTransform = 'translateZ(0)';
-          document.body.style.transform = 'translateZ(0)';
-          document.body.style.webkitBackfaceVisibility = 'hidden';
-          document.body.style.backfaceVisibility = 'hidden';
-          
-          // 确保内容可见
-          setTimeout(function() {
-            var rootElement = document.getElementById('root');
-            if (rootElement) {
-              rootElement.style.display = 'block';
-              rootElement.style.visibility = 'visible';
-              rootElement.style.opacity = '1';
-            }
-          }, 100);
-        }
+        // 窗口大小变化处理
+        window.addEventListener('resize', function() {
+          // 强制重绘，确保内容在Safari中正确显示
+          if (root) {
+            root.style.webkitTransform = 'translateZ(0)';
+            root.style.transform = 'translateZ(0)';
+          }
+        });
+        
       })();
     </script>
     <!--

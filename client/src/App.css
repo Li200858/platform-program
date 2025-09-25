@@ -17,7 +17,7 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   color: #2c3e50;
-  /* 确保内容可见性 - 微信和Safari兼容性修复 */
+  /* 确保内容可见性 - 移动端Safari兼容性修复 */
   position: relative;
   z-index: 1;
   /* 强制硬件加速 */
@@ -25,9 +25,18 @@ body {
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
   /* 防止内容被隐藏 */
   overflow-x: hidden;
   overflow-y: auto;
+  /* 移动端Safari特殊修复 */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  /* 确保内容在Safari中可见 */
+  display: block;
+  visibility: visible;
+  opacity: 1;
 }
 
 /* 移除复杂的渐变动画，提高Safari兼容性 */
@@ -36,11 +45,13 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* Safari和微信兼容性修复 */
+  /* 移动端Safari兼容性修复 */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
   /* 确保内容在Safari中可见 */
   position: relative;
   z-index: 2;
@@ -48,6 +59,13 @@ body {
   will-change: transform;
   /* 确保内容不被裁剪 */
   overflow: visible;
+  /* 移动端Safari特殊修复 */
+  -webkit-overflow-scrolling: touch;
+  /* 确保内容在Safari中正确显示 */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  width: 100%;
 }
 
 /* 顶部导航栏 */
@@ -264,9 +282,19 @@ body {
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
   /* 防止内容被隐藏 */
   min-height: 200px;
   width: 100%;
+  /* 移动端Safari特殊修复 */
+  -webkit-overflow-scrolling: touch;
+  /* 确保内容在Safari中正确显示 */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  /* 强制渲染层 */
+  will-change: transform;
 }
 
 /* 页脚 */
@@ -465,6 +493,16 @@ body {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   min-height: 100vh;
+  /* 移动端Safari特殊修复 */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  /* 确保内容在Safari中可见 */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  width: 100%;
 }
 
 #root > div {
@@ -472,4 +510,99 @@ body {
   z-index: 2;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  /* 确保内容在Safari中正确显示 */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* 移动端Safari特殊修复 */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari特定样式 */
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  .app-root {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  .main-content {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  .main-nav button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  #root {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  #root > div {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* iPad Safari特殊修复 */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (-webkit-min-device-pixel-ratio: 1) {
+  .app-root {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+  }
+  
+  .main-content {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    position: relative;
+    z-index: 3;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .main-nav button {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    position: relative;
+    z-index: 4;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  #root {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  #root > div {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
 }

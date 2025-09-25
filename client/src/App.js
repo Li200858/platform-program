@@ -276,6 +276,64 @@ function MainApp() {
     };
   }, []);
 
+  // 移动端Safari兼容性修复
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+
+    if (isIOS || (isSafari && isMobile)) {
+      console.log('检测到iOS设备或移动端Safari，应用特殊修复');
+      
+      // 强制重绘，确保内容在Safari中可见
+      const forceRepaint = () => {
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+          rootElement.style.webkitTransform = 'translateZ(0)';
+          rootElement.style.transform = 'translateZ(0)';
+          rootElement.style.webkitBackfaceVisibility = 'hidden';
+          rootElement.style.backfaceVisibility = 'hidden';
+          rootElement.style.position = 'relative';
+          rootElement.style.zIndex = '1';
+          rootElement.style.minHeight = '100vh';
+          rootElement.style.display = 'block';
+          rootElement.style.visibility = 'visible';
+          rootElement.style.opacity = '1';
+        }
+      };
+
+      // 立即执行一次
+      forceRepaint();
+
+      // 延迟执行，确保React组件渲染完成
+      setTimeout(forceRepaint, 100);
+      setTimeout(forceRepaint, 500);
+      setTimeout(forceRepaint, 1000);
+
+      // 监听页面可见性变化
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          forceRepaint();
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // 监听窗口大小变化
+      const handleResize = () => {
+        forceRepaint();
+      };
+
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, []);
+
 
   // 加载维护模式状态
   useEffect(() => {
