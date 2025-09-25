@@ -24,33 +24,20 @@ const deleteFile = (filePath) => {
       return false;
     }
     
-    // 处理不同的路径格式
-    let fullPath;
+    // 从任何格式的路径中提取文件名
     const fileName = path.basename(filePath);
+    console.log('提取的文件名:', fileName);
     
-    if (filePath.startsWith('/uploads/')) {
-      // 处理 /uploads/filename 格式
-      fullPath = path.join(__dirname, filePath);
-    } else if (filePath.startsWith('uploads/')) {
-      // 处理 uploads/filename 格式
-      fullPath = path.join(__dirname, filePath);
-    } else if (filePath.includes('uploads/')) {
-      // 处理完整URL格式，提取文件名
-      fullPath = path.join(__dirname, 'uploads', fileName);
-    } else if (filePath.includes('/uploads/')) {
-      // 处理包含 /uploads/ 的路径
-      fullPath = path.join(__dirname, filePath);
-    } else {
-      console.log('文件路径格式不支持:', filePath);
-      return false;
-    }
-    
-    // 在生产环境中，使用正确的上传目录
+    // 根据环境确定正确的上传目录
+    let uploadDir;
     if (process.env.NODE_ENV === 'production') {
-      const productionUploadDir = '/opt/render/project/src/uploads';
-      fullPath = path.join(productionUploadDir, fileName);
+      uploadDir = '/opt/render/project/src/uploads';
+    } else {
+      uploadDir = path.join(__dirname, 'uploads');
     }
     
+    // 构建完整的文件路径
+    const fullPath = path.join(uploadDir, fileName);
     console.log('尝试删除文件:', fullPath);
     
     if (fs.existsSync(fullPath)) {
@@ -1324,6 +1311,28 @@ app.post('/api/admin/cleanup-files', async (req, res) => {
   } catch (error) {
     console.error('清理孤立文件失败:', error);
     res.status(500).json({ error: '清理失败' });
+  }
+});
+
+// 测试文件删除功能（管理员专用）
+app.post('/api/admin/test-file-delete', async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    if (!filePath) {
+      return res.status(400).json({ error: '请提供文件路径' });
+    }
+    
+    console.log('测试删除文件:', filePath);
+    const result = deleteFile(filePath);
+    
+    res.json({ 
+      success: result,
+      message: result ? '文件删除成功' : '文件删除失败',
+      filePath: filePath
+    });
+  } catch (error) {
+    console.error('测试文件删除失败:', error);
+    res.status(500).json({ error: '测试失败' });
   }
 });
 
