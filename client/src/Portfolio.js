@@ -147,7 +147,7 @@ export default function Portfolio({ userInfo, isAdmin, onBack }) {
     }
 
     try {
-      await api.portfolio.delete(portfolioId);
+      await api.portfolio.delete(portfolioId, userInfo.name, isAdmin || false);
       setMessage('作品集删除成功！');
       loadPortfolios();
     } catch (error) {

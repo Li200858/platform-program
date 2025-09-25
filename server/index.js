@@ -1886,8 +1886,11 @@ app.delete('/api/portfolio/:id', async (req, res) => {
   const { authorName, isAdmin } = req.query;
   
   try {
+    console.log(`删除作品集请求: ID=${id}, authorName=${authorName}, isAdmin=${isAdmin}`);
+    
     const portfolio = await Portfolio.findById(id);
     if (!portfolio) {
+      console.log('作品集不存在:', id);
       return res.status(404).json({ error: '作品集不存在' });
     }
 
@@ -1895,16 +1898,21 @@ app.delete('/api/portfolio/:id', async (req, res) => {
     const isAuthor = portfolio.creator === authorName;
     const isAdminUser = isAdmin === 'true';
     
+    console.log(`权限检查: isAuthor=${isAuthor}, isAdminUser=${isAdminUser}, creator=${portfolio.creator}`);
+
     if (!isAuthor && !isAdminUser) {
+      console.log('权限不足，拒绝删除作品集');
       return res.status(403).json({ error: '没有权限删除此作品集' });
     }
 
     // 删除作品集封面图片
     if (portfolio.coverImage) {
+      console.log('删除作品集封面图片:', portfolio.coverImage);
       deleteFile(portfolio.coverImage);
     }
 
     await Portfolio.findByIdAndDelete(id);
+    console.log('作品集删除成功:', id);
     res.json({ message: '作品集删除成功' });
   } catch (error) {
     console.error('删除作品集失败:', error);

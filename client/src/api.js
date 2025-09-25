@@ -273,7 +273,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-    delete: (id) => api.request(`/api/portfolio/${id}`, {
+    delete: (id, authorName, isAdmin) => api.request(`/api/portfolio/${id}?authorName=${encodeURIComponent(authorName)}&isAdmin=${isAdmin}`, {
       method: 'DELETE',
     }),
     addWork: (id, data) => api.request(`/api/portfolio/${id}/works`, {
