@@ -140,7 +140,7 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
     }
 
     try {
-      await api.art.delete(id, userInfo.name, userInfo.isAdmin || false);
+      await api.art.delete(id, userInfo.name, isAdmin || false);
       setList(prev => prev.filter(item => item._id !== id));
       setMessage('作品已删除');
     } catch (error) {
