@@ -91,7 +91,7 @@ export default function Activity({ userInfo, isAdmin, onBack, maintenanceStatus 
     }
 
     try {
-      await api.activity.delete(id, userInfo.name, userInfo.isAdmin || false);
+      await api.activity.delete(id, userInfo.name, isAdmin || false);
       setActivities(prev => prev.filter(item => item._id !== id));
       setMessage('活动已删除');
     } catch (error) {
