@@ -130,26 +130,9 @@
         
         // 微信浏览器特殊处理
         if (isWeChat) {
-          // 防止缓存问题
-          if (window.location.search.indexOf('t=') === -1) {
-            var newUrl = window.location.href + (window.location.search ? '&' : '?') + 't=' + Date.now();
-            window.history.replaceState({}, '', newUrl);
-          }
-          
-          // 5秒后显示简化版本选项
-          setTimeout(function() {
-            if (loadingFallback && loadingFallback.style.display !== 'none') {
-              loadingFallback.innerHTML = '<div>微信浏览器加载中...</div><div style="margin-top: 10px; font-size: 14px;">如果长时间无响应，请使用简化版本</div><div style="margin-top: 15px;"><button onclick="window.location.href=\'/wechat-simple.html\'" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">使用简化版本</button></div>';
-            }
-          }, 5000);
-          
-          // 15秒后自动跳转到简化版本
-          setTimeout(function() {
-            if (loadingFallback && loadingFallback.style.display !== 'none') {
-              console.log('微信浏览器加载超时，跳转到简化版本');
-              window.location.href = '/wechat-simple.html';
-            }
-          }, 15000);
+          // 立即跳转到基础版本
+          console.log('检测到微信浏览器，跳转到基础版本');
+          window.location.href = '/wechat-basic.html';
         }
       })();
     </script>
