@@ -784,9 +784,10 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
                           cursor: 'pointer',
                           fontSize: '12px'
                         }}
-                    >
-                      移除管理员
-                    </button>
+                      >
+                        移除管理员
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {users.length === 0 && (
