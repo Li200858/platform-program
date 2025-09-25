@@ -19,13 +19,33 @@ const Resource = require('./models/Resource');
 // 文件删除工具函数
 const deleteFile = (filePath) => {
   try {
-    if (filePath && filePath.startsWith('/uploads/')) {
-      const fullPath = path.join(__dirname, filePath);
-      if (fs.existsSync(fullPath)) {
-        fs.unlinkSync(fullPath);
-        console.log('文件已删除:', fullPath);
-        return true;
-      }
+    if (!filePath) {
+      console.log('文件路径为空，跳过删除');
+      return false;
+    }
+    
+    // 处理不同的路径格式
+    let fullPath;
+    if (filePath.startsWith('/uploads/')) {
+      fullPath = path.join(__dirname, filePath);
+    } else if (filePath.startsWith('uploads/')) {
+      fullPath = path.join(__dirname, filePath);
+    } else if (filePath.includes('uploads/')) {
+      // 如果路径包含uploads但格式不同，尝试构建完整路径
+      const fileName = path.basename(filePath);
+      fullPath = path.join(__dirname, 'uploads', fileName);
+    } else {
+      console.log('文件路径格式不支持:', filePath);
+      return false;
+    }
+    
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+      console.log('文件已删除:', fullPath);
+      return true;
+    } else {
+      console.log('文件不存在:', fullPath);
+      return false;
     }
   } catch (error) {
     console.error('删除文件失败:', filePath, error.message);
@@ -35,13 +55,116 @@ const deleteFile = (filePath) => {
 
 // 删除多个文件
 const deleteFiles = (filePaths) => {
-  if (!filePaths || !Array.isArray(filePaths)) return;
+  if (!filePaths || !Array.isArray(filePaths)) {
+    console.log('文件路径数组为空或无效，跳过删除');
+    return;
+  }
   
-  filePaths.forEach(filePath => {
+  console.log(`开始删除 ${filePaths.length} 个文件`);
+  let deletedCount = 0;
+  
+  filePaths.forEach((filePath, index) => {
     if (filePath) {
-      deleteFile(filePath);
+      console.log(`删除文件 ${index + 1}/${filePaths.length}:`, filePath);
+      if (deleteFile(filePath)) {
+        deletedCount++;
+      }
     }
   });
+  
+  console.log(`文件删除完成，成功删除 ${deletedCount}/${filePaths.length} 个文件`);
+};
+
+// 清理孤立文件 - 删除不在数据库中引用的文件
+const cleanupOrphanedFiles = async () => {
+  try {
+    console.log('开始清理孤立文件...');
+    const uploadsDir = path.join(__dirname, 'uploads');
+    
+    if (!fs.existsSync(uploadsDir)) {
+      console.log('uploads目录不存在，跳过清理');
+      return;
+    }
+    
+    const files = fs.readdirSync(uploadsDir);
+    console.log(`找到 ${files.length} 个文件需要检查`);
+    
+    // 获取所有数据库中引用的文件路径
+    const referencedFiles = new Set();
+    
+    // 从作品表中获取文件路径
+    const arts = await Art.find({}, 'media');
+    arts.forEach(art => {
+      if (art.media && Array.isArray(art.media)) {
+        art.media.forEach(filePath => {
+          if (filePath) {
+            const fileName = path.basename(filePath);
+            referencedFiles.add(fileName);
+          }
+        });
+      }
+    });
+    
+    // 从活动表中获取文件路径
+    const activities = await Activity.find({}, 'image media');
+    activities.forEach(activity => {
+      if (activity.image) {
+        const fileName = path.basename(activity.image);
+        referencedFiles.add(fileName);
+      }
+      if (activity.media && Array.isArray(activity.media)) {
+        activity.media.forEach(filePath => {
+          if (filePath) {
+            const fileName = path.basename(filePath);
+            referencedFiles.add(fileName);
+          }
+        });
+      }
+    });
+    
+    // 从作品集表中获取文件路径
+    const portfolios = await Portfolio.find({}, 'coverImage');
+    portfolios.forEach(portfolio => {
+      if (portfolio.coverImage) {
+        const fileName = path.basename(portfolio.coverImage);
+        referencedFiles.add(fileName);
+      }
+    });
+    
+    // 从资源库表中获取文件路径
+    const resources = await Resource.find({}, 'files');
+    resources.forEach(resource => {
+      if (resource.files && Array.isArray(resource.files)) {
+        resource.files.forEach(filePath => {
+          if (filePath) {
+            const fileName = path.basename(filePath);
+            referencedFiles.add(fileName);
+          }
+        });
+      }
+    });
+    
+    console.log(`数据库中共引用 ${referencedFiles.size} 个文件`);
+    
+    // 删除未被引用的文件
+    let deletedCount = 0;
+    files.forEach(fileName => {
+      if (!referencedFiles.has(fileName)) {
+        const filePath = path.join(uploadsDir, fileName);
+        try {
+          fs.unlinkSync(filePath);
+          console.log('删除孤立文件:', fileName);
+          deletedCount++;
+        } catch (error) {
+          console.error('删除孤立文件失败:', fileName, error.message);
+        }
+      }
+    });
+    
+    console.log(`孤立文件清理完成，删除了 ${deletedCount} 个文件`);
+  } catch (error) {
+    console.error('清理孤立文件失败:', error);
+  }
 };
 
 const app = express();
@@ -1177,6 +1300,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 清理孤立文件端点（管理员专用）
+app.post('/api/admin/cleanup-files', async (req, res) => {
+  try {
+    await cleanupOrphanedFiles();
+    res.json({ message: '孤立文件清理完成' });
+  } catch (error) {
+    console.error('清理孤立文件失败:', error);
+    res.status(500).json({ error: '清理失败' });
+  }
+});
+
 // 磁盘使用情况监控
 app.get('/api/disk-usage', (req, res) => {
   try {
@@ -1385,6 +1519,10 @@ app.listen(PORT, async () => {
   
   // 初始化管理员
   await initializeAdmin();
+  
+  // 清理孤立文件（启动时执行一次）
+  console.log('启动时清理孤立文件...');
+  await cleanupOrphanedFiles();
   
   // 初始化文件备份系统
   const backup = new FileBackup();
