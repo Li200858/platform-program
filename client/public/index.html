@@ -139,9 +139,9 @@
           }
         });
         
-        // 微信浏览器特殊处理 - 不再跳转，使用完整版本
+        // 微信浏览器特殊处理
         if (isWeChat) {
-          console.log('检测到微信浏览器，使用完整版本');
+          console.log('检测到微信浏览器，应用特殊处理');
           // 微信浏览器需要特殊的CSS修复
           document.body.style.webkitTransform = 'translateZ(0)';
           document.body.style.transform = 'translateZ(0)';
@@ -150,6 +150,121 @@
           
           // 强制重绘
           document.body.offsetHeight;
+          
+          // 微信浏览器特殊处理：如果React加载失败，显示降级内容
+          setTimeout(function() {
+            if (!checkReactLoaded()) {
+              console.log('微信浏览器中React加载失败，显示降级内容');
+              showWeChatFallback();
+            }
+          }, 5000);
+        }
+        
+        // 微信浏览器降级方案
+        function showWeChatFallback() {
+          var root = document.getElementById('root');
+          if (root) {
+            root.innerHTML = `
+              <div style="
+                min-height: 100vh;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+                padding: 20px;
+                text-align: center;
+              ">
+                <div style="
+                  max-width: 600px;
+                  margin: 0 auto;
+                  background: rgba(255, 255, 255, 0.1);
+                  border-radius: 15px;
+                  padding: 30px;
+                  backdrop-filter: blur(10px);
+                ">
+                  <h1 style="font-size: 28px; margin-bottom: 20px;">🎨 海淀外国语国际部艺术平台</h1>
+                  <p style="font-size: 16px; margin-bottom: 30px; opacity: 0.9;">HFLS International Art Platform</p>
+                  
+                  <div style="
+                    background: rgba(39, 174, 96, 0.3);
+                    padding: 15px;
+                    border-radius: 10px;
+                    margin-bottom: 20px;
+                  ">
+                    ✅ 微信浏览器优化版本
+                  </div>
+                  
+                  <div style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 20px;
+                    border-radius: 10px;
+                    margin-bottom: 20px;
+                    text-align: left;
+                  ">
+                    <h3 style="margin-bottom: 15px;">平台功能</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">🎨</div>
+                        <div style="font-size: 14px; font-weight: bold;">艺术作品</div>
+                      </div>
+                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📅</div>
+                        <div style="font-size: 14px; font-weight: bold;">活动展示</div>
+                      </div>
+                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📁</div>
+                        <div style="font-size: 14px; font-weight: bold;">作品集</div>
+                      </div>
+                      <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">💬</div>
+                        <div style="font-size: 14px; font-weight: bold;">意见反馈</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style="
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                    font-size: 14px;
+                  ">
+                    <strong>使用说明：</strong><br>
+                    • 在微信中浏览学生艺术作品<br>
+                    • 查看最新的艺术活动信息<br>
+                    • 探索各种艺术创作形式<br>
+                    • 参与平台互动和反馈
+                  </div>
+                  
+                  <div style="margin-top: 30px;">
+                    <button onclick="window.location.reload()" style="
+                      padding: 12px 24px;
+                      background: #3498db;
+                      color: white;
+                      border: none;
+                      border-radius: 6px;
+                      font-size: 16px;
+                      cursor: pointer;
+                      margin: 5px;
+                    ">刷新页面</button>
+                    <button onclick="window.open('https://www.hfls.com.cn', '_blank')" style="
+                      padding: 12px 24px;
+                      background: #27ae60;
+                      color: white;
+                      border: none;
+                      border-radius: 6px;
+                      font-size: 16px;
+                      cursor: pointer;
+                      margin: 5px;
+                    ">访问官网</button>
+                  </div>
+                  
+                  <div style="margin-top: 20px; font-size: 12px; opacity: 0.7;">
+                    © 2024 海淀外国语国际部艺术平台
+                  </div>
+                </div>
+              </div>
+            `;
+          }
         }
         
         // 移动端Safari特殊处理

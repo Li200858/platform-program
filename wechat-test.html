@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="x5-page-mode" content="app">
+    <meta name="browsermode" content="application">
+    <meta name="x5-cache" content="false">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>微信浏览器测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .test-pass {
+            background: rgba(39, 174, 96, 0.3);
+            color: #2ecc71;
+        }
+        
+        .test-fail {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 微信浏览器兼容性测试</h1>
+        
+        <div class="status">
+            ✅ 测试页面已加载！如果能看到这个页面，说明微信浏览器基本功能正常。
+        </div>
+        
+        <div class="test-section">
+            <h3>浏览器检测结果</h3>
+            <div id="browser-info">正在检测...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>功能测试</h3>
+            <div id="test-results">
+                <div class="test-result" id="test-js">JavaScript: 检测中...</div>
+                <div class="test-result" id="test-css">CSS样式: 检测中...</div>
+                <div class="test-result" id="test-touch">触摸事件: 检测中...</div>
+                <div class="test-result" id="test-ajax">网络请求: 检测中...</div>
+            </div>
+        </div>
+        
+        <div class="info">
+            <strong>测试说明：</strong><br>
+            1. 如果所有测试都显示绿色，说明微信浏览器兼容性良好<br>
+            2. 如果有红色项目，说明该功能在微信中可能有问题<br>
+            3. 点击下面的按钮测试不同功能
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="button" onclick="testJavaScript()">测试JavaScript</button>
+            <button class="button" onclick="testCSS()">测试CSS</button>
+            <button class="button" onclick="testTouch()">测试触摸</button>
+            <button class="button" onclick="testAjax()">测试网络</button>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/" class="button">访问完整网站</a>
+            <button class="button" onclick="window.location.reload()">刷新页面</button>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 12px; opacity: 0.7; text-align: center;">
+            © 2024 海淀外国语国际部艺术平台 - 微信浏览器测试
+        </div>
+    </div>
+
+    <script>
+        // 浏览器检测
+        (function() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isWeChat = /micromessenger/i.test(userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            var isAndroid = /android/i.test(userAgent);
+            
+            var browserInfo = document.getElementById('browser-info');
+            browserInfo.innerHTML = 
+                '微信浏览器: ' + (isWeChat ? '✅ 是' : '❌ 否') + '<br>' +
+                'Safari浏览器: ' + (isSafari ? '✅ 是' : '❌ 否') + '<br>' +
+                '移动设备: ' + (isMobile ? '✅ 是' : '❌ 否') + '<br>' +
+                'iOS设备: ' + (isIOS ? '✅ 是' : '❌ 否') + '<br>' +
+                'Android设备: ' + (isAndroid ? '✅ 是' : '❌ 否') + '<br>' +
+                '屏幕尺寸: ' + window.innerWidth + 'x' + window.innerHeight + '<br>' +
+                '用户代理: ' + navigator.userAgent.substring(0, 80) + '...';
+            
+            console.log('浏览器检测结果:', {
+                isWeChat: isWeChat,
+                isSafari: isSafari,
+                isMobile: isMobile,
+                isIOS: isIOS,
+                isAndroid: isAndroid,
+                screenSize: window.innerWidth + 'x' + window.innerHeight
+            });
+        })();
+        
+        // 功能测试
+        function testJavaScript() {
+            var result = document.getElementById('test-js');
+            try {
+                // 测试基本JavaScript功能
+                var testObj = { test: 'value' };
+                var testArray = [1, 2, 3];
+                var testFunction = function() { return 'test'; };
+                
+                if (testObj.test === 'value' && testArray.length === 3 && testFunction() === 'test') {
+                    result.className = 'test-result test-pass';
+                    result.textContent = 'JavaScript: ✅ 正常';
+                } else {
+                    throw new Error('JavaScript测试失败');
+                }
+            } catch (e) {
+                result.className = 'test-result test-fail';
+                result.textContent = 'JavaScript: ❌ 异常 - ' + e.message;
+            }
+        }
+        
+        function testCSS() {
+            var result = document.getElementById('test-css');
+            try {
+                // 测试CSS功能
+                var testDiv = document.createElement('div');
+                testDiv.style.position = 'absolute';
+                testDiv.style.top = '-9999px';
+                testDiv.style.webkitTransform = 'translateZ(0)';
+                testDiv.style.transform = 'translateZ(0)';
+                document.body.appendChild(testDiv);
+                
+                var computedStyle = window.getComputedStyle(testDiv);
+                if (computedStyle.position === 'absolute') {
+                    result.className = 'test-result test-pass';
+                    result.textContent = 'CSS样式: ✅ 正常';
+                } else {
+                    throw new Error('CSS测试失败');
+                }
+                
+                document.body.removeChild(testDiv);
+            } catch (e) {
+                result.className = 'test-result test-fail';
+                result.textContent = 'CSS样式: ❌ 异常 - ' + e.message;
+            }
+        }
+        
+        function testTouch() {
+            var result = document.getElementById('test-touch');
+            try {
+                // 测试触摸事件
+                var touchSupported = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+                if (touchSupported) {
+                    result.className = 'test-result test-pass';
+                    result.textContent = '触摸事件: ✅ 支持';
+                } else {
+                    result.className = 'test-result test-fail';
+                    result.textContent = '触摸事件: ❌ 不支持';
+                }
+            } catch (e) {
+                result.className = 'test-result test-fail';
+                result.textContent = '触摸事件: ❌ 异常 - ' + e.message;
+            }
+        }
+        
+        function testAjax() {
+            var result = document.getElementById('test-ajax');
+            try {
+                // 测试网络请求
+                var xhr = new XMLHttpRequest();
+                if (xhr) {
+                    result.className = 'test-result test-pass';
+                    result.textContent = '网络请求: ✅ 支持';
+                } else {
+                    throw new Error('XMLHttpRequest不支持');
+                }
+            } catch (e) {
+                result.className = 'test-result test-fail';
+                result.textContent = '网络请求: ❌ 异常 - ' + e.message;
+            }
+        }
+        
+        // 页面加载完成后自动运行测试
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                testJavaScript();
+                testCSS();
+                testTouch();
+                testAjax();
+            }, 1000);
+        });
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            console.error('页面错误:', e);
+            alert('页面发生错误: ' + e.message);
+        });
+    </script>
+</body>
+</html>
