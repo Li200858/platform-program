@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
@@ -99,6 +99,17 @@
             }
             return true;
           }
+          
+          // 额外检查：如果root元素有内容，也认为加载成功
+          var rootElement = document.getElementById('root');
+          if (rootElement && rootElement.innerHTML.trim() !== '') {
+            console.log('React应用已加载（通过内容检查）');
+            if (loadingFallback) {
+              loadingFallback.style.display = 'none';
+            }
+            return true;
+          }
+          
           return false;
         };
         
@@ -128,11 +139,37 @@
           }
         });
         
-        // 微信浏览器特殊处理
+        // 微信浏览器特殊处理 - 不再跳转，使用完整版本
         if (isWeChat) {
-          // 立即跳转到基础版本
-          console.log('检测到微信浏览器，跳转到基础版本');
-          window.location.href = '/wechat-basic.html';
+          console.log('检测到微信浏览器，使用完整版本');
+          // 微信浏览器需要特殊的CSS修复
+          document.body.style.webkitTransform = 'translateZ(0)';
+          document.body.style.transform = 'translateZ(0)';
+          document.body.style.webkitBackfaceVisibility = 'hidden';
+          document.body.style.backfaceVisibility = 'hidden';
+          
+          // 强制重绘
+          document.body.offsetHeight;
+        }
+        
+        // 移动端Safari特殊处理
+        if (isSafari && isMobile) {
+          console.log('检测到移动端Safari，应用特殊修复');
+          // 强制硬件加速
+          document.body.style.webkitTransform = 'translateZ(0)';
+          document.body.style.transform = 'translateZ(0)';
+          document.body.style.webkitBackfaceVisibility = 'hidden';
+          document.body.style.backfaceVisibility = 'hidden';
+          
+          // 确保内容可见
+          setTimeout(function() {
+            var rootElement = document.getElementById('root');
+            if (rootElement) {
+              rootElement.style.display = 'block';
+              rootElement.style.visibility = 'visible';
+              rootElement.style.opacity = '1';
+            }
+          }, 100);
         }
       })();
     </script>

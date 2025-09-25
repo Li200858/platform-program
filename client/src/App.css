@@ -17,9 +17,17 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   color: #2c3e50;
-  /* 确保内容可见性 */
+  /* 确保内容可见性 - 微信和Safari兼容性修复 */
   position: relative;
   z-index: 1;
+  /* 强制硬件加速 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /* 防止内容被隐藏 */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* 移除复杂的渐变动画，提高Safari兼容性 */
@@ -28,12 +36,18 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* Safari兼容性修复 */
+  /* Safari和微信兼容性修复 */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   /* 确保内容在Safari中可见 */
   position: relative;
   z-index: 2;
+  /* 强制渲染层 */
+  will-change: transform;
+  /* 确保内容不被裁剪 */
+  overflow: visible;
 }
 
 /* 顶部导航栏 */
@@ -243,6 +257,16 @@ body {
 .main-content {
   flex: 1;
   padding: 20px;
+  /* 确保内容在移动端Safari中可见 */
+  position: relative;
+  z-index: 3;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /* 防止内容被隐藏 */
+  min-height: 200px;
+  width: 100%;
 }
 
 /* 页脚 */
@@ -300,6 +324,51 @@ body {
   perspective: 1000;
 }
 
+/* 移动端Safari和微信浏览器特殊修复 */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .app-root {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  .main-content {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  /* 确保按钮在移动端可点击 */
+  .main-nav button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* 微信浏览器特定修复 */
+@media screen and (max-width: 768px) {
+  .app-root {
+    /* 微信浏览器需要强制重绘 */
+    -webkit-transform: translateZ(0) scale(1);
+    transform: translateZ(0) scale(1);
+  }
+  
+  .main-content {
+    /* 确保内容在微信中可见 */
+    position: relative;
+    z-index: 10;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .main-nav {
@@ -312,6 +381,12 @@ body {
     /* 确保在移动端Safari中可见 */
     -webkit-appearance: none;
     -webkit-tap-highlight-color: transparent;
+    /* 强制硬件加速 */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* 确保按钮可点击 */
+    position: relative;
+    z-index: 5;
   }
   
   .search-bar {
@@ -331,6 +406,20 @@ body {
   .main-content {
     position: relative;
     z-index: 2;
+    /* 强制渲染 */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* 确保内容不被隐藏 */
+    min-height: 300px;
+    width: 100%;
+    display: block;
+  }
+  
+  /* 移动端Safari特殊修复 */
+  .app-root {
+    -webkit-overflow-scrolling: touch;
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -343,4 +432,44 @@ body {
     margin: 10px;
     padding: 15px;
   }
+}
+
+/* iPad Safari特殊修复 */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+  .app-root {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  .main-content {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    position: relative;
+    z-index: 3;
+  }
+  
+  .main-nav button {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    position: relative;
+    z-index: 4;
+  }
+}
+
+/* 强制内容可见的通用修复 */
+#root {
+  position: relative;
+  z-index: 1;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  min-height: 100vh;
+}
+
+#root > div {
+  position: relative;
+  z-index: 2;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }

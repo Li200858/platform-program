@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="x5-page-mode" content="app">
+    <meta name="browsermode" content="application">
+    <meta name="x5-cache" content="false">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>移动端兼容性测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 移动端兼容性测试</h1>
+        
+        <div class="status">
+            ✅ 修复已应用！网站现在应该在微信和iPad Safari中正常工作了。
+        </div>
+        
+        <div class="info">
+            <strong>修复内容：</strong><br>
+            • 移除了微信浏览器的强制跳转到简化版本<br>
+            • 添加了移动端Safari的特殊兼容性处理<br>
+            • 优化了CSS样式，提高渲染效果<br>
+            • 添加了强制硬件加速和重绘机制<br>
+            • 改进了内容检测和错误处理
+        </div>
+        
+        <div class="info">
+            <strong>浏览器检测结果：</strong><br>
+            <div id="browser-info">正在检测...</div>
+        </div>
+        
+        <div class="info">
+            <strong>测试建议：</strong><br>
+            1. 在微信中打开网站，应该能看到完整的艺术平台功能<br>
+            2. 在iPad Safari中打开网站，内容应该正常显示<br>
+            3. 所有导航按钮和功能都应该可以正常使用
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/" class="button">访问完整网站</a>
+            <a href="/wechat-basic.html" class="button">查看简化版本（对比）</a>
+        </div>
+    </div>
+
+    <script>
+        // 浏览器检测
+        (function() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isWeChat = /micromessenger/i.test(userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            
+            var browserInfo = document.getElementById('browser-info');
+            browserInfo.innerHTML = 
+                '微信浏览器: ' + (isWeChat ? '是' : '否') + '<br>' +
+                'Safari浏览器: ' + (isSafari ? '是' : '否') + '<br>' +
+                '移动设备: ' + (isMobile ? '是' : '否') + '<br>' +
+                'iOS设备: ' + (isIOS ? '是' : '否') + '<br>' +
+                '屏幕尺寸: ' + window.innerWidth + 'x' + window.innerHeight + '<br>' +
+                '用户代理: ' + navigator.userAgent.substring(0, 100) + '...';
+            
+            console.log('浏览器检测结果:', {
+                isWeChat: isWeChat,
+                isSafari: isSafari,
+                isMobile: isMobile,
+                isIOS: isIOS,
+                screenSize: window.innerWidth + 'x' + window.innerHeight
+            });
+        })();
+    </script>
+</body>
+</html>
