@@ -11,11 +11,21 @@
     />
     <meta name="keywords" content="艺术,作品,学生,创作,分享,海淀外国语" />
     <meta name="author" content="海淀外国语国际部" />
-    <!-- Safari兼容性修复 -->
+    <!-- Safari和微信浏览器兼容性修复 -->
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="艺术平台" />
+    <!-- 微信浏览器特定设置 -->
+    <meta name="x5-orientation" content="portrait" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta name="x5-page-mode" content="app" />
+    <meta name="browsermode" content="application" />
+    <meta name="x5-cache" content="false" />
+    <!-- 防止微信浏览器缓存问题 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>海淀外国语国际部艺术平台</title>
   </head>
   <body>
@@ -38,39 +48,96 @@
       </div>
     </div>
     <script>
-      // Safari兼容性检查和错误处理
+      // 微信浏览器和Safari兼容性检查和错误处理
       (function() {
         var loadingFallback = document.getElementById('loading-fallback');
         var root = document.getElementById('root');
         
-        // 显示加载提示
+        // 立即显示加载提示
         if (loadingFallback) {
           loadingFallback.style.display = 'block';
         }
         
-        // 检查是否是Safari
+        // 检测浏览器类型
+        var userAgent = navigator.userAgent.toLowerCase();
+        var isWeChat = /micromessenger/i.test(userAgent);
         var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
         
+        console.log('浏览器检测:', {
+          isWeChat: isWeChat,
+          isSafari: isSafari,
+          isMobile: isMobile,
+          userAgent: userAgent
+        });
+        
+        // 微信浏览器特定修复
+        if (isWeChat) {
+          // 微信浏览器需要特殊的CSS修复
+          document.body.style.webkitTransform = 'translateZ(0)';
+          document.body.style.transform = 'translateZ(0)';
+          document.body.style.webkitBackfaceVisibility = 'hidden';
+          document.body.style.backfaceVisibility = 'hidden';
+          
+          // 强制重绘
+          document.body.offsetHeight;
+        }
+        
+        // Safari特定修复
         if (isSafari) {
-          // Safari特定修复
           document.body.style.webkitTransform = 'translateZ(0)';
           document.body.style.transform = 'translateZ(0)';
         }
         
-        // 5秒后隐藏加载提示
-        setTimeout(function() {
-          if (loadingFallback) {
-            loadingFallback.style.display = 'none';
+        // 检查React应用是否加载成功
+        var checkReactLoaded = function() {
+          var reactRoot = document.querySelector('#root > div:not(#loading-fallback)');
+          if (reactRoot && reactRoot.children.length > 0) {
+            console.log('React应用已加载');
+            if (loadingFallback) {
+              loadingFallback.style.display = 'none';
+            }
+            return true;
           }
-        }, 5000);
+          return false;
+        };
+        
+        // 立即检查一次
+        if (!checkReactLoaded()) {
+          // 如果React还没加载，每500ms检查一次
+          var checkInterval = setInterval(function() {
+            if (checkReactLoaded()) {
+              clearInterval(checkInterval);
+            }
+          }, 500);
+          
+          // 10秒后强制隐藏加载提示
+          setTimeout(function() {
+            clearInterval(checkInterval);
+            if (loadingFallback) {
+              loadingFallback.style.display = 'none';
+            }
+          }, 10000);
+        }
         
         // 错误处理
         window.addEventListener('error', function(e) {
           console.error('页面加载错误:', e);
           if (loadingFallback) {
-            loadingFallback.innerHTML = '<div>页面加载遇到问题</div><div style="margin-top: 10px;"><button onclick="window.location.reload()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新页面</button></div>';
+            loadingFallback.innerHTML = '<div style="color: #e74c3c; font-weight: bold;">页面加载遇到问题</div><div style="margin-top: 10px; font-size: 14px;">错误: ' + (e.message || '未知错误') + '</div><div style="margin-top: 10px;"><button onclick="window.location.reload()" style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">刷新页面</button></div>';
           }
         });
+        
+        // 微信浏览器特殊处理
+        if (isWeChat) {
+          // 微信浏览器可能需要强制刷新
+          setTimeout(function() {
+            if (!checkReactLoaded()) {
+              console.log('微信浏览器中React未加载，尝试刷新');
+              window.location.reload();
+            }
+          }, 3000);
+        }
       })();
     </script>
     <!--

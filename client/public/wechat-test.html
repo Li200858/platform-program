@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="x5-page-mode" content="app">
+    <meta name="browsermode" content="application">
+    <meta name="x5-cache" content="false">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>微信浏览器测试页面</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+        }
+        
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            -webkit-appearance: none;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>微信浏览器兼容性测试</h1>
+        
+        <div class="test-item">
+            <h3>浏览器信息</h3>
+            <div id="browser-info"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>JavaScript测试</h3>
+            <div id="js-test">正在测试...</div>
+        </div>
+        
+        <div class="test-item">
+            <h3>CSS测试</h3>
+            <div id="css-test">正在测试...</div>
+        </div>
+        
+        <div class="test-item">
+            <h3>DOM操作测试</h3>
+            <div id="dom-test">正在测试...</div>
+        </div>
+        
+        <div class="test-item">
+            <h3>操作</h3>
+            <button onclick="testAll()">重新测试</button>
+            <button onclick="goToMain()">进入主应用</button>
+        </div>
+    </div>
+
+    <script>
+        function testAll() {
+            testBrowserInfo();
+            testJavaScript();
+            testCSS();
+            testDOM();
+        }
+        
+        function testBrowserInfo() {
+            var info = document.getElementById('browser-info');
+            var userAgent = navigator.userAgent;
+            var isWeChat = /micromessenger/i.test(userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            
+            info.innerHTML = `
+                <div>User Agent: ${userAgent}</div>
+                <div>是否微信浏览器: <span class="${isWeChat ? 'success' : 'error'}">${isWeChat ? '是' : '否'}</span></div>
+                <div>是否Safari: <span class="${isSafari ? 'success' : 'error'}">${isSafari ? '是' : '否'}</span></div>
+                <div>是否移动设备: <span class="${isMobile ? 'success' : 'error'}">${isMobile ? '是' : '否'}</span></div>
+            `;
+        }
+        
+        function testJavaScript() {
+            var test = document.getElementById('js-test');
+            try {
+                // 测试基本JavaScript功能
+                var testObj = { test: 'value' };
+                var testArray = [1, 2, 3];
+                var testFunction = function() { return 'test'; };
+                
+                if (testObj.test === 'value' && testArray.length === 3 && testFunction() === 'test') {
+                    test.innerHTML = '<span class="success">✓ JavaScript基本功能正常</span>';
+                } else {
+                    test.innerHTML = '<span class="error">✗ JavaScript基本功能异常</span>';
+                }
+            } catch (e) {
+                test.innerHTML = '<span class="error">✗ JavaScript错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function testCSS() {
+            var test = document.getElementById('css-test');
+            try {
+                // 测试CSS渐变
+                var testDiv = document.createElement('div');
+                testDiv.style.background = 'linear-gradient(45deg, #ff0000, #0000ff)';
+                testDiv.style.width = '50px';
+                testDiv.style.height = '50px';
+                document.body.appendChild(testDiv);
+                
+                // 检查是否支持CSS渐变
+                var computedStyle = window.getComputedStyle(testDiv);
+                var background = computedStyle.background || computedStyle.backgroundImage;
+                
+                if (background && background.includes('gradient')) {
+                    test.innerHTML = '<span class="success">✓ CSS渐变支持正常</span>';
+                } else {
+                    test.innerHTML = '<span class="error">✗ CSS渐变不支持</span>';
+                }
+                
+                document.body.removeChild(testDiv);
+            } catch (e) {
+                test.innerHTML = '<span class="error">✗ CSS测试错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function testDOM() {
+            var test = document.getElementById('dom-test');
+            try {
+                // 测试DOM操作
+                var testDiv = document.createElement('div');
+                testDiv.id = 'test-dom-element';
+                testDiv.innerHTML = 'DOM测试';
+                document.body.appendChild(testDiv);
+                
+                var foundDiv = document.getElementById('test-dom-element');
+                if (foundDiv && foundDiv.innerHTML === 'DOM测试') {
+                    test.innerHTML = '<span class="success">✓ DOM操作正常</span>';
+                } else {
+                    test.innerHTML = '<span class="error">✗ DOM操作异常</span>';
+                }
+                
+                document.body.removeChild(testDiv);
+            } catch (e) {
+                test.innerHTML = '<span class="error">✗ DOM测试错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function goToMain() {
+            window.location.href = '/';
+        }
+        
+        // 页面加载完成后自动测试
+        window.addEventListener('load', function() {
+            setTimeout(testAll, 100);
+        });
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            console.error('页面错误:', e);
+            alert('页面发生错误: ' + e.message);
+        });
+    </script>
+</body>
+</html>

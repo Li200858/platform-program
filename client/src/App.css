@@ -254,7 +254,7 @@ body {
   font-size: 14px;
 }
 
-/* Safari和移动端兼容性修复 */
+/* Safari和微信浏览器兼容性修复 */
 @supports (-webkit-touch-callout: none) {
   /* Safari特定样式 */
   .app-root {
@@ -265,6 +265,39 @@ body {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
   }
+}
+
+/* 微信浏览器特定修复 */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .app-root {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  .main-header {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  .main-content {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* 强制硬件加速，解决微信浏览器渲染问题 */
+.app-root,
+.main-header,
+.main-content,
+.main-nav button {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
 }
 
 /* 响应式设计 */
