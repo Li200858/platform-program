@@ -1,7 +1,7 @@
 // 简化的API工具函数
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? 'https://platform-program.onrender.com' 
+    ? 'https://platform-program-backend.onrender.com' 
     : 'http://localhost:5000');
 
 export const api = {

@@ -2,7 +2,7 @@
 const config = {
   // 开发环境使用本地服务器，生产环境使用部署的服务器地址
   API_BASE_URL: process.env.NODE_ENV === 'production' 
-    ? ''  // 生产环境使用相对路径，因为前后端在同一域名下
+    ? 'https://platform-program-backend.onrender.com'  // 生产环境使用后端服务URL
     : 'http://localhost:5000',
 };
 
