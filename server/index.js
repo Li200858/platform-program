@@ -56,24 +56,32 @@ const deleteFile = (filePath) => {
 
 // 删除多个文件
 const deleteFiles = (filePaths) => {
-  if (!filePaths || !Array.isArray(filePaths)) {
-    console.log('文件路径数组为空或无效，跳过删除');
-    return;
-  }
-  
-  console.log(`开始删除 ${filePaths.length} 个文件`);
-  let deletedCount = 0;
-  
-  filePaths.forEach((filePath, index) => {
-    if (filePath) {
-      console.log(`删除文件 ${index + 1}/${filePaths.length}:`, filePath);
-      if (deleteFile(filePath)) {
-        deletedCount++;
-      }
+  try {
+    if (!filePaths || !Array.isArray(filePaths)) {
+      console.log('文件路径数组为空或无效，跳过删除');
+      return;
     }
-  });
-  
-  console.log(`文件删除完成，成功删除 ${deletedCount}/${filePaths.length} 个文件`);
+    
+    console.log(`开始删除 ${filePaths.length} 个文件`);
+    let deletedCount = 0;
+    
+    filePaths.forEach((filePath, index) => {
+      try {
+        if (filePath) {
+          console.log(`删除文件 ${index + 1}/${filePaths.length}:`, filePath);
+          if (deleteFile(filePath)) {
+            deletedCount++;
+          }
+        }
+      } catch (error) {
+        console.error(`删除文件失败 ${index + 1}/${filePaths.length}:`, filePath, error.message);
+      }
+    });
+    
+    console.log(`文件删除完成，成功删除 ${deletedCount}/${filePaths.length} 个文件`);
+  } catch (error) {
+    console.error('批量删除文件时发生错误:', error);
+  }
 };
 
 // 清理孤立文件 - 删除不在数据库中引用的文件
@@ -588,28 +596,40 @@ app.delete('/api/art/:id', async (req, res) => {
   const { authorName, isAdmin } = req.query;
   
   try {
+    console.log(`删除作品请求: ID=${id}, authorName=${authorName}, isAdmin=${isAdmin}`);
+    
     const work = await Art.findById(id);
     if (!work) {
+      console.log('作品不存在:', id);
       return res.status(404).json({ error: '作品不存在' });
     }
 
     const isAuthor = work.authorName === authorName || work.author === authorName;
     const isAdminUser = isAdmin === 'true';
 
+    console.log(`权限检查: isAuthor=${isAuthor}, isAdminUser=${isAdminUser}`);
+
     if (!isAuthor && !isAdminUser) {
+      console.log('权限不足，拒绝删除');
       return res.status(403).json({ error: '无权限删除此作品' });
     }
 
     // 删除相关文件
     if (work.media && Array.isArray(work.media)) {
+      console.log(`开始删除 ${work.media.length} 个媒体文件`);
       deleteFiles(work.media);
+    } else {
+      console.log('没有媒体文件需要删除');
     }
 
+    // 删除数据库记录
     await Art.findByIdAndDelete(id);
+    console.log('作品删除成功:', id);
+    
     res.json({ message: '作品已删除' });
   } catch (error) {
     console.error('删除作品失败:', error);
-    res.status(500).json({ error: '删除失败' });
+    res.status(500).json({ error: '删除失败: ' + error.message });
   }
 });
 
