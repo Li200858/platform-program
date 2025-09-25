@@ -11,29 +11,29 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  /* 简化背景渐变，提高Safari兼容性 */
+  background: #667eea;
+  background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   color: #2c3e50;
+  /* 确保内容可见性 */
+  position: relative;
+  z-index: 1;
 }
 
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
+/* 移除复杂的渐变动画，提高Safari兼容性 */
 
 .app-root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* Safari兼容性修复 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* 确保内容在Safari中可见 */
+  position: relative;
+  z-index: 2;
 }
 
 /* 顶部导航栏 */
@@ -91,6 +91,12 @@ body {
   font-size: 14px;
   font-weight: bold;
   transition: all 0.3s ease;
+  /* Safari兼容性修复 */
+  -webkit-appearance: none;
+  -webkit-border-radius: 25px;
+  /* 确保按钮在Safari中可见 */
+  position: relative;
+  z-index: 3;
 }
 
 .main-nav button:hover {
@@ -248,6 +254,19 @@ body {
   font-size: 14px;
 }
 
+/* Safari和移动端兼容性修复 */
+@supports (-webkit-touch-callout: none) {
+  /* Safari特定样式 */
+  .app-root {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .main-header {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .main-nav {
@@ -257,6 +276,9 @@ body {
   
   .main-nav button {
     width: 200px;
+    /* 确保在移动端Safari中可见 */
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
   }
   
   .search-bar {
@@ -270,6 +292,12 @@ body {
   
   .site-title {
     font-size: 24px;
+  }
+  
+  /* 确保内容在移动端可见 */
+  .main-content {
+    position: relative;
+    z-index: 2;
   }
 }
 
