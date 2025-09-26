@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="艺术平台">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>iPad Safari兼容性测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            /* iPad Safari兼容性修复 */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000px;
+            perspective: 1000px;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+            will-change: transform;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin-top: 20px;
+            /* iPad Safari特殊修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            /* iPad Safari特殊修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 3;
+        }
+        
+        .test-section h3 {
+            margin-bottom: 15px;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .test-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            /* iPad Safari特殊修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            will-change: transform;
+            position: relative;
+            z-index: 4;
+        }
+        
+        .test-button:hover {
+            background: #2980b9;
+            -webkit-transform: translate3d(0, -2px, 0);
+            transform: translate3d(0, -2px, 0);
+        }
+        
+        .test-button:active {
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .info {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .grid-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            /* iPad Safari特殊修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 3;
+        }
+        
+        .grid-item:hover {
+            background: rgba(255, 255, 255, 0.3);
+            -webkit-transform: translate3d(0, -2px, 0);
+            transform: translate3d(0, -2px, 0);
+        }
+        
+        /* iPad Safari特殊修复 */
+        @media screen and (min-width: 768px) and (max-width: 1024px) {
+            .container {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                will-change: transform;
+                position: relative;
+                z-index: 2;
+            }
+            
+            .test-section {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 3;
+            }
+            
+            .test-button {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 4;
+            }
+            
+            .grid-item {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 3;
+            }
+        }
+        
+        @supports (-webkit-touch-callout: none) and (min-width: 768px) and (max-width: 1024px) {
+            body {
+                -webkit-text-size-adjust: 100%;
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .container {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                will-change: transform;
+                position: relative;
+                z-index: 2;
+                min-height: 100vh;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            .test-section {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 3;
+                min-height: 100px;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            .test-button {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 4;
+                -webkit-appearance: none;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 iPad Safari兼容性测试</h1>
+            <p>海淀外国语国际部艺术平台 - iPad Safari修复验证</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 浏览器检测</h3>
+            <div id="browser-info"></div>
+            <div id="ipad-detection"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 功能测试</h3>
+            <button class="test-button" onclick="testButtonClick()">测试按钮点击</button>
+            <button class="test-button" onclick="testAnimation()">测试动画效果</button>
+            <button class="test-button" onclick="testScroll()">测试滚动</button>
+            <button class="test-button" onclick="testResize()">测试窗口调整</button>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📱 响应式测试</h3>
+            <div class="grid">
+                <div class="grid-item">
+                    <div style="font-size: 24px; margin-bottom: 8px;">🎨</div>
+                    <div style="font-size: 14px; font-weight: bold;">艺术作品</div>
+                </div>
+                <div class="grid-item">
+                    <div style="font-size: 24px; margin-bottom: 8px;">📅</div>
+                    <div style="font-size: 14px; font-weight: bold;">活动展示</div>
+                </div>
+                <div class="grid-item">
+                    <div style="font-size: 24px; margin-bottom: 8px;">📁</div>
+                    <div style="font-size: 14px; font-weight: bold;">作品集</div>
+                </div>
+                <div class="grid-item">
+                    <div style="font-size: 24px; margin-bottom: 8px;">💬</div>
+                    <div style="font-size: 14px; font-weight: bold;">意见反馈</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 修复状态</h3>
+            <div id="fix-status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 性能监控</h3>
+            <div id="performance-info"></div>
+        </div>
+    </div>
+
+    <script>
+        // 浏览器检测
+        function detectBrowser() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isWeChat = /micromessenger/i.test(userAgent);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
+            var browserInfo = {
+                userAgent: navigator.userAgent,
+                isWeChat: isWeChat,
+                isSafari: isSafari,
+                isMobile: isMobile,
+                isIOS: isIOS,
+                isIPad: isIPad,
+                platform: navigator.platform,
+                maxTouchPoints: navigator.maxTouchPoints,
+                screenWidth: screen.width,
+                screenHeight: screen.height,
+                windowWidth: window.innerWidth,
+                windowHeight: window.innerHeight
+            };
+            
+            document.getElementById('browser-info').innerHTML = 
+                '<div class="info">用户代理: ' + browserInfo.userAgent + '</div>' +
+                '<div class="info">平台: ' + browserInfo.platform + '</div>' +
+                '<div class="info">屏幕尺寸: ' + browserInfo.screenWidth + 'x' + browserInfo.screenHeight + '</div>' +
+                '<div class="info">窗口尺寸: ' + browserInfo.windowWidth + 'x' + browserInfo.windowHeight + '</div>' +
+                '<div class="info">触摸点: ' + browserInfo.maxTouchPoints + '</div>';
+            
+            var ipadDetection = '';
+            if (isIPad) {
+                ipadDetection = '<div class="status">✅ 检测到iPad设备</div>';
+            } else if (isIOS) {
+                ipadDetection = '<div class="info">📱 检测到iOS设备（非iPad）</div>';
+            } else if (isSafari) {
+                ipadDetection = '<div class="info">🌐 检测到Safari浏览器</div>';
+            } else {
+                ipadDetection = '<div class="error">❌ 未检测到iPad Safari</div>';
+            }
+            
+            document.getElementById('ipad-detection').innerHTML = ipadDetection;
+            
+            return browserInfo;
+        }
+        
+        // 测试按钮点击
+        function testButtonClick() {
+            var results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status">✅ 按钮点击测试成功</div>';
+        }
+        
+        // 测试动画效果
+        function testAnimation() {
+            var results = document.getElementById('test-results');
+            var testDiv = document.createElement('div');
+            testDiv.style.cssText = `
+                width: 100px;
+                height: 100px;
+                background: #e74c3c;
+                border-radius: 50%;
+                margin: 10px auto;
+                transition: all 0.3s ease;
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+            `;
+            
+            results.appendChild(testDiv);
+            
+            setTimeout(() => {
+                testDiv.style.webkitTransform = 'translate3d(100px, 0, 0)';
+                testDiv.style.transform = 'translate3d(100px, 0, 0)';
+            }, 100);
+            
+            setTimeout(() => {
+                testDiv.style.webkitTransform = 'translate3d(0, 0, 0)';
+                testDiv.style.transform = 'translate3d(0, 0, 0)';
+                results.innerHTML = '<div class="status">✅ 动画效果测试成功</div>';
+            }, 500);
+        }
+        
+        // 测试滚动
+        function testScroll() {
+            var results = document.getElementById('test-results');
+            var originalScrollY = window.scrollY;
+            
+            window.scrollTo(0, 100);
+            setTimeout(() => {
+                window.scrollTo(0, originalScrollY);
+                results.innerHTML = '<div class="status">✅ 滚动测试成功</div>';
+            }, 500);
+        }
+        
+        // 测试窗口调整
+        function testResize() {
+            var results = document.getElementById('test-results');
+            var originalWidth = window.innerWidth;
+            
+            // 模拟窗口调整
+            window.dispatchEvent(new Event('resize'));
+            
+            setTimeout(() => {
+                results.innerHTML = '<div class="status">✅ 窗口调整测试成功</div>';
+            }, 100);
+        }
+        
+        // 应用iPad Safari修复
+        function applyIPadSafariFixes() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            
+            if (isIPad) {
+                console.log('应用iPad Safari特殊修复');
+                
+                // 强制硬件加速
+                document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+                document.body.style.transform = 'translate3d(0, 0, 0)';
+                document.body.style.webkitBackfaceVisibility = 'hidden';
+                document.body.style.backfaceVisibility = 'hidden';
+                document.body.style.webkitPerspective = '1000px';
+                document.body.style.perspective = '1000px';
+                document.body.style.willChange = 'transform';
+                
+                // 强制重排
+                document.body.offsetHeight;
+                
+                document.getElementById('fix-status').innerHTML = '<div class="status">✅ iPad Safari修复已应用</div>';
+            } else {
+                document.getElementById('fix-status').innerHTML = '<div class="info">ℹ️ 非iPad设备，无需特殊修复</div>';
+            }
+        }
+        
+        // 性能监控
+        function monitorPerformance() {
+            var performanceInfo = '';
+            
+            if (window.performance) {
+                var timing = window.performance.timing;
+                var loadTime = timing.loadEventEnd - timing.navigationStart;
+                var domReady = timing.domContentLoadedEventEnd - timing.navigationStart;
+                
+                performanceInfo = 
+                    '<div class="info">页面加载时间: ' + loadTime + 'ms</div>' +
+                    '<div class="info">DOM就绪时间: ' + domReady + 'ms</div>';
+            }
+            
+            if (window.performance && window.performance.memory) {
+                var memory = window.performance.memory;
+                performanceInfo += 
+                    '<div class="info">内存使用: ' + Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB</div>' +
+                    '<div class="info">内存限制: ' + Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB</div>';
+            }
+            
+            document.getElementById('performance-info').innerHTML = performanceInfo;
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            detectBrowser();
+            applyIPadSafariFixes();
+            monitorPerformance();
+        });
+        
+        // 窗口大小变化处理
+        window.addEventListener('resize', function() {
+            detectBrowser();
+            monitorPerformance();
+        });
+        
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('页面重新可见，强制重绘');
+                document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+                document.body.style.transform = 'translate3d(0, 0, 0)';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -568,41 +568,129 @@ body {
 /* iPad Safari特殊修复 */
 @media screen and (min-width: 768px) and (max-width: 1024px) and (-webkit-min-device-pixel-ratio: 1) {
   .app-root {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     -webkit-perspective: 1000px;
     perspective: 1000px;
+    will-change: transform;
+    position: relative;
+    z-index: 2;
   }
   
   .main-content {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
     position: relative;
     z-index: 3;
     -webkit-overflow-scrolling: touch;
+    will-change: transform;
   }
   
   .main-nav button {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
     position: relative;
     z-index: 4;
     -webkit-tap-highlight-color: transparent;
+    will-change: transform;
   }
   
   #root {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    will-change: transform;
+    position: relative;
+    z-index: 1;
   }
   
   #root > div {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    will-change: transform;
+    position: relative;
+    z-index: 2;
+  }
+}
+
+/* iPad Safari特殊修复 - 更精确的检测 */
+@supports (-webkit-touch-callout: none) and (min-width: 768px) and (max-width: 1024px) {
+  .app-root {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+    will-change: transform;
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    width: 100%;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .main-content {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    position: relative;
+    z-index: 3;
+    -webkit-overflow-scrolling: touch;
+    will-change: transform;
+    min-height: 200px;
+    width: 100%;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .main-nav button {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    position: relative;
+    z-index: 4;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform;
+    -webkit-appearance: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  #root {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    width: 100%;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  #root > div {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    width: 100%;
+    display: block;
+    visibility: visible;
+    opacity: 1;
   }
 }

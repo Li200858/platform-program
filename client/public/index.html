@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
     <meta name="theme-color" content="#667eea" />
     <meta
       name="description"
@@ -68,12 +68,14 @@
         var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
         var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
         var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+        var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
         console.log('浏览器检测:', {
           isWeChat: isWeChat,
           isSafari: isSafari,
           isMobile: isMobile,
           isIOS: isIOS,
+          isIPad: isIPad,
           userAgent: userAgent
         });
         
@@ -83,8 +85,8 @@
         }
         
         // 移动端Safari和iOS设备特殊修复
-        if (isIOS || (isSafari && isMobile)) {
-          console.log('检测到iOS设备或移动端Safari，应用特殊修复');
+        if (isIOS || isIPad || (isSafari && isMobile)) {
+          console.log('检测到iOS设备、iPad或移动端Safari，应用特殊修复');
           
           // 强制硬件加速
           document.body.style.webkitTransform = 'translateZ(0)';
@@ -106,6 +108,43 @@
             root.style.display = 'block';
             root.style.visibility = 'visible';
             root.style.opacity = '1';
+          }
+          
+          // iPad Safari特殊修复
+          if (isIPad) {
+            console.log('应用iPad Safari特殊修复');
+            
+            // 强制重绘，解决iPad Safari渲染问题
+            setTimeout(function() {
+              if (root) {
+                root.style.webkitTransform = 'translate3d(0, 0, 0)';
+                root.style.transform = 'translate3d(0, 0, 0)';
+                root.style.webkitBackfaceVisibility = 'hidden';
+                root.style.backfaceVisibility = 'hidden';
+                root.style.webkitPerspective = '1000px';
+                root.style.perspective = '1000px';
+                root.style.willChange = 'transform';
+                root.style.position = 'relative';
+                root.style.zIndex = '2';
+                root.style.minHeight = '100vh';
+                root.style.width = '100%';
+                root.style.display = 'block';
+                root.style.visibility = 'visible';
+                root.style.opacity = '1';
+                
+                // 强制重排
+                root.offsetHeight;
+              }
+            }, 100);
+            
+            // 延迟再次修复，确保React组件完全加载
+            setTimeout(function() {
+              if (root) {
+                root.style.webkitTransform = 'translate3d(0, 0, 0)';
+                root.style.transform = 'translate3d(0, 0, 0)';
+                root.offsetHeight;
+              }
+            }, 1000);
           }
           
           // 防止iOS Safari的缩放问题

@@ -282,9 +282,10 @@ function MainApp() {
     const isIOS = /iphone|ipad|ipod/i.test(userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     const isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+    const isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-    if (isIOS || (isSafari && isMobile)) {
-      console.log('检测到iOS设备或移动端Safari，应用特殊修复');
+    if (isIOS || isIPad || (isSafari && isMobile)) {
+      console.log('检测到iOS设备、iPad或移动端Safari，应用特殊修复');
       
       // 强制重绘，确保内容在Safari中可见
       const forceRepaint = () => {
@@ -303,18 +304,55 @@ function MainApp() {
         }
       };
 
+      // iPad Safari特殊修复
+      const forceIPadRepaint = () => {
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+          rootElement.style.webkitTransform = 'translate3d(0, 0, 0)';
+          rootElement.style.transform = 'translate3d(0, 0, 0)';
+          rootElement.style.webkitBackfaceVisibility = 'hidden';
+          rootElement.style.backfaceVisibility = 'hidden';
+          rootElement.style.webkitPerspective = '1000px';
+          rootElement.style.perspective = '1000px';
+          rootElement.style.willChange = 'transform';
+          rootElement.style.position = 'relative';
+          rootElement.style.zIndex = '2';
+          rootElement.style.minHeight = '100vh';
+          rootElement.style.width = '100%';
+          rootElement.style.display = 'block';
+          rootElement.style.visibility = 'visible';
+          rootElement.style.opacity = '1';
+          
+          // 强制重排
+          rootElement.offsetHeight;
+        }
+      };
+
       // 立即执行一次
       forceRepaint();
 
-      // 延迟执行，确保React组件渲染完成
-      setTimeout(forceRepaint, 100);
-      setTimeout(forceRepaint, 500);
-      setTimeout(forceRepaint, 1000);
+      // iPad Safari特殊处理
+      if (isIPad) {
+        console.log('应用iPad Safari特殊修复');
+        setTimeout(forceIPadRepaint, 100);
+        setTimeout(forceIPadRepaint, 500);
+        setTimeout(forceIPadRepaint, 1000);
+        setTimeout(forceIPadRepaint, 2000);
+      } else {
+        // 延迟执行，确保React组件渲染完成
+        setTimeout(forceRepaint, 100);
+        setTimeout(forceRepaint, 500);
+        setTimeout(forceRepaint, 1000);
+      }
 
       // 监听页面可见性变化
       const handleVisibilityChange = () => {
         if (!document.hidden) {
-          forceRepaint();
+          if (isIPad) {
+            forceIPadRepaint();
+          } else {
+            forceRepaint();
+          }
         }
       };
 
@@ -322,7 +360,11 @@ function MainApp() {
 
       // 监听窗口大小变化
       const handleResize = () => {
-        forceRepaint();
+        if (isIPad) {
+          forceIPadRepaint();
+        } else {
+          forceRepaint();
+        }
       };
 
       window.addEventListener('resize', handleResize);
