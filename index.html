@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>iPad Safari 测试入口</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+            /* iPad Safari强制修复 */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000px;
+            perspective: 1000px;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+            will-change: transform;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 30px;
+            text-align: center;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 2;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .test-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            display: block;
+            width: 100%;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            will-change: transform;
+            position: relative;
+            z-index: 4;
+        }
+        
+        .test-button:hover {
+            background: #2980b9;
+            -webkit-transform: translate3d(0, -2px, 0);
+            transform: translate3d(0, -2px, 0);
+        }
+        
+        .info {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: left;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        /* iPad Safari特殊修复 */
+        @media screen and (min-width: 768px) and (max-width: 1024px) {
+            body {
+                -webkit-text-size-adjust: 100%;
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .container {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                will-change: transform;
+                position: relative;
+                z-index: 2;
+                min-height: 100vh;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            .test-button {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 4;
+                -webkit-appearance: none;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 iPad Safari 测试入口</h1>
+        
+        <div class="status">
+            ✅ 如果您能看到这个页面，说明iPad Safari基本功能正常
+        </div>
+        
+        <div class="info">
+            <h3>设备信息：</h3>
+            <div id="device-info"></div>
+        </div>
+        
+        <button class="test-button" onclick="testBasicFunction()">
+            测试基础功能
+        </button>
+        
+        <button class="test-button" onclick="testMainApp()">
+            测试主应用
+        </button>
+        
+        <button class="test-button" onclick="testDebugPage()">
+            打开调试页面
+        </button>
+        
+        <div id="test-results"></div>
+        
+        <div class="warning">
+            <h3>如果遇到问题：</h3>
+            <p>1. 确保iPad和电脑在同一WiFi网络</p>
+            <p>2. 尝试刷新页面</p>
+            <p>3. 检查Safari设置中的JavaScript是否启用</p>
+        </div>
+    </div>
+
+    <script>
+        // 强制显示内容
+        function forceDisplay() {
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+            document.body.style.transform = 'translate3d(0, 0, 0)';
+            document.body.offsetHeight; // 强制重排
+        }
+        
+        // 显示设备信息
+        function showDeviceInfo() {
+            var userAgent = navigator.userAgent;
+            var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            
+            var deviceInfo = 
+                '<div>用户代理: ' + userAgent + '</div>' +
+                '<div>平台: ' + navigator.platform + '</div>' +
+                '<div>触摸点: ' + navigator.maxTouchPoints + '</div>' +
+                '<div>屏幕尺寸: ' + screen.width + ' x ' + screen.height + '</div>' +
+                '<div>窗口尺寸: ' + window.innerWidth + ' x ' + window.innerHeight + '</div>' +
+                '<div>iPad检测: ' + (isIPad ? '✅ 是' : '❌ 否') + '</div>' +
+                '<div>Safari检测: ' + (isSafari ? '✅ 是' : '❌ 否') + '</div>' +
+                '<div>iOS检测: ' + (isIOS ? '✅ 是' : '❌ 否') + '</div>';
+            
+            document.getElementById('device-info').innerHTML = deviceInfo;
+        }
+        
+        // 测试基础功能
+        function testBasicFunction() {
+            var results = document.getElementById('test-results');
+            results.innerHTML = '<div class="status">✅ 基础功能测试成功！JavaScript正常工作</div>';
+        }
+        
+        // 测试主应用
+        function testMainApp() {
+            window.open('/client/build/index.html', '_blank');
+        }
+        
+        // 测试调试页面
+        function testDebugPage() {
+            window.open('/debug-ipad-safari.html', '_blank');
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面DOM加载完成');
+            forceDisplay();
+            showDeviceInfo();
+        });
+        
+        // 立即执行
+        forceDisplay();
+        showDeviceInfo();
+        
+        // 延迟执行，确保内容显示
+        setTimeout(forceDisplay, 100);
+        setTimeout(forceDisplay, 500);
+        setTimeout(forceDisplay, 1000);
+        
+        // 窗口大小变化处理
+        window.addEventListener('resize', function() {
+            console.log('窗口大小变化');
+            forceDisplay();
+        });
+        
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('页面重新可见');
+                forceDisplay();
+            }
+        });
+    </script>
+</body>
+</html>

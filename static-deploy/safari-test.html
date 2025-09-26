@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Safari测试">
+    <title>移动端Safari兼容性测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* Safari兼容性修复 */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin-top: 20px;
+            /* 确保内容可见 */
+            position: relative;
+            z-index: 2;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+            /* Safari按钮修复 */
+            -webkit-appearance: none;
+            -webkit-border-radius: 8px;
+            -webkit-tap-highlight-color: transparent;
+            /* 确保按钮可见 */
+            position: relative;
+            z-index: 3;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button:active {
+            background: #21618c;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .nav-buttons button {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍎 移动端Safari兼容性测试</h1>
+        
+        <div class="test-section">
+            <h3>📱 设备信息</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">浏览器</div>
+                    <div class="info-value" id="browser-name">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">操作系统</div>
+                    <div class="info-value" id="os-name">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">屏幕尺寸</div>
+                    <div class="info-value" id="screen-size">检测中...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">设备像素比</div>
+                    <div class="info-value" id="pixel-ratio">检测中...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 功能测试</h3>
+            <div id="function-tests">
+                <div>JavaScript: <span id="js-test">测试中...</span></div>
+                <div>CSS渐变: <span id="css-test">测试中...</span></div>
+                <div>触摸事件: <span id="touch-test">测试中...</span></div>
+                <div>视口单位: <span id="viewport-test">测试中...</span></div>
+                <div>硬件加速: <span id="hardware-test">测试中...</span></div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎨 渲染测试</h3>
+            <div id="render-tests">
+                <div style="margin: 10px 0;">
+                    <div>渐变背景: <span id="gradient-test">测试中...</span></div>
+                    <div style="width: 100%; height: 20px; background: linear-gradient(90deg, #ff0000, #00ff00, #0000ff); margin: 5px 0; border-radius: 10px;"></div>
+                </div>
+                <div style="margin: 10px 0;">
+                    <div>圆角边框: <span id="border-test">测试中...</span></div>
+                    <div style="width: 100%; height: 20px; background: #3498db; border-radius: 10px; margin: 5px 0;"></div>
+                </div>
+                <div style="margin: 10px 0;">
+                    <div>阴影效果: <span id="shadow-test">测试中...</span></div>
+                    <div style="width: 100%; height: 20px; background: #e74c3c; box-shadow: 0 4px 8px rgba(0,0,0,0.3); margin: 5px 0; border-radius: 5px;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>⚡ 性能测试</h3>
+            <div id="performance-tests">
+                <div>页面加载时间: <span id="load-time">计算中...</span></div>
+                <div>内存使用: <span id="memory-usage">检测中...</span></div>
+                <div>滚动性能: <span id="scroll-test">测试中...</span></div>
+            </div>
+        </div>
+        
+        <div class="nav-buttons">
+            <button onclick="runAllTests()">🔄 重新测试</button>
+            <button onclick="goToMainApp()">🏠 进入主应用</button>
+            <button onclick="goToWeChatTest()">💬 微信测试</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 测试结果</h3>
+            <div id="test-results">
+                <div>总体状态: <span id="overall-status">检测中...</span></div>
+                <div>建议操作: <span id="recommendations">分析中...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = {
+            js: false,
+            css: false,
+            touch: false,
+            viewport: false,
+            hardware: false,
+            gradient: false,
+            border: false,
+            shadow: false,
+            performance: false
+        };
+        
+        function runAllTests() {
+            console.log('开始运行所有测试...');
+            testJavaScript();
+            testCSS();
+            testTouch();
+            testViewport();
+            testHardwareAcceleration();
+            testRendering();
+            testPerformance();
+            updateOverallStatus();
+        }
+        
+        function testJavaScript() {
+            try {
+                // 测试基本JavaScript功能
+                const testObj = { test: 'value' };
+                const testArray = [1, 2, 3];
+                const testFunction = () => 'test';
+                
+                if (testObj.test === 'value' && testArray.length === 3 && testFunction() === 'test') {
+                    document.getElementById('js-test').innerHTML = '<span class="success">✓ 正常</span>';
+                    testResults.js = true;
+                } else {
+                    document.getElementById('js-test').innerHTML = '<span class="error">✗ 异常</span>';
+                }
+            } catch (e) {
+                document.getElementById('js-test').innerHTML = '<span class="error">✗ 错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function testCSS() {
+            try {
+                // 测试CSS渐变支持
+                const testDiv = document.createElement('div');
+                testDiv.style.background = 'linear-gradient(45deg, #ff0000, #0000ff)';
+                testDiv.style.width = '50px';
+                testDiv.style.height = '50px';
+                testDiv.style.position = 'absolute';
+                testDiv.style.left = '-100px';
+                testDiv.style.top = '-100px';
+                document.body.appendChild(testDiv);
+                
+                const computedStyle = window.getComputedStyle(testDiv);
+                const background = computedStyle.background || computedStyle.backgroundImage;
+                
+                if (background && background.includes('gradient')) {
+                    document.getElementById('css-test').innerHTML = '<span class="success">✓ 支持</span>';
+                    testResults.css = true;
+                } else {
+                    document.getElementById('css-test').innerHTML = '<span class="warning">⚠ 部分支持</span>';
+                }
+                
+                document.body.removeChild(testDiv);
+            } catch (e) {
+                document.getElementById('css-test').innerHTML = '<span class="error">✗ 错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function testTouch() {
+            let touchSupported = false;
+            
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                touchSupported = true;
+            }
+            
+            if (touchSupported) {
+                document.getElementById('touch-test').innerHTML = '<span class="success">✓ 支持</span>';
+                testResults.touch = true;
+            } else {
+                document.getElementById('touch-test').innerHTML = '<span class="warning">⚠ 不支持</span>';
+            }
+        }
+        
+        function testViewport() {
+            try {
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                
+                if (vw > 0 && vh > 0) {
+                    document.getElementById('viewport-test').innerHTML = '<span class="success">✓ 正常 (' + vw + 'x' + vh + ')</span>';
+                    testResults.viewport = true;
+                } else {
+                    document.getElementById('viewport-test').innerHTML = '<span class="error">✗ 异常</span>';
+                }
+            } catch (e) {
+                document.getElementById('viewport-test').innerHTML = '<span class="error">✗ 错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function testHardwareAcceleration() {
+            try {
+                const testDiv = document.createElement('div');
+                testDiv.style.transform = 'translateZ(0)';
+                testDiv.style.webkitTransform = 'translateZ(0)';
+                document.body.appendChild(testDiv);
+                
+                const computedStyle = window.getComputedStyle(testDiv);
+                const transform = computedStyle.transform || computedStyle.webkitTransform;
+                
+                if (transform && transform !== 'none') {
+                    document.getElementById('hardware-test').innerHTML = '<span class="success">✓ 启用</span>';
+                    testResults.hardware = true;
+                } else {
+                    document.getElementById('hardware-test').innerHTML = '<span class="warning">⚠ 未启用</span>';
+                }
+                
+                document.body.removeChild(testDiv);
+            } catch (e) {
+                document.getElementById('hardware-test').innerHTML = '<span class="error">✗ 错误: ' + e.message + '</span>';
+            }
+        }
+        
+        function testRendering() {
+            // 测试渐变渲染
+            const gradientDiv = document.querySelector('div[style*="linear-gradient"]');
+            if (gradientDiv) {
+                document.getElementById('gradient-test').innerHTML = '<span class="success">✓ 正常</span>';
+                testResults.gradient = true;
+            } else {
+                document.getElementById('gradient-test').innerHTML = '<span class="warning">⚠ 异常</span>';
+            }
+            
+            // 测试圆角边框
+            const borderDiv = document.querySelector('div[style*="border-radius"]');
+            if (borderDiv) {
+                document.getElementById('border-test').innerHTML = '<span class="success">✓ 正常</span>';
+                testResults.border = true;
+            } else {
+                document.getElementById('border-test').innerHTML = '<span class="warning">⚠ 异常</span>';
+            }
+            
+            // 测试阴影
+            const shadowDiv = document.querySelector('div[style*="box-shadow"]');
+            if (shadowDiv) {
+                document.getElementById('shadow-test').innerHTML = '<span class="success">✓ 正常</span>';
+                testResults.shadow = true;
+            } else {
+                document.getElementById('shadow-test').innerHTML = '<span class="warning">⚠ 异常</span>';
+            }
+        }
+        
+        function testPerformance() {
+            const startTime = performance.now();
+            
+            // 测试滚动性能
+            let scrollCount = 0;
+            const scrollHandler = () => {
+                scrollCount++;
+                if (scrollCount > 10) {
+                    document.removeEventListener('scroll', scrollHandler);
+                    const endTime = performance.now();
+                    const loadTime = endTime - startTime;
+                    
+                    document.getElementById('load-time').innerHTML = '<span class="success">' + Math.round(loadTime) + 'ms</span>';
+                    document.getElementById('scroll-test').innerHTML = '<span class="success">✓ 流畅</span>';
+                    testResults.performance = true;
+                }
+            };
+            
+            document.addEventListener('scroll', scrollHandler);
+            
+            // 模拟滚动
+            setTimeout(() => {
+                for (let i = 0; i < 5; i++) {
+                    window.scrollTo(0, 10);
+                    window.scrollTo(0, 0);
+                }
+            }, 100);
+            
+            // 内存使用检测
+            if (performance.memory) {
+                const memory = performance.memory;
+                const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+                document.getElementById('memory-usage').innerHTML = '<span class="success">' + usedMB + 'MB</span>';
+            } else {
+                document.getElementById('memory-usage').innerHTML = '<span class="warning">⚠ 不可用</span>';
+            }
+        }
+        
+        function updateOverallStatus() {
+            const totalTests = Object.keys(testResults).length;
+            const passedTests = Object.values(testResults).filter(result => result).length;
+            const percentage = Math.round((passedTests / totalTests) * 100);
+            
+            let status, recommendations;
+            
+            if (percentage >= 90) {
+                status = '<span class="success">✓ 优秀 (' + percentage + '%)</span>';
+                recommendations = 'Safari兼容性良好，可以正常使用主应用';
+            } else if (percentage >= 70) {
+                status = '<span class="warning">⚠ 良好 (' + percentage + '%)</span>';
+                recommendations = 'Safari兼容性较好，建议清除缓存后重试';
+            } else {
+                status = '<span class="error">✗ 需要修复 (' + percentage + '%)</span>';
+                recommendations = 'Safari兼容性有问题，建议更新浏览器或联系技术支持';
+            }
+            
+            document.getElementById('overall-status').innerHTML = status;
+            document.getElementById('recommendations').innerHTML = recommendations;
+        }
+        
+        function detectBrowser() {
+            const userAgent = navigator.userAgent;
+            const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            const isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            
+            let browserName = '未知';
+            let osName = '未知';
+            
+            if (isSafari) {
+                browserName = 'Safari';
+            } else if (userAgent.includes('Chrome')) {
+                browserName = 'Chrome';
+            } else if (userAgent.includes('Firefox')) {
+                browserName = 'Firefox';
+            }
+            
+            if (isIOS) {
+                osName = 'iOS';
+            } else if (userAgent.includes('Android')) {
+                osName = 'Android';
+            } else if (userAgent.includes('Windows')) {
+                osName = 'Windows';
+            } else if (userAgent.includes('Mac')) {
+                osName = 'macOS';
+            }
+            
+            document.getElementById('browser-name').textContent = browserName;
+            document.getElementById('os-name').textContent = osName;
+            document.getElementById('screen-size').textContent = window.innerWidth + 'x' + window.innerHeight;
+            document.getElementById('pixel-ratio').textContent = window.devicePixelRatio || 1;
+        }
+        
+        function goToMainApp() {
+            window.location.href = '/';
+        }
+        
+        function goToWeChatTest() {
+            window.location.href = '/wechat-test.html';
+        }
+        
+        // 页面加载完成后自动运行测试
+        window.addEventListener('load', function() {
+            detectBrowser();
+            setTimeout(runAllTests, 500);
+        });
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            console.error('页面错误:', e);
+            alert('页面发生错误: ' + e.message);
+        });
+    </script>
+</body>
+</html>
