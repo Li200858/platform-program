@@ -161,7 +161,7 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000')}/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000')}/api/art/${artId}/comment/${commentId}?authorName=${encodeURIComponent(userInfo.name)}`, {
         method: 'DELETE'
       });
       
@@ -215,7 +215,7 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
   const renderMedia = (urls, allowDownload = true) => (
     <FilePreview 
       urls={urls} 
-      apiBaseUrl={process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'}
+      apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'}
       allowDownload={allowDownload}
     />
   );
@@ -1210,7 +1210,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
             }}>
               <FilePreview 
                 urls={formData.media} 
-                apiBaseUrl={process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'} 
+                apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
               />
               <div style={{ 
                 position: 'absolute', 

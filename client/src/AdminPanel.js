@@ -434,7 +434,7 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
                     <h4 style={{ marginBottom: 10, color: '#2c3e50', fontSize: '14px' }}>附件文件</h4>
                     <FilePreview 
                       urls={selectedFeedback.media} 
-                      apiBaseUrl={process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'} 
+                      apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
                     />
                   </div>
                 )}

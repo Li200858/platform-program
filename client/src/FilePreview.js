@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000', showDownloadButton = false, onDownload, allowDownload = true }) {
+export default function FilePreview({ urls, apiBaseUrl = process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000', showDownloadButton = false, onDownload, allowDownload = true }) {
   const [selectedImage, setSelectedImage] = useState(null);
 
   if (!urls || urls.length === 0) {

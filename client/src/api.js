@@ -1,7 +1,7 @@
 // 简化的API工具函数
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
-    ? ''  // 生产环境使用相对路径，因为前后端在同一域名下
+    ? 'https://platform-program.onrender.com'  // 生产环境指向后端API服务
     : 'http://localhost:5000');
 
 export const api = {
