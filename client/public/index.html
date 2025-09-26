@@ -70,6 +70,28 @@
         var isIOS = /iphone|ipad|ipod/i.test(userAgent);
         var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
+        // 强制显示内容，防止iPad Safari空白问题
+        function forceContentDisplay() {
+          if (root) {
+            root.style.display = 'block';
+            root.style.visibility = 'visible';
+            root.style.opacity = '1';
+            root.style.position = 'relative';
+            root.style.zIndex = '1';
+            root.style.minHeight = '100vh';
+            root.style.width = '100%';
+            root.style.webkitTransform = 'translate3d(0, 0, 0)';
+            root.style.transform = 'translate3d(0, 0, 0)';
+            root.style.webkitBackfaceVisibility = 'hidden';
+            root.style.backfaceVisibility = 'hidden';
+            root.style.willChange = 'transform';
+            root.offsetHeight; // 强制重排
+          }
+        }
+        
+        // 立即执行
+        forceContentDisplay();
+        
         console.log('浏览器检测:', {
           isWeChat: isWeChat,
           isSafari: isSafari,
@@ -184,6 +206,10 @@
             if (loadingFallback) {
               loadingFallback.style.display = 'none';
             }
+            // iPad Safari特殊处理：强制显示内容
+            if (isIPad) {
+              forceContentDisplay();
+            }
             return true;
           }
           
@@ -194,11 +220,34 @@
             if (loadingFallback) {
               loadingFallback.style.display = 'none';
             }
+            // iPad Safari特殊处理：强制显示内容
+            if (isIPad) {
+              forceContentDisplay();
+            }
             return true;
           }
           
           return false;
         };
+        
+        // iPad Safari特殊处理：立即显示内容
+        if (isIPad) {
+          console.log('iPad Safari检测到，应用激进修复');
+          
+          // 立即显示内容，不等待React加载
+          setTimeout(function() {
+            forceContentDisplay();
+            if (loadingFallback) {
+              loadingFallback.style.display = 'none';
+            }
+          }, 100);
+          
+          // 多次强制显示，确保内容可见
+          setTimeout(forceContentDisplay, 500);
+          setTimeout(forceContentDisplay, 1000);
+          setTimeout(forceContentDisplay, 2000);
+          setTimeout(forceContentDisplay, 3000);
+        }
         
         // 立即检查一次
         if (!checkReactLoaded()) {
@@ -214,6 +263,10 @@
             clearInterval(checkInterval);
             if (loadingFallback) {
               loadingFallback.style.display = 'none';
+            }
+            // iPad Safari最后尝试
+            if (isIPad) {
+              forceContentDisplay();
             }
           }, 8000);
         }

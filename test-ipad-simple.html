@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>iPad Safari 简单测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            /* iPad Safari强制修复 */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000px;
+            perspective: 1000px;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+            will-change: transform;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin-top: 20px;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 2;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: white;
+        }
+        
+        .test-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            will-change: transform;
+            position: relative;
+            z-index: 4;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .test-button:hover {
+            background: #2980b9;
+            -webkit-transform: translate3d(0, -2px, 0);
+            transform: translate3d(0, -2px, 0);
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            will-change: transform;
+            position: relative;
+            z-index: 3;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .info {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        /* iPad Safari特殊修复 */
+        @media screen and (min-width: 768px) and (max-width: 1024px) {
+            body {
+                -webkit-text-size-adjust: 100%;
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .container {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                will-change: transform;
+                position: relative;
+                z-index: 2;
+                min-height: 100vh;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            .test-button {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 4;
+                -webkit-appearance: none;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        }
+        
+        @supports (-webkit-touch-callout: none) and (min-width: 768px) and (max-width: 1024px) {
+            body {
+                -webkit-text-size-adjust: 100%;
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .container {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                will-change: transform;
+                position: relative;
+                z-index: 2;
+                min-height: 100vh;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 iPad Safari 简单测试</h1>
+            <p>如果您能看到这个页面，说明iPad Safari基本功能正常</p>
+        </div>
+        
+        <div class="status">
+            ✅ 页面已加载 - 如果您看到这个绿色框，说明CSS渲染正常
+        </div>
+        
+        <button class="test-button" onclick="testClick()">
+            点击测试 - 如果您能点击这个按钮，说明JavaScript正常
+        </button>
+        
+        <div id="test-result"></div>
+        
+        <div class="info">
+            <h3>浏览器信息：</h3>
+            <div id="browser-info"></div>
+        </div>
+        
+        <div class="info">
+            <h3>屏幕信息：</h3>
+            <div id="screen-info"></div>
+        </div>
+    </div>
+
+    <script>
+        // 强制显示内容
+        function forceDisplay() {
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+            document.body.style.transform = 'translate3d(0, 0, 0)';
+            document.body.offsetHeight; // 强制重排
+        }
+        
+        // 测试点击
+        function testClick() {
+            document.getElementById('test-result').innerHTML = 
+                '<div class="status">✅ 按钮点击成功！JavaScript功能正常</div>';
+        }
+        
+        // 显示浏览器信息
+        function showBrowserInfo() {
+            var userAgent = navigator.userAgent;
+            var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            
+            document.getElementById('browser-info').innerHTML = 
+                '<div>用户代理: ' + userAgent + '</div>' +
+                '<div>平台: ' + navigator.platform + '</div>' +
+                '<div>触摸点: ' + navigator.maxTouchPoints + '</div>' +
+                '<div>iPad检测: ' + (isIPad ? '是' : '否') + '</div>' +
+                '<div>Safari检测: ' + (isSafari ? '是' : '否') + '</div>';
+        }
+        
+        // 显示屏幕信息
+        function showScreenInfo() {
+            document.getElementById('screen-info').innerHTML = 
+                '<div>屏幕尺寸: ' + screen.width + ' x ' + screen.height + '</div>' +
+                '<div>窗口尺寸: ' + window.innerWidth + ' x ' + window.innerHeight + '</div>' +
+                '<div>设备像素比: ' + window.devicePixelRatio + '</div>';
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面DOM加载完成');
+            forceDisplay();
+            showBrowserInfo();
+            showScreenInfo();
+        });
+        
+        // 立即执行
+        forceDisplay();
+        showBrowserInfo();
+        showScreenInfo();
+        
+        // 延迟执行，确保内容显示
+        setTimeout(forceDisplay, 100);
+        setTimeout(forceDisplay, 500);
+        setTimeout(forceDisplay, 1000);
+        
+        // 窗口大小变化处理
+        window.addEventListener('resize', function() {
+            console.log('窗口大小变化');
+            forceDisplay();
+            showScreenInfo();
+        });
+        
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('页面重新可见');
+                forceDisplay();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no">
+    <meta name="format-detection" content="telephone=no, email=no, address=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>iPad Safari 调试页面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #667eea;
+            background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            /* iPad Safari强制修复 */
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000px;
+            perspective: 1000px;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+            will-change: transform;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .debug-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin-top: 20px;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 2;
+            display: block;
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .debug-section {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            will-change: transform;
+            position: relative;
+            z-index: 3;
+        }
+        
+        .debug-section h3 {
+            margin-bottom: 15px;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .debug-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            /* iPad Safari强制修复 */
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            will-change: transform;
+            position: relative;
+            z-index: 4;
+        }
+        
+        .debug-button:hover {
+            background: #2980b9;
+            -webkit-transform: translate3d(0, -2px, 0);
+            transform: translate3d(0, -2px, 0);
+        }
+        
+        .status {
+            background: rgba(39, 174, 96, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .info {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .test-area {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .log-area {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        /* iPad Safari特殊修复 */
+        @media screen and (min-width: 768px) and (max-width: 1024px) {
+            body {
+                -webkit-text-size-adjust: 100%;
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .debug-container {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                will-change: transform;
+                position: relative;
+                z-index: 2;
+                min-height: 100vh;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            .debug-section {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 3;
+                min-height: 100px;
+                width: 100%;
+                display: block;
+                visibility: visible;
+                opacity: 1;
+            }
+            
+            .debug-button {
+                -webkit-transform: translate3d(0, 0, 0);
+                transform: translate3d(0, 0, 0);
+                will-change: transform;
+                position: relative;
+                z-index: 4;
+                -webkit-appearance: none;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="debug-section">
+            <h3>🔍 iPad Safari 调试工具</h3>
+            <div class="status">如果您能看到这个页面，说明基本渲染正常</div>
+            <div class="info">请按顺序点击下面的测试按钮，并观察结果</div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📱 设备检测</h3>
+            <div id="device-info"></div>
+            <button class="debug-button" onclick="detectDevice()">重新检测设备</button>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🎯 功能测试</h3>
+            <button class="debug-button" onclick="testBasicFunctions()">基础功能测试</button>
+            <button class="debug-button" onclick="testCSSRendering()">CSS渲染测试</button>
+            <button class="debug-button" onclick="testJavaScript()">JavaScript测试</button>
+            <button class="debug-button" onclick="testTouchEvents()">触摸事件测试</button>
+            <div id="function-test-results"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🔧 修复测试</h3>
+            <button class="debug-button" onclick="applySafariFixes()">应用Safari修复</button>
+            <button class="debug-button" onclick="forceRepaint()">强制重绘</button>
+            <button class="debug-button" onclick="testHardwareAcceleration()">硬件加速测试</button>
+            <div id="fix-test-results"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📊 性能监控</h3>
+            <button class="debug-button" onclick="monitorPerformance()">开始性能监控</button>
+            <button class="debug-button" onclick="clearLogs()">清除日志</button>
+            <div id="performance-results"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📝 调试日志</h3>
+            <div id="debug-logs" class="log-area"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🎨 视觉测试区域</h3>
+            <div class="test-area">
+                <div style="background: #e74c3c; color: white; padding: 10px; margin: 5px; border-radius: 5px;">
+                    红色框 - 如果您能看到这个，说明颜色渲染正常
+                </div>
+                <div style="background: #27ae60; color: white; padding: 10px; margin: 5px; border-radius: 5px;">
+                    绿色框 - 如果您能看到这个，说明布局正常
+                </div>
+                <div style="background: #f39c12; color: white; padding: 10px; margin: 5px; border-radius: 5px;">
+                    橙色框 - 如果您能看到这个，说明边框圆角正常
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var debugLogs = [];
+        
+        function log(message) {
+            var timestamp = new Date().toLocaleTimeString();
+            var logMessage = '[' + timestamp + '] ' + message;
+            debugLogs.push(logMessage);
+            console.log(logMessage);
+            
+            var logArea = document.getElementById('debug-logs');
+            if (logArea) {
+                logArea.innerHTML = debugLogs.join('<br>');
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+        }
+        
+        function clearLogs() {
+            debugLogs = [];
+            document.getElementById('debug-logs').innerHTML = '';
+            log('日志已清除');
+        }
+        
+        function forceDisplay() {
+            document.body.style.display = 'block';
+            document.body.style.visibility = 'visible';
+            document.body.style.opacity = '1';
+            document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+            document.body.style.transform = 'translate3d(0, 0, 0)';
+            document.body.offsetHeight; // 强制重排
+            log('强制显示内容');
+        }
+        
+        function detectDevice() {
+            var userAgent = navigator.userAgent;
+            var isIPad = /ipad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+            var isIOS = /iphone|ipad|ipod/i.test(userAgent);
+            var isMobile = /mobile|android|iphone|ipad|phone/i.test(userAgent);
+            
+            var deviceInfo = 
+                '<div class="info">用户代理: ' + userAgent + '</div>' +
+                '<div class="info">平台: ' + navigator.platform + '</div>' +
+                '<div class="info">触摸点: ' + navigator.maxTouchPoints + '</div>' +
+                '<div class="info">屏幕尺寸: ' + screen.width + ' x ' + screen.height + '</div>' +
+                '<div class="info">窗口尺寸: ' + window.innerWidth + ' x ' + window.innerHeight + '</div>' +
+                '<div class="info">设备像素比: ' + window.devicePixelRatio + '</div>' +
+                '<div class="' + (isIPad ? 'status' : 'warning') + '">iPad检测: ' + (isIPad ? '是' : '否') + '</div>' +
+                '<div class="' + (isSafari ? 'status' : 'warning') + '">Safari检测: ' + (isSafari ? '是' : '否') + '</div>' +
+                '<div class="' + (isIOS ? 'status' : 'warning') + '">iOS检测: ' + (isIOS ? '是' : '否') + '</div>' +
+                '<div class="' + (isMobile ? 'status' : 'warning') + '">移动设备检测: ' + (isMobile ? '是' : '否') + '</div>';
+            
+            document.getElementById('device-info').innerHTML = deviceInfo;
+            log('设备检测完成');
+        }
+        
+        function testBasicFunctions() {
+            var results = document.getElementById('function-test-results');
+            var testResults = [];
+            
+            // 测试DOM操作
+            try {
+                var testDiv = document.createElement('div');
+                testDiv.innerHTML = 'DOM测试';
+                document.body.appendChild(testDiv);
+                document.body.removeChild(testDiv);
+                testResults.push('✅ DOM操作正常');
+            } catch (e) {
+                testResults.push('❌ DOM操作失败: ' + e.message);
+            }
+            
+            // 测试事件监听
+            try {
+                var testEvent = new Event('test');
+                document.dispatchEvent(testEvent);
+                testResults.push('✅ 事件系统正常');
+            } catch (e) {
+                testResults.push('❌ 事件系统失败: ' + e.message);
+            }
+            
+            // 测试定时器
+            try {
+                var timerTest = false;
+                setTimeout(function() {
+                    timerTest = true;
+                }, 100);
+                setTimeout(function() {
+                    if (timerTest) {
+                        testResults.push('✅ 定时器正常');
+                    } else {
+                        testResults.push('❌ 定时器失败');
+                    }
+                    results.innerHTML = testResults.join('<br>');
+                }, 200);
+            } catch (e) {
+                testResults.push('❌ 定时器失败: ' + e.message);
+                results.innerHTML = testResults.join('<br>');
+            }
+            
+            log('基础功能测试完成');
+        }
+        
+        function testCSSRendering() {
+            var results = document.getElementById('function-test-results');
+            var testResults = [];
+            
+            // 测试CSS3属性
+            var testDiv = document.createElement('div');
+            testDiv.style.cssText = `
+                width: 100px;
+                height: 100px;
+                background: #e74c3c;
+                border-radius: 50%;
+                transform: translate3d(0, 0, 0);
+                transition: all 0.3s ease;
+            `;
+            document.body.appendChild(testDiv);
+            
+            // 测试动画
+            setTimeout(function() {
+                testDiv.style.transform = 'translate3d(100px, 0, 0)';
+                testResults.push('✅ CSS3属性支持');
+            }, 100);
+            
+            setTimeout(function() {
+                testDiv.style.transform = 'translate3d(0, 0, 0)';
+                testResults.push('✅ CSS动画支持');
+                document.body.removeChild(testDiv);
+                results.innerHTML = testResults.join('<br>');
+            }, 500);
+            
+            log('CSS渲染测试完成');
+        }
+        
+        function testJavaScript() {
+            var results = document.getElementById('function-test-results');
+            var testResults = [];
+            
+            // 测试ES6特性
+            try {
+                const testConst = 'ES6测试';
+                let testLet = '变量测试';
+                testResults.push('✅ ES6语法支持');
+            } catch (e) {
+                testResults.push('❌ ES6语法失败: ' + e.message);
+            }
+            
+            // 测试Promise
+            try {
+                Promise.resolve('Promise测试').then(function(value) {
+                    testResults.push('✅ Promise支持');
+                    results.innerHTML = testResults.join('<br>');
+                });
+            } catch (e) {
+                testResults.push('❌ Promise失败: ' + e.message);
+                results.innerHTML = testResults.join('<br>');
+            }
+            
+            log('JavaScript测试完成');
+        }
+        
+        function testTouchEvents() {
+            var results = document.getElementById('function-test-results');
+            var testResults = [];
+            
+            // 测试触摸事件
+            var touchTestDiv = document.createElement('div');
+            touchTestDiv.style.cssText = `
+                width: 100px;
+                height: 100px;
+                background: #3498db;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 1000;
+            `;
+            touchTestDiv.innerHTML = '点击我测试触摸';
+            document.body.appendChild(touchTestDiv);
+            
+            var touchStart = false;
+            var touchEnd = false;
+            
+            touchTestDiv.addEventListener('touchstart', function() {
+                touchStart = true;
+                testResults.push('✅ 触摸开始事件正常');
+            });
+            
+            touchTestDiv.addEventListener('touchend', function() {
+                touchEnd = true;
+                testResults.push('✅ 触摸结束事件正常');
+                if (touchStart && touchEnd) {
+                    testResults.push('✅ 触摸事件完整支持');
+                }
+                results.innerHTML = testResults.join('<br>');
+                document.body.removeChild(touchTestDiv);
+            });
+            
+            log('触摸事件测试完成');
+        }
+        
+        function applySafariFixes() {
+            var results = document.getElementById('fix-test-results');
+            var fixResults = [];
+            
+            // 应用Safari修复
+            try {
+                document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+                document.body.style.transform = 'translate3d(0, 0, 0)';
+                document.body.style.webkitBackfaceVisibility = 'hidden';
+                document.body.style.backfaceVisibility = 'hidden';
+                document.body.style.webkitPerspective = '1000px';
+                document.body.style.perspective = '1000px';
+                document.body.style.willChange = 'transform';
+                fixResults.push('✅ Safari修复已应用');
+            } catch (e) {
+                fixResults.push('❌ Safari修复失败: ' + e.message);
+            }
+            
+            // 强制重排
+            try {
+                document.body.offsetHeight;
+                fixResults.push('✅ 强制重排完成');
+            } catch (e) {
+                fixResults.push('❌ 强制重排失败: ' + e.message);
+            }
+            
+            results.innerHTML = fixResults.join('<br>');
+            log('Safari修复应用完成');
+        }
+        
+        function forceRepaint() {
+            var results = document.getElementById('fix-test-results');
+            var repaintResults = [];
+            
+            try {
+                // 强制重绘
+                document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+                document.body.style.transform = 'translate3d(0, 0, 0)';
+                document.body.offsetHeight;
+                repaintResults.push('✅ 强制重绘完成');
+                
+                // 延迟重绘
+                setTimeout(function() {
+                    document.body.style.webkitTransform = 'translate3d(0, 0, 0)';
+                    document.body.style.transform = 'translate3d(0, 0, 0)';
+                    repaintResults.push('✅ 延迟重绘完成');
+                    results.innerHTML = repaintResults.join('<br>');
+                }, 100);
+            } catch (e) {
+                repaintResults.push('❌ 强制重绘失败: ' + e.message);
+                results.innerHTML = repaintResults.join('<br>');
+            }
+            
+            log('强制重绘完成');
+        }
+        
+        function testHardwareAcceleration() {
+            var results = document.getElementById('fix-test-results');
+            var hwResults = [];
+            
+            try {
+                // 测试硬件加速
+                var testDiv = document.createElement('div');
+                testDiv.style.cssText = `
+                    width: 100px;
+                    height: 100px;
+                    background: #e74c3c;
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate3d(-50%, -50%, 0);
+                    z-index: 1000;
+                    transition: transform 0.3s ease;
+                `;
+                document.body.appendChild(testDiv);
+                
+                hwResults.push('✅ 硬件加速元素创建');
+                
+                setTimeout(function() {
+                    testDiv.style.transform = 'translate3d(-50%, -50%, 0) scale(1.5)';
+                    hwResults.push('✅ 硬件加速动画开始');
+                }, 100);
+                
+                setTimeout(function() {
+                    testDiv.style.transform = 'translate3d(-50%, -50%, 0) scale(1)';
+                    hwResults.push('✅ 硬件加速动画完成');
+                    document.body.removeChild(testDiv);
+                    results.innerHTML = hwResults.join('<br>');
+                }, 500);
+            } catch (e) {
+                hwResults.push('❌ 硬件加速测试失败: ' + e.message);
+                results.innerHTML = hwResults.join('<br>');
+            }
+            
+            log('硬件加速测试完成');
+        }
+        
+        function monitorPerformance() {
+            var results = document.getElementById('performance-results');
+            var perfResults = [];
+            
+            if (window.performance) {
+                var timing = window.performance.timing;
+                var loadTime = timing.loadEventEnd - timing.navigationStart;
+                var domReady = timing.domContentLoadedEventEnd - timing.navigationStart;
+                
+                perfResults.push('<div class="info">页面加载时间: ' + loadTime + 'ms</div>');
+                perfResults.push('<div class="info">DOM就绪时间: ' + domReady + 'ms</div>');
+                
+                if (window.performance.memory) {
+                    var memory = window.performance.memory;
+                    perfResults.push('<div class="info">内存使用: ' + Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB</div>');
+                    perfResults.push('<div class="info">内存限制: ' + Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB</div>');
+                }
+            } else {
+                perfResults.push('<div class="warning">性能API不可用</div>');
+            }
+            
+            results.innerHTML = perfResults.join('');
+            log('性能监控完成');
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            log('页面DOM加载完成');
+            forceDisplay();
+            detectDevice();
+        });
+        
+        // 立即执行
+        forceDisplay();
+        detectDevice();
+        
+        // 延迟执行，确保内容显示
+        setTimeout(forceDisplay, 100);
+        setTimeout(forceDisplay, 500);
+        setTimeout(forceDisplay, 1000);
+        
+        // 窗口大小变化处理
+        window.addEventListener('resize', function() {
+            log('窗口大小变化: ' + window.innerWidth + 'x' + window.innerHeight);
+            forceDisplay();
+        });
+        
+        // 页面可见性变化处理
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                log('页面重新可见');
+                forceDisplay();
+            }
+        });
+        
+        // 错误处理
+        window.addEventListener('error', function(e) {
+            log('页面错误: ' + e.message);
+        });
+    </script>
+</body>
+</html>
