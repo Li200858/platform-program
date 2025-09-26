@@ -183,7 +183,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
   const handleDownloadFile = async (file) => {
     try {
       const apiBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://platform-program.onrender.com' 
+        ? '' 
         : 'http://localhost:5000';
       
       const downloadUrl = `${apiBaseUrl}/api/resources/file/${file.filename}`;

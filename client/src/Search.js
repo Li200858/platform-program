@@ -197,7 +197,7 @@ export default function Search({ userInfo, onBack }) {
                     <div style={{ marginBottom: 15 }}>
                       <FilePreview 
                         urls={item.media} 
-                        apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                        apiBaseUrl={process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'} 
                       />
                     </div>
                   )}
@@ -251,7 +251,7 @@ export default function Search({ userInfo, onBack }) {
                     <div style={{ marginBottom: 15 }}>
                       <FilePreview 
                         urls={item.media} 
-                        apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                        apiBaseUrl={process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'} 
                       />
                     </div>
                   )}

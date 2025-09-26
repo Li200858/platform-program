@@ -216,7 +216,7 @@ export default function Activity({ userInfo, isAdmin, onBack, maintenanceStatus 
               <div style={{ marginBottom: 15 }}>
                 <FilePreview 
                   urls={activity.media} 
-                  apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
+                  apiBaseUrl={process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000'} 
                 />
               </div>
             )}
