@@ -193,8 +193,12 @@ const corsOptions = {
       'http://localhost:3000',
       'https://platform-program-frontend.onrender.com',
       'https://platform-program.onrender.com',
+      'https://platform-mobile.onrender.com',
+      'https://platform-mobile-frontend.onrender.com',
       'https://hwartplatform.org',
-      'https://www.hwartplatform.org'
+      'https://www.hwartplatform.org',
+      'https://mobile.hwartplatform.org',
+      'https://ipad.hwartplatform.org'
     ];
     
     console.log('CORS请求来源:', origin);
