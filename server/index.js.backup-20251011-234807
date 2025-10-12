@@ -157,25 +157,15 @@ const cleanupOrphanedFiles = async () => {
     
     console.log(`数据库中共引用 ${referencedFiles.size} 个文件`);
     
-    // 删除未被引用的文件（仅删除创建超过1小时的孤立文件，防止误删正在上传的文件）
+    // 删除未被引用的文件
     let deletedCount = 0;
-    const oneHourAgo = Date.now() - (60 * 60 * 1000); // 1小时前
-    
     files.forEach(fileName => {
       if (!referencedFiles.has(fileName)) {
         const filePath = path.join(uploadsDir, fileName);
         try {
-          const stats = fs.statSync(filePath);
-          const fileAge = stats.birthtimeMs || stats.ctimeMs;
-          
-          // 只删除创建超过1小时的孤立文件
-          if (fileAge < oneHourAgo) {
-            fs.unlinkSync(filePath);
-            console.log('删除孤立文件:', fileName, `(创建于 ${new Date(fileAge).toLocaleString()})`);
-            deletedCount++;
-          } else {
-            console.log('跳过最近上传的文件:', fileName, '(可能正在处理中)');
-          }
+          fs.unlinkSync(filePath);
+          console.log('删除孤立文件:', fileName);
+          deletedCount++;
         } catch (error) {
           console.error('删除孤立文件失败:', fileName, error.message);
         }
@@ -203,12 +193,8 @@ const corsOptions = {
       'http://localhost:3000',
       'https://platform-program-frontend.onrender.com',
       'https://platform-program.onrender.com',
-      'https://platform-mobile.onrender.com',
-      'https://platform-mobile-frontend.onrender.com',
       'https://hwartplatform.org',
-      'https://www.hwartplatform.org',
-      'https://mobile.hwartplatform.org',
-      'https://ipad.hwartplatform.org'
+      'https://www.hwartplatform.org'
     ];
     
     console.log('CORS请求来源:', origin);
@@ -230,17 +216,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// 增加请求体大小限制（支持大文件）
-app.use(express.json({ limit: '2gb' }));
-app.use(express.urlencoded({ limit: '2gb', extended: true }));
-
-// 设置超时时间（30分钟，适合大文件上传）
-app.use((req, res, next) => {
-  req.setTimeout(1800000); // 30分钟
-  res.setTimeout(1800000);
-  next();
-});
+app.use(express.json());
 
 // 额外的CORS处理
 app.use((req, res, next) => {
@@ -291,13 +267,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { 
-    fileSize: 2048 * 1024 * 1024, // 2GB (支持微电影等长视频)
-    files: 20 // 增加到20个文件
-  },
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
   fileFilter: (req, file, cb) => {
-    const sizeMB = file.size ? (file.size / 1024 / 1024).toFixed(2) : '未知';
-    console.log(`📤 接收文件: ${file.originalname} (${sizeMB}MB)`);
     cb(null, true); // 允许所有文件类型
   }
 });
@@ -307,40 +278,18 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-
   .then(() => console.log('MongoDB连接成功'))
   .catch(err => console.error('MongoDB连接失败:', err));
 
-// 文件上传API（增强版）
-app.post('/api/upload', upload.array('files', 10), async (req, res) => {
+// 文件上传API
+app.post('/api/upload', upload.array('files', 10), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
-      console.log('❌ 上传失败: 没有文件');
       return res.status(400).json({ error: '没有上传文件' });
     }
     
-    console.log(`✅ 成功上传 ${req.files.length} 个文件`);
-    
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://platform-program.onrender.com' 
-      : 'http://localhost:5000';
-    
-    const fileUrls = req.files.map(file => {
-      const url = `${baseUrl}/uploads/${file.filename}`;
-      console.log(`  📁 ${file.originalname} -> ${file.filename} (${(file.size / 1024).toFixed(2)}KB)`);
-      return url;
-    });
-    
-    // 等待一小段时间确保文件写入完成
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    res.json({ 
-      urls: fileUrls,
-      success: true,
-      count: fileUrls.length
-    });
+    const fileUrls = req.files.map(file => `${process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'}/uploads/${file.filename}`);
+    res.json({ urls: fileUrls });
   } catch (error) {
-    console.error('❌ 文件上传错误:', error);
-    res.status(500).json({ 
-      error: '文件上传失败: ' + error.message,
-      success: false 
-    });
+    console.error('文件上传错误:', error);
+    res.status(500).json({ error: '文件上传失败' });
   }
 });
 
@@ -1608,295 +1557,6 @@ app.post('/api/admin/backup/restore', async (req, res) => {
   }
 });
 
-// ==================== 分块上传API (方案B) ====================
-const { v4: uuidv4 } = require('uuid');
-
-// 临时分块存储目录
-const CHUNKS_DIR = path.join(uploadsDir, 'chunks');
-
-// 确保目录存在
-if (!fs.existsSync(CHUNKS_DIR)) {
-  fs.mkdirSync(CHUNKS_DIR, { recursive: true });
-}
-
-// 1. 初始化上传（获取uploadId）
-app.post('/api/upload/init', async (req, res) => {
-  try {
-    const { filename, fileSize, totalChunks } = req.body;
-    
-    if (!filename || !fileSize || !totalChunks) {
-      return res.status(400).json({ error: '缺少必要参数' });
-    }
-    
-    // 生成唯一的上传ID
-    const uploadId = uuidv4();
-    
-    // 创建上传会话目录
-    const uploadDir = path.join(CHUNKS_DIR, uploadId);
-    fs.mkdirSync(uploadDir, { recursive: true });
-    
-    // 保存上传元数据
-    const metadata = {
-      uploadId,
-      filename,
-      fileSize,
-      totalChunks,
-      uploadedChunks: [],
-      createdAt: new Date().toISOString()
-    };
-    
-    fs.writeFileSync(
-      path.join(uploadDir, 'metadata.json'),
-      JSON.stringify(metadata, null, 2)
-    );
-    
-    console.log(`📤 初始化分块上传: ${filename} (${(fileSize / 1024 / 1024).toFixed(2)}MB, ${totalChunks}个分块)`);
-    
-    res.json({
-      success: true,
-      uploadId,
-      message: '上传初始化成功'
-    });
-  } catch (error) {
-    console.error('❌ 初始化上传失败:', error);
-    res.status(500).json({ error: '初始化失败: ' + error.message });
-  }
-});
-
-// 2. 上传单个分块
-app.post('/api/upload/chunk', upload.single('chunk'), async (req, res) => {
-  try {
-    const { uploadId, chunkIndex } = req.body;
-    
-    if (!uploadId || chunkIndex === undefined || !req.file) {
-      return res.status(400).json({ error: '缺少必要参数' });
-    }
-    
-    const uploadDir = path.join(CHUNKS_DIR, uploadId);
-    const metadataPath = path.join(uploadDir, 'metadata.json');
-    
-    // 检查上传会话是否存在
-    if (!fs.existsSync(metadataPath)) {
-      return res.status(404).json({ error: '上传会话不存在' });
-    }
-    
-    // 读取元数据
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-    
-    // 移动分块到上传目录
-    const chunkPath = path.join(uploadDir, `chunk_${chunkIndex}`);
-    fs.renameSync(req.file.path, chunkPath);
-    
-    // 更新元数据
-    if (!metadata.uploadedChunks.includes(parseInt(chunkIndex))) {
-      metadata.uploadedChunks.push(parseInt(chunkIndex));
-      metadata.uploadedChunks.sort((a, b) => a - b);
-      fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-    }
-    
-    const progress = ((metadata.uploadedChunks.length / metadata.totalChunks) * 100).toFixed(2);
-    console.log(`  📦 分块 ${parseInt(chunkIndex) + 1}/${metadata.totalChunks} (${progress}%)`);
-    
-    res.json({
-      success: true,
-      uploadedChunks: metadata.uploadedChunks.length,
-      totalChunks: metadata.totalChunks,
-      progress: parseFloat(progress)
-    });
-  } catch (error) {
-    console.error('❌ 上传分块失败:', error);
-    res.status(500).json({ error: '上传分块失败: ' + error.message });
-  }
-});
-
-// 3. 完成上传（合并所有分块）
-app.post('/api/upload/complete', async (req, res) => {
-  try {
-    const { uploadId } = req.body;
-    
-    if (!uploadId) {
-      return res.status(400).json({ error: '缺少uploadId' });
-    }
-    
-    const uploadDir = path.join(CHUNKS_DIR, uploadId);
-    const metadataPath = path.join(uploadDir, 'metadata.json');
-    
-    // 检查上传会话是否存在
-    if (!fs.existsSync(metadataPath)) {
-      return res.status(404).json({ error: '上传会话不存在' });
-    }
-    
-    // 读取元数据
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-    
-    // 检查是否所有分块都已上传
-    if (metadata.uploadedChunks.length !== metadata.totalChunks) {
-      return res.status(400).json({ 
-        error: '上传未完成',
-        uploadedChunks: metadata.uploadedChunks.length,
-        totalChunks: metadata.totalChunks
-      });
-    }
-    
-    console.log(`🔗 开始合并文件: ${metadata.filename}`);
-    
-    // 生成最终文件名
-    const finalFilename = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(metadata.filename);
-    const finalPath = path.join(uploadsDir, finalFilename);
-    
-    // 创建写入流
-    const writeStream = fs.createWriteStream(finalPath);
-    
-    // 按顺序合并所有分块
-    for (let i = 0; i < metadata.totalChunks; i++) {
-      const chunkPath = path.join(uploadDir, `chunk_${i}`);
-      
-      if (!fs.existsSync(chunkPath)) {
-        throw new Error(`分块 ${i} 不存在`);
-      }
-      
-      const chunkData = fs.readFileSync(chunkPath);
-      writeStream.write(chunkData);
-      
-      // 进度提示
-      if ((i + 1) % 10 === 0 || i === metadata.totalChunks - 1) {
-        console.log(`  合并进度: ${i + 1}/${metadata.totalChunks}`);
-      }
-    }
-    
-    writeStream.end();
-    
-    // 等待写入完成
-    await new Promise((resolve, reject) => {
-      writeStream.on('finish', resolve);
-      writeStream.on('error', reject);
-    });
-    
-    // 清理临时文件
-    fs.rmSync(uploadDir, { recursive: true, force: true });
-    
-    // 验证文件大小
-    const stats = fs.statSync(finalPath);
-    const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
-    
-    console.log(`✅ 文件合并成功: ${finalFilename} (${sizeMB}MB)`);
-    
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://platform-program.onrender.com' 
-      : 'http://localhost:5000';
-    
-    const fileUrl = `${baseUrl}/uploads/${finalFilename}`;
-    
-    res.json({
-      success: true,
-      url: fileUrl,
-      filename: finalFilename,
-      originalName: metadata.filename,
-      size: stats.size,
-      sizeMB: parseFloat(sizeMB)
-    });
-  } catch (error) {
-    console.error('❌ 完成上传失败:', error);
-    res.status(500).json({ error: '完成上传失败: ' + error.message });
-  }
-});
-
-// 4. 取消上传（清理临时文件）
-app.post('/api/upload/cancel', async (req, res) => {
-  try {
-    const { uploadId } = req.body;
-    
-    if (!uploadId) {
-      return res.status(400).json({ error: '缺少uploadId' });
-    }
-    
-    const uploadDir = path.join(CHUNKS_DIR, uploadId);
-    
-    if (fs.existsSync(uploadDir)) {
-      fs.rmSync(uploadDir, { recursive: true, force: true });
-      console.log(`🗑️  已取消上传: ${uploadId}`);
-    }
-    
-    res.json({
-      success: true,
-      message: '上传已取消'
-    });
-  } catch (error) {
-    console.error('❌ 取消上传失败:', error);
-    res.status(500).json({ error: '取消上传失败: ' + error.message });
-  }
-});
-
-// 5. 查询上传状态
-app.get('/api/upload/status/:uploadId', async (req, res) => {
-  try {
-    const { uploadId } = req.params;
-    
-    const uploadDir = path.join(CHUNKS_DIR, uploadId);
-    const metadataPath = path.join(uploadDir, 'metadata.json');
-    
-    if (!fs.existsSync(metadataPath)) {
-      return res.status(404).json({ error: '上传会话不存在' });
-    }
-    
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-    
-    res.json({
-      success: true,
-      ...metadata,
-      progress: ((metadata.uploadedChunks.length / metadata.totalChunks) * 100).toFixed(2)
-    });
-  } catch (error) {
-    console.error('❌ 查询状态失败:', error);
-    res.status(500).json({ error: '查询状态失败: ' + error.message });
-  }
-});
-
-// 6. 清理过期的临时文件（定期执行）
-async function cleanupExpiredChunks() {
-  try {
-    if (!fs.existsSync(CHUNKS_DIR)) {
-      return;
-    }
-    
-    const uploads = fs.readdirSync(CHUNKS_DIR);
-    const now = Date.now();
-    const EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24小时
-    
-    let cleanedCount = 0;
-    
-    for (const uploadId of uploads) {
-      const uploadDir = path.join(CHUNKS_DIR, uploadId);
-      const metadataPath = path.join(uploadDir, 'metadata.json');
-      
-      if (fs.existsSync(metadataPath)) {
-        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-        const createdAt = new Date(metadata.createdAt).getTime();
-        
-        // 删除超过24小时的未完成上传
-        if (now - createdAt > EXPIRY_TIME) {
-          fs.rmSync(uploadDir, { recursive: true, force: true });
-          console.log(`🗑️  清理过期上传: ${uploadId}`);
-          cleanedCount++;
-        }
-      }
-    }
-    
-    if (cleanedCount > 0) {
-      console.log(`✅ 清理了 ${cleanedCount} 个过期上传`);
-    }
-  } catch (error) {
-    console.error('❌ 清理过期文件失败:', error);
-  }
-}
-
-// 每小时清理一次过期文件
-setInterval(cleanupExpiredChunks, 60 * 60 * 1000);
-
-console.log('✅ 分块上传API已启用 (支持5GB超大文件，断点续传)');
-
-// ==================== 启动服务器 ====================
-
 app.listen(PORT, async () => {
   console.log('艺术平台服务器运行在端口', PORT);
   console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
@@ -1911,20 +1571,26 @@ app.listen(PORT, async () => {
   console.log('启动时清理孤立文件...');
   await cleanupOrphanedFiles();
   
-  // 初始化文件备份系统（已禁用自动恢复，防止覆盖新上传的文件）
+  // 初始化文件备份系统
   const backup = new FileBackup();
   try {
-    // ⚠️ 已禁用自动恢复备份，防止覆盖新文件
-    // 如需手动恢复，请使用管理员面板
+    // 尝试恢复最新的备份
+    const backups = backup.listBackups();
+    if (backups.length > 0) {
+      const latestBackup = path.join(backup.backupDir, backups[0]);
+      console.log('发现备份文件，尝试恢复:', latestBackup);
+      await backup.restoreBackup(latestBackup);
+      console.log('文件备份恢复成功');
+    }
     
-    // 清理旧备份（保留最近7天）
+    // 清理旧备份
     backup.cleanupOldBackups();
     
     // 创建新的备份
     await backup.createBackup();
-    console.log('✅ 文件备份系统初始化完成（自动恢复已禁用）');
+    console.log('文件备份系统初始化完成');
   } catch (error) {
-    console.log('⚠️ 文件备份系统初始化失败，但不影响服务运行:', error.message);
+    console.log('文件备份系统初始化失败，但不影响服务运行:', error.message);
   }
 });
 

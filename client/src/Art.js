@@ -1036,6 +1036,9 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
     }
   };
 
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadSpeed, setUploadSpeed] = useState(0);
+
   const handleFileUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
@@ -1046,23 +1049,73 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
     // 清除之前的消息
     setMessage('');
     setUploading(true);
+    setUploadProgress(0);
     
     const uploadFormData = new FormData();
-    Array.from(files).forEach(file => uploadFormData.append('files', file));
+    let totalSize = 0;
+    Array.from(files).forEach(file => {
+      uploadFormData.append('files', file);
+      totalSize += file.size;
+    });
+
+    const startTime = Date.now();
+    let uploadedSize = 0;
 
     try {
-      const data = await api.upload(uploadFormData);
+      // 使用XMLHttpRequest来获取上传进度
+      const xhr = new XMLHttpRequest();
+      
+      // 监听上传进度
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          setUploadProgress(percentComplete);
+          
+          // 计算上传速度
+          const elapsedTime = (Date.now() - startTime) / 1000; // 秒
+          const speed = e.loaded / elapsedTime; // 字节/秒
+          setUploadSpeed(speed);
+          
+          console.log(`📊 上传进度: ${percentComplete.toFixed(1)}% (${(speed / 1024 / 1024).toFixed(2)} MB/s)`);
+        }
+      });
+
+      // 处理响应
+      const uploadPromise = new Promise((resolve, reject) => {
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('网络错误'));
+        xhr.ontimeout = () => reject(new Error('上传超时'));
+      });
+
+      const baseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000');
+      
+      xhr.open('POST', `${baseUrl}/api/upload`, true);
+      xhr.timeout = 1800000; // 30分钟超时
+      xhr.send(uploadFormData);
+
+      const data = await uploadPromise;
+      
       if (data && data.urls && data.urls.length > 0) {
         setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
-        setMessage(`成功上传 ${data.urls.length} 个文件`);
+        setMessage(`✅ 成功上传 ${data.urls.length} 个文件 (${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
+        setUploadProgress(100);
       } else {
         setMessage('文件上传失败，请重试');
       }
     } catch (error) {
       console.error('文件上传失败:', error);
-      setMessage('文件上传失败：' + (error.message || '请检查文件大小和格式'));
+      setMessage('❌ 文件上传失败：' + (error.message || '请检查文件大小和格式'));
+      setUploadProgress(0);
     } finally {
       setUploading(false);
+      // 3秒后清除进度条
+      setTimeout(() => setUploadProgress(0), 3000);
     }
   };
 
@@ -1184,7 +1237,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
 
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-            上传文件
+            上传文件（最大2GB，支持微电影）
           </label>
           <input
             type="file"
@@ -1193,7 +1246,97 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
             disabled={uploading}
             style={{ width: '100%', padding: '10px', borderRadius: 8, border: '2px solid #ecf0f1' }}
           />
-          {uploading && <div style={{ color: '#3498db', marginTop: 5 }}>上传中...</div>}
+          
+          {/* 实时上传进度条 */}
+          {uploading && uploadProgress > 0 && (
+            <div style={{ marginTop: '15px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '8px',
+                fontSize: '13px',
+                color: '#2c3e50'
+              }}>
+                <span style={{ fontWeight: 'bold' }}>
+                  📊 上传进度: {uploadProgress.toFixed(1)}%
+                </span>
+                <span style={{ color: '#3498db', fontWeight: '600' }}>
+                  {uploadSpeed > 0 ? `⚡ ${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算速度...'}
+                </span>
+              </div>
+              
+              <div style={{
+                width: '100%',
+                height: '28px',
+                backgroundColor: '#ecf0f1',
+                borderRadius: '14px',
+                overflow: 'hidden',
+                position: 'relative',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  backgroundColor: uploadProgress === 100 ? '#27ae60' : '#3498db',
+                  transition: 'width 0.3s ease, background-color 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: uploadProgress === 100 
+                    ? 'linear-gradient(90deg, #27ae60, #2ecc71)' 
+                    : 'linear-gradient(90deg, #3498db, #5dade2)',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}>
+                  <span style={{ 
+                    color: 'white', 
+                    fontWeight: 'bold', 
+                    fontSize: '13px',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.3)'
+                  }}>
+                    {uploadProgress === 100 ? '✅ 完成' : `${uploadProgress.toFixed(0)}%`}
+                  </span>
+                </div>
+              </div>
+              
+              {uploadProgress === 100 && (
+                <div style={{ 
+                  marginTop: '10px', 
+                  color: '#27ae60', 
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  animation: 'fadeIn 0.5s'
+                }}>
+                  ✨ 上传完成！文件已添加到作品中
+                </div>
+              )}
+              
+              {uploadProgress < 100 && uploadSpeed > 0 && (
+                <div style={{ 
+                  marginTop: '8px', 
+                  color: '#7f8c8d', 
+                  fontSize: '12px',
+                  textAlign: 'center'
+                }}>
+                  预计剩余时间: {(() => {
+                    const totalSize = uploadSpeed > 0 ? (uploadProgress / 100) * 1000 : 0;
+                    const remainingSize = totalSize * (1 - uploadProgress / 100);
+                    const remainingTime = uploadSpeed > 0 ? remainingSize / uploadSpeed : 0;
+                    if (remainingTime < 60) return `${Math.ceil(remainingTime)}秒`;
+                    if (remainingTime < 3600) return `${Math.ceil(remainingTime / 60)}分钟`;
+                    return `${Math.ceil(remainingTime / 3600)}小时`;
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {!uploading && (
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+              💡 提示: 支持图片、视频、音频、文档等，单个文件最大2GB
+            </div>
+          )}
         </div>
 
         {formData.media.length > 0 && (
