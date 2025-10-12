@@ -192,7 +192,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
 
       await uploadPromise;
       
-      setMessage(`✅ 资料上传成功！(${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
+      setMessage(` 资料上传成功！(${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
       setUploadProgress(100);
       
       // 上传成功后清除草稿
@@ -204,7 +204,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
       }, 2000);
     } catch (error) {
       console.error('上传资料失败:', error);
-      setMessage('❌ 上传资料失败：' + error.message);
+      setMessage(' 上传资料失败：' + error.message);
       setUploadProgress(0);
     } finally {
       setUploading(false);
@@ -696,7 +696,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
                         fontSize: '13px',
                         textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                       }}>
-                        {uploadProgress === 100 ? '✅ 完成' : `${uploadProgress.toFixed(0)}%`}
+                        {uploadProgress === 100 ? ' 完成' : `${uploadProgress.toFixed(0)}%`}
                       </span>
                     </div>
                   </div>

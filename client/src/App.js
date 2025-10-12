@@ -62,7 +62,7 @@ function MainApp() {
   const [notificationCount, setNotificationCount] = useState(0);
   const { userID } = useUserID();
   
-  // 🔔 启用WebSocket实时通知（无需轮询，服务器主动推送）
+  //  启用WebSocket实时通知（无需轮询，服务器主动推送）
   const { notificationCount: realtimeCount, setNotificationCount: setRealtimeCount } = useRealtimeNotifications(userInfo);
   
   // 同步实时通知数量

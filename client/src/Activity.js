@@ -438,11 +438,11 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
       if (data && data.urls && data.urls.length > 0) {
         setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
         setUploadProgress(100);
-        alert(`✅ 成功上传 ${data.urls.length} 个文件 (${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
+        alert(` 成功上传 ${data.urls.length} 个文件 (${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
       }
     } catch (error) {
       console.error('文件上传失败:', error);
-      alert('❌ 文件上传失败：' + (error.message || '请检查文件大小和格式'));
+      alert(' 文件上传失败：' + (error.message || '请检查文件大小和格式'));
       setUploadProgress(0);
     } finally {
       setUploading(false);
@@ -609,7 +609,7 @@ function CreateActivityForm({ onBack, userInfo, onSuccess, maintenanceStatus }) 
                     fontSize: '13px',
                     textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                   }}>
-                    {uploadProgress === 100 ? '✅ 完成' : `${uploadProgress.toFixed(0)}%`}
+                    {uploadProgress === 100 ? ' 完成' : `${uploadProgress.toFixed(0)}%`}
                   </span>
                 </div>
               </div>

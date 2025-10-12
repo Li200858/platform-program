@@ -240,7 +240,7 @@ export default function Feedback({ userInfo }) {
                   justifyContent: 'center'
                 }}>
                   <span style={{ color: 'white', fontWeight: 'bold', fontSize: '12px' }}>
-                    {uploadProgress === 100 ? '✅' : `${uploadProgress.toFixed(0)}%`}
+                    {uploadProgress === 100 ? '' : `${uploadProgress.toFixed(0)}%`}
                   </span>
                 </div>
               </div>

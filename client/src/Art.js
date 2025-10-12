@@ -1103,14 +1103,14 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
       
       if (data && data.urls && data.urls.length > 0) {
         setFormData(prev => ({ ...prev, media: [...prev.media, ...data.urls] }));
-        setMessage(`✅ 成功上传 ${data.urls.length} 个文件 (${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
+        setMessage(` 成功上传 ${data.urls.length} 个文件 (${(totalSize / 1024 / 1024).toFixed(2)}MB)`);
         setUploadProgress(100);
       } else {
         setMessage('文件上传失败，请重试');
       }
     } catch (error) {
       console.error('文件上传失败:', error);
-      setMessage('❌ 文件上传失败：' + (error.message || '请检查文件大小和格式'));
+      setMessage(' 文件上传失败：' + (error.message || '请检查文件大小和格式'));
       setUploadProgress(0);
     } finally {
       setUploading(false);
@@ -1294,7 +1294,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
                     fontSize: '13px',
                     textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                   }}>
-                    {uploadProgress === 100 ? '✅ 完成' : `${uploadProgress.toFixed(0)}%`}
+                    {uploadProgress === 100 ? ' 完成' : `${uploadProgress.toFixed(0)}%`}
                   </span>
                 </div>
               </div>
@@ -1334,7 +1334,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
           
           {!uploading && (
             <div style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-              💡 提示: 支持图片、视频、音频、文档等，单个文件最大2GB
+               提示: 支持图片、视频、音频、文档等，单个文件最大2GB
             </div>
           )}
         </div>

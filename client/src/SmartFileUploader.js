@@ -101,7 +101,7 @@ export default function SmartFileUploader({ onUpload, onError, multiple = false 
       const data = await uploadPromise;
 
       if (data && data.urls && data.urls.length > 0) {
-        console.log(`✅ 上传成功: ${data.urls[0]}`);
+        console.log(` 上传成功: ${data.urls[0]}`);
         setUploadProgress(100);
         
         // 成功回调
@@ -121,14 +121,14 @@ export default function SmartFileUploader({ onUpload, onError, multiple = false 
         throw new Error('上传响应格式错误');
       }
     } catch (error) {
-      console.error('❌ 上传失败:', error);
+      console.error(' 上传失败:', error);
       setUploadProgress(0);
       setUploadSpeed(0);
       
       if (onError) {
         onError(error);
       } else {
-        alert(`❌ 上传失败: ${error.message}`);
+        alert(` 上传失败: ${error.message}`);
       }
     } finally {
       setUploading(false);
@@ -157,13 +157,13 @@ export default function SmartFileUploader({ onUpload, onError, multiple = false 
 
         <ChunkedFileUploader
           onUpload={(url) => {
-            console.log('✅ 大文件上传成功:', url);
+            console.log(' 大文件上传成功:', url);
             setUseChunked(false);
             setCurrentFile(null);
             if (onUpload) onUpload(url);
           }}
           onError={(error) => {
-            console.error('❌ 大文件上传失败:', error);
+            console.error(' 大文件上传失败:', error);
             setUseChunked(false);
             setCurrentFile(null);
             if (onError) onError(error);
@@ -258,7 +258,7 @@ export default function SmartFileUploader({ onUpload, onError, multiple = false 
                 fontSize: '13px',
                 textShadow: '0 1px 2px rgba(0,0,0,0.3)'
               }}>
-                {uploadProgress === 100 ? '✅ 完成' : `${uploadProgress.toFixed(0)}%`}
+                {uploadProgress === 100 ? ' 完成' : `${uploadProgress.toFixed(0)}%`}
               </span>
             </div>
           </div>
@@ -284,7 +284,7 @@ export default function SmartFileUploader({ onUpload, onError, multiple = false 
           marginTop: '8px',
           lineHeight: '1.6'
         }}>
-          💡 提示: 
+           提示: 
           <br />• 小于2GB: 快速上传（当前模式）
           <br />• 大于2GB: 自动切换到分块上传（支持断点续传）
           <br />• 支持图片、视频、音频、文档等，最大5GB

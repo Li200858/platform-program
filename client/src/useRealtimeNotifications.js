@@ -32,14 +32,14 @@ export function useRealtimeNotifications(userInfo) {
 
     // 连接成功
     newSocket.on('connect', () => {
-      console.log('✅ WebSocket连接成功');
+      console.log(' WebSocket连接成功');
       // 注册用户
       newSocket.emit('register', userInfo.name);
     });
 
     // 接收实时通知
     newSocket.on('new-notification', (notification) => {
-      console.log('🔔 收到实时通知:', notification);
+      console.log(' 收到实时通知:', notification);
       
       // 更新通知数量
       setNotificationCount(prev => prev + 1);
@@ -101,7 +101,7 @@ function showNotificationToast(notification) {
 
   toast.innerHTML = `
     <div style="display: flex; align-items: center; gap: 12px;">
-      <div style="font-size: 24px;">🔔</div>
+      <div style="font-size: 24px;"></div>
       <div style="flex: 1;">
         <div style="font-weight: bold; margin-bottom: 4px;">新通知</div>
         <div style="font-size: 13px; opacity: 0.95;">

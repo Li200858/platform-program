@@ -222,7 +222,7 @@ export default function Notifications({ userInfo, onBack }) {
       {/* 通知列表 */}
       {notifications.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>📢</div>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
           <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无通知</div>
           <div style={{ fontSize: '14px' }}>当有人关注你、点赞你的作品或评论时会收到通知</div>
         </div>

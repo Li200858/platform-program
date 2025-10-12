@@ -141,7 +141,7 @@ export default function ChunkedFileUploader({ onUpload, onError }) {
 
       const completeData = await completeResponse.json();
       const { url, sizeMB } = completeData;
-      console.log(`✅ 上传完成: ${url} (${sizeMB}MB)`);
+      console.log(` 上传完成: ${url} (${sizeMB}MB)`);
 
       // 重置状态
       setUploading(false);
@@ -154,9 +154,9 @@ export default function ChunkedFileUploader({ onUpload, onError }) {
         onUpload(url);
       }
 
-      alert(`✅ 上传成功！\n文件: ${file.name}\n大小: ${sizeMB}MB`);
+      alert(` 上传成功！\n文件: ${file.name}\n大小: ${sizeMB}MB`);
     } catch (error) {
-      console.error('❌ 上传失败:', error);
+      console.error(' 上传失败:', error);
       
       // 重置状态
       setUploading(false);
@@ -169,7 +169,7 @@ export default function ChunkedFileUploader({ onUpload, onError }) {
         onError(error);
       }
 
-      alert(`❌ 上传失败: ${error.message}`);
+      alert(` 上传失败: ${error.message}`);
     }
   };
 
@@ -297,10 +297,10 @@ export default function ChunkedFileUploader({ onUpload, onError }) {
           marginTop: '10px',
           lineHeight: '1.6'
         }}>
-          <p>✅ 支持超大文件上传 (最大 {formatSize(MAX_FILE_SIZE)})</p>
-          <p>✅ 自动分块上传 (每块 {formatSize(CHUNK_SIZE)})</p>
-          <p>✅ 实时显示上传速度和剩余时间</p>
-          <p>✅ 支持取消上传</p>
+          <p> 支持超大文件上传 (最大 {formatSize(MAX_FILE_SIZE)})</p>
+          <p> 自动分块上传 (每块 {formatSize(CHUNK_SIZE)})</p>
+          <p> 实时显示上传速度和剩余时间</p>
+          <p> 支持取消上传</p>
         </div>
       )}
     </div>

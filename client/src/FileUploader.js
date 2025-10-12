@@ -55,13 +55,13 @@ export default function FileUploader({ onUpload }) {
       const data = await api.upload(formData);
       
       if (data.success && data.urls && data.urls.length > 0) {
-        console.log(`✅ 上传成功: ${data.urls[0]}`);
+        console.log(` 上传成功: ${data.urls[0]}`);
         onUpload(data.urls[0]);
       } else {
         throw new Error('上传响应格式错误');
       }
     } catch (error) {
-      console.error('❌ 文件上传失败:', error);
+      console.error(' 文件上传失败:', error);
       const errorMsg = error.message || '请检查网络连接或文件大小';
       alert(`上传失败: ${errorMsg}\n\n提示：\n- 文件不能超过2GB\n- 大文件上传需要较长时间，请耐心等待\n- 请保持网络连接稳定\n- 建议使用有线网络或稳定WiFi上传大文件`);
     } finally {
