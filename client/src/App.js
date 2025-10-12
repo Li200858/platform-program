@@ -113,11 +113,9 @@ function MainApp() {
     };
   }, []);
 
-  // 实时通知提醒 - 智能轮询版本
+  // 通知功能 - 仅在用户主动访问时加载，不自动轮询
   useEffect(() => {
-    let interval;
     let isMounted = true;
-    let lastNotificationCount = 0;
     
     const loadNotificationCount = async () => {
       if (!isMounted || !userInfo || !userInfo.name) {
@@ -125,155 +123,30 @@ function MainApp() {
       }
       
       try {
-        // 添加超时控制，避免长时间等待阻塞页面
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('通知加载超时')), 5000)
-        );
-        
-        const notificationsPromise = api.notifications.getNotifications(userInfo.name);
-        
-        const notifications = await Promise.race([notificationsPromise, timeoutPromise]);
+        // 只在用户点击"通知"按钮时才加载，不主动轮询
+        const notifications = await api.notifications.getNotifications(userInfo.name);
         
         if (isMounted && Array.isArray(notifications)) {
           const unreadCount = notifications.filter(n => !n.isRead).length;
-          
-          // 如果有新通知，显示实时提醒
-          if (unreadCount > lastNotificationCount && lastNotificationCount > 0) {
-            showNotificationAlert(unreadCount - lastNotificationCount);
-          }
-          
           setNotificationCount(unreadCount);
-          lastNotificationCount = unreadCount;
         }
       } catch (error) {
         // 静默失败，不影响页面使用
-        console.log('通知加载失败（不影响使用）:', error.message);
+        console.log('通知加载失败:', error.message);
       }
     };
 
-    // 显示通知提醒
-    const showNotificationAlert = (newCount) => {
-      if (newCount > 0) {
-        // 使用浏览器原生通知API
-        if (Notification.permission === 'granted') {
-          new Notification('新通知', {
-            body: `您有 ${newCount} 条新通知`,
-            icon: '/favicon.ico',
-            tag: 'notification'
-          });
-        } else if (Notification.permission !== 'denied') {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              new Notification('新通知', {
-                body: `您有 ${newCount} 条新通知`,
-                icon: '/favicon.ico',
-                tag: 'notification'
-              });
-            }
-          });
-        }
-        
-        // 页面内提醒
-        const alertDiv = document.createElement('div');
-        alertDiv.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #4CAF50;
-          color: white;
-          padding: 15px 20px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          z-index: 10000;
-          font-size: 14px;
-          max-width: 300px;
-          animation: slideIn 0.3s ease-out;
-        `;
-        alertDiv.innerHTML = `🔔 您有 ${newCount} 条新通知`;
-        document.body.appendChild(alertDiv);
-        
-        // 3秒后自动消失
-        setTimeout(() => {
-          if (alertDiv.parentNode) {
-            alertDiv.style.animation = 'slideOut 0.3s ease-in';
-            setTimeout(() => {
-              if (alertDiv.parentNode) {
-                alertDiv.parentNode.removeChild(alertDiv);
-              }
-            }, 300);
-          }
-        }, 3000);
-      }
-    };
-
-    // 智能轮询：大幅降低频率，减少服务器压力
-    let pollInterval = 120000; // 默认2分钟（从30秒改为2分钟）
-    let lastActivity = Date.now();
+    // ⚠️ 已禁用自动轮询，避免服务器压力和卡顿
+    // 通知数量只在用户切换到通知页面时才更新
+    // 如需启用轮询，取消下面的注释并设置合理的间隔（建议>5分钟）
     
-    const startSmartPolling = () => {
-      const poll = () => {
-        if (!isMounted) return;
-        
-        const now = Date.now();
-        const timeSinceActivity = now - lastActivity;
-        
-        // 如果用户活跃（最近5分钟内有活动），增加轮询频率
-        if (timeSinceActivity < 300000) { // 5分钟
-          pollInterval = 60000; // 1分钟（从15秒改为1分钟）
-        } else {
-          pollInterval = 300000; // 5分钟（从1分钟改为5分钟）
-        }
-        
-        loadNotificationCount();
-        interval = setTimeout(poll, pollInterval);
-      };
-      
-      poll();
-    };
-
-    // 监听用户活动
-    const updateActivity = () => {
-      lastActivity = Date.now();
-    };
-
-    // 页面可见性变化处理
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isMounted) {
-        // 页面重新可见时，立即检查通知
-        loadNotificationCount();
-        lastActivity = Date.now();
-      }
-    };
-
-    // 请求通知权限
-    if (Notification.permission === 'default') {
-      Notification.requestPermission();
+    // 初始加载通知数量（仅一次）
+    if (userInfo && userInfo.name) {
+      loadNotificationCount();
     }
-
-    // 添加用户活动监听
-    document.addEventListener('click', updateActivity);
-    document.addEventListener('keypress', updateActivity);
-    document.addEventListener('scroll', updateActivity);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // 延迟启动智能轮询（从5秒延长到30秒，避免影响页面初始加载）
-    const timeoutId = setTimeout(() => {
-      if (isMounted && userInfo && userInfo.name) {
-        loadNotificationCount();
-        startSmartPolling();
-      }
-    }, 30000); // 30秒后才开始轮询
     
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
-      if (interval) {
-        clearTimeout(interval);
-      }
-      document.removeEventListener('click', updateActivity);
-      document.removeEventListener('keypress', updateActivity);
-      document.removeEventListener('scroll', updateActivity);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [userInfo?.name]);
 
