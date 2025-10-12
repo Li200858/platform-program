@@ -125,8 +125,16 @@ function MainApp() {
       }
       
       try {
-        const notifications = await api.notifications.getNotifications(userInfo.name);
-        if (isMounted) {
+        // 添加超时控制，避免长时间等待阻塞页面
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('通知加载超时')), 5000)
+        );
+        
+        const notificationsPromise = api.notifications.getNotifications(userInfo.name);
+        
+        const notifications = await Promise.race([notificationsPromise, timeoutPromise]);
+        
+        if (isMounted && Array.isArray(notifications)) {
           const unreadCount = notifications.filter(n => !n.isRead).length;
           
           // 如果有新通知，显示实时提醒
@@ -138,7 +146,8 @@ function MainApp() {
           lastNotificationCount = unreadCount;
         }
       } catch (error) {
-        console.error('加载通知失败:', error);
+        // 静默失败，不影响页面使用
+        console.log('通知加载失败（不影响使用）:', error.message);
       }
     };
 
@@ -197,8 +206,8 @@ function MainApp() {
       }
     };
 
-    // 智能轮询：根据用户活动调整频率
-    let pollInterval = 30000; // 默认30秒
+    // 智能轮询：大幅降低频率，减少服务器压力
+    let pollInterval = 120000; // 默认2分钟（从30秒改为2分钟）
     let lastActivity = Date.now();
     
     const startSmartPolling = () => {
@@ -210,9 +219,9 @@ function MainApp() {
         
         // 如果用户活跃（最近5分钟内有活动），增加轮询频率
         if (timeSinceActivity < 300000) { // 5分钟
-          pollInterval = 15000; // 15秒
+          pollInterval = 60000; // 1分钟（从15秒改为1分钟）
         } else {
-          pollInterval = 60000; // 1分钟
+          pollInterval = 300000; // 5分钟（从1分钟改为5分钟）
         }
         
         loadNotificationCount();
@@ -247,13 +256,13 @@ function MainApp() {
     document.addEventListener('scroll', updateActivity);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 延迟启动智能轮询
+    // 延迟启动智能轮询（从5秒延长到30秒，避免影响页面初始加载）
     const timeoutId = setTimeout(() => {
-      if (isMounted) {
+      if (isMounted && userInfo && userInfo.name) {
         loadNotificationCount();
         startSmartPolling();
       }
-    }, 5000);
+    }, 30000); // 30秒后才开始轮询
     
     return () => {
       isMounted = false;
@@ -393,11 +402,36 @@ function MainApp() {
   const checkAdminStatus = React.useCallback(async () => {
     try {
       if (userInfo && userInfo.name) {
-        const data = await api.admin.check(userInfo.name);
-        setIsAdmin(data.isAdmin || false);
+        // 添加超时控制和缓存机制
+        const cacheKey = `admin_status_${userInfo.name}`;
+        const cachedStatus = sessionStorage.getItem(cacheKey);
+        const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
+        
+        // 如果有缓存且未过期（5分钟），直接使用
+        if (cachedStatus && cacheTime && (Date.now() - parseInt(cacheTime) < 300000)) {
+          setIsAdmin(cachedStatus === 'true');
+          return;
+        }
+        
+        // 超时控制：3秒
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('管理员检查超时')), 3000)
+        );
+        
+        const checkPromise = api.admin.check(userInfo.name);
+        const data = await Promise.race([checkPromise, timeoutPromise]);
+        
+        const adminStatus = data.isAdmin || false;
+        setIsAdmin(adminStatus);
+        
+        // 缓存结果
+        sessionStorage.setItem(cacheKey, adminStatus.toString());
+        sessionStorage.setItem(`${cacheKey}_time`, Date.now().toString());
       }
     } catch (error) {
-      console.error('检查管理员状态失败:', error);
+      // 静默失败，不影响页面使用
+      console.log('管理员检查失败（不影响使用）:', error.message);
+      setIsAdmin(false);
     }
   }, [userInfo]);
 
