@@ -12,7 +12,7 @@ export default function FileUploader({ onUpload }) {
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
     console.log(`📤 准备上传文件: ${file.name} (${fileSizeMB}MB)`);
     
-    // 文件大小检查 (2GB限制 - 支持微电影等长视频)
+    // 文件大小检查 (2GB限制)
     if (file.size > 2048 * 1024 * 1024) {
       alert(`文件大小不能超过2GB\n当前文件: ${fileSizeMB}MB\n\n如果文件过大，建议:\n1. 使用视频编辑软件压缩\n2. 降低分辨率到1080p\n3. 使用H.264编码`);
       return;
@@ -87,7 +87,7 @@ export default function FileUploader({ onUpload }) {
       <div style={{ fontSize: '12px', color: '#666' }}>
         支持图片、视频、音频、文档、文本、压缩文件，最大2GB
         <br />
-        <span style={{ color: '#28a745', fontWeight: 'bold' }}>✨ 支持微电影等长视频上传</span>
+        <span style={{ color: '#28a745', fontWeight: 'bold' }}> 支持长视频上传</span>
       </div>
     </div>
   );

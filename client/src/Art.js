@@ -1237,7 +1237,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
 
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#2c3e50' }}>
-            上传文件（最大2GB，支持微电影）
+            上传文件（最大2GB）
           </label>
           <input
             type="file"
