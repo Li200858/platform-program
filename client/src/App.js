@@ -46,6 +46,7 @@ import PublicPortfolio from './PublicPortfolio';
 import ResourceLibrary from './ResourceLibrary';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
+import { useRealtimeNotifications } from './useRealtimeNotifications';
 import api from './api';
 import './App.css';
 
@@ -60,6 +61,16 @@ function MainApp() {
   const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
   const [notificationCount, setNotificationCount] = useState(0);
   const { userID } = useUserID();
+  
+  // 🔔 启用WebSocket实时通知（无需轮询，服务器主动推送）
+  const { notificationCount: realtimeCount, setNotificationCount: setRealtimeCount } = useRealtimeNotifications(userInfo);
+  
+  // 同步实时通知数量
+  useEffect(() => {
+    if (realtimeCount > 0) {
+      setNotificationCount(realtimeCount);
+    }
+  }, [realtimeCount]);
 
   // 加载用户信息 - 优化版本
   useEffect(() => {
@@ -113,42 +124,41 @@ function MainApp() {
     };
   }, []);
 
-  // 通知功能 - 仅在用户主动访问时加载，不自动轮询
+  // 通知功能 - 使用WebSocket实时推送（已在useRealtimeNotifications中实现）
+  // 初始加载通知数量
   useEffect(() => {
     let isMounted = true;
     
-    const loadNotificationCount = async () => {
+    const loadInitialNotificationCount = async () => {
       if (!isMounted || !userInfo || !userInfo.name) {
         return;
       }
       
       try {
-        // 只在用户点击"通知"按钮时才加载，不主动轮询
         const notifications = await api.notifications.getNotifications(userInfo.name);
         
         if (isMounted && Array.isArray(notifications)) {
           const unreadCount = notifications.filter(n => !n.isRead).length;
           setNotificationCount(unreadCount);
+          // 同步到WebSocket hook
+          if (setRealtimeCount) {
+            setRealtimeCount(unreadCount);
+          }
         }
       } catch (error) {
-        // 静默失败，不影响页面使用
-        console.log('通知加载失败:', error.message);
+        console.log('初始通知加载失败:', error.message);
       }
     };
 
-    // ⚠️ 已禁用自动轮询，避免服务器压力和卡顿
-    // 通知数量只在用户切换到通知页面时才更新
-    // 如需启用轮询，取消下面的注释并设置合理的间隔（建议>5分钟）
-    
-    // 初始加载通知数量（仅一次）
+    // 仅在页面加载时查询一次
     if (userInfo && userInfo.name) {
-      loadNotificationCount();
+      loadInitialNotificationCount();
     }
     
     return () => {
       isMounted = false;
     };
-  }, [userInfo?.name]);
+  }, [userInfo?.name, setRealtimeCount]);
 
   // 暴露setSection函数给全局使用
   useEffect(() => {

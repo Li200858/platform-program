@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const multer = require('multer');
@@ -544,8 +546,8 @@ app.post('/api/art/:id/collaborate', async (req, res) => {
 
     await art.save();
 
-    // 通知被邀请的用户
-    await Notification.create({
+    // 创建通知并实时推送
+    const notification = await Notification.create({
       recipient: username,
       sender: invitedBy,
       type: 'mention',
@@ -553,6 +555,19 @@ app.post('/api/art/:id/collaborate', async (req, res) => {
       relatedId: art._id,
       relatedType: 'art'
     });
+
+    // 🔔 实时推送通知（如果用户在线，立即收到）
+    if (global.sendRealtimeNotification) {
+      const sent = global.sendRealtimeNotification(username, {
+        ...notification.toObject(),
+        message: `${invitedBy} 邀请您参与作品 "${art.title}" 的创作`,
+        timestamp: new Date()
+      });
+      
+      if (sent) {
+        console.log(`✅ 实时通知已推送给在线用户: ${username}`);
+      }
+    }
 
     res.json({ message: '邀请已发送', art });
   } catch (error) {
@@ -1895,14 +1910,87 @@ setInterval(cleanupExpiredChunks, 60 * 60 * 1000);
 
 console.log('✅ 分块上传API已启用 (支持5GB超大文件，断点续传)');
 
+// ==================== WebSocket实时通知系统 ====================
+// 创建HTTP服务器
+const server = http.createServer(app);
+
+// 创建Socket.IO服务器
+const io = socketIO(server, {
+  cors: {
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://platform-program-frontend.onrender.com',
+      'https://platform-program.onrender.com',
+      'https://platform-mobile.onrender.com',
+      'https://platform-mobile-frontend.onrender.com',
+      'https://hwartplatform.org',
+      'https://www.hwartplatform.org',
+      'https://mobile.hwartplatform.org',
+      'https://ipad.hwartplatform.org'
+    ],
+    credentials: true
+  }
+});
+
+// 存储在线用户的socket连接
+const userSockets = new Map(); // username -> socket.id
+
+// WebSocket连接处理
+io.on('connection', (socket) => {
+  console.log(`🔌 WebSocket连接: ${socket.id}`);
+
+  // 用户注册（绑定username和socket）
+  socket.on('register', (username) => {
+    if (username) {
+      userSockets.set(username, socket.id);
+      console.log(`👤 用户注册: ${username} (Socket: ${socket.id})`);
+      console.log(`📊 当前在线用户: ${userSockets.size}人`);
+    }
+  });
+
+  // 断开连接
+  socket.on('disconnect', () => {
+    // 从map中移除该socket
+    for (const [username, socketId] of userSockets.entries()) {
+      if (socketId === socket.id) {
+        userSockets.delete(username);
+        console.log(`👋 用户离线: ${username}`);
+        console.log(`📊 当前在线用户: ${userSockets.size}人`);
+        break;
+      }
+    }
+  });
+});
+
+// 实时推送通知函数
+const sendRealtimeNotification = (username, notification) => {
+  const socketId = userSockets.get(username);
+  if (socketId) {
+    io.to(socketId).emit('new-notification', notification);
+    console.log(`📨 实时通知已发送给: ${username}`);
+    return true;
+  } else {
+    console.log(`📭 用户${username}不在线，通知已保存，等待下次登录查看`);
+    return false;
+  }
+};
+
+// 导出io和sendRealtimeNotification供其他地方使用
+global.io = io;
+global.sendRealtimeNotification = sendRealtimeNotification;
+
+console.log('✅ WebSocket实时通知系统已启用');
+
 // ==================== 启动服务器 ====================
 
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log('艺术平台服务器运行在端口', PORT);
   console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`MongoDB连接成功`);
   console.log(`健康检查: http://localhost:${PORT}/health`);
   console.log(`根路径: http://localhost:${PORT}/`);
+  console.log(`WebSocket: ws://localhost:${PORT}`);
   
   // 初始化管理员
   await initializeAdmin();
