@@ -1087,6 +1087,42 @@ app.get('/api/feedback/my', async (req, res) => {
   }
 });
 
+// 删除反馈
+app.delete('/api/feedback/:id', async (req, res) => {
+  const { id } = req.params;
+  const { authorName, isAdmin } = req.query;
+  
+  try {
+    console.log(`删除反馈请求: ID=${id}, authorName=${authorName}, isAdmin=${isAdmin}`);
+    
+    const feedback = await Feedback.findById(id);
+    if (!feedback) {
+      return res.status(404).json({ error: '反馈不存在' });
+    }
+
+    // 检查权限：只有作者本人或管理员可以删除
+    const isAuthor = feedback.authorName === authorName;
+    const isAdminUser = isAdmin === 'true';
+    
+    if (!isAuthor && !isAdminUser) {
+      return res.status(403).json({ error: '没有权限删除此反馈' });
+    }
+
+    // 删除相关文件
+    if (feedback.media && Array.isArray(feedback.media)) {
+      console.log(`删除反馈的 ${feedback.media.length} 个媒体文件`);
+      deleteFiles(feedback.media);
+    }
+
+    await Feedback.findByIdAndDelete(id);
+    console.log('反馈删除成功:', id);
+    res.json({ message: '反馈删除成功' });
+  } catch (error) {
+    console.error('删除反馈失败:', error);
+    res.status(500).json({ error: '删除反馈失败' });
+  }
+});
+
 // 删除活动
 app.delete('/api/activities/:id', async (req, res) => {
   try {
@@ -2384,6 +2420,54 @@ app.delete('/api/portfolio/:id/works/:workId', async (req, res) => {
   } catch (error) {
     console.error('移除作品失败:', error);
     res.status(500).json({ error: '移除作品失败' });
+  }
+});
+
+// 删除作品集内容（直接上传的内容）
+app.delete('/api/portfolio/:id/contents/:contentId', async (req, res) => {
+  const { id, contentId } = req.params;
+  const { authorName, isAdmin } = req.query;
+  
+  try {
+    console.log(`删除作品集内容请求: portfolioId=${id}, contentId=${contentId}, authorName=${authorName}`);
+    
+    const portfolio = await Portfolio.findById(id);
+    if (!portfolio) {
+      return res.status(404).json({ error: '作品集不存在' });
+    }
+
+    // 检查权限
+    const isAuthor = portfolio.creator === authorName;
+    const isAdminUser = isAdmin === 'true';
+    
+    if (!isAuthor && !isAdminUser) {
+      return res.status(403).json({ error: '没有权限删除此内容' });
+    }
+
+    // 查找要删除的内容
+    const contentIndex = portfolio.contents.findIndex(c => c._id.toString() === contentId);
+    if (contentIndex === -1) {
+      return res.status(404).json({ error: '内容不存在' });
+    }
+
+    const content = portfolio.contents[contentIndex];
+    
+    // 删除相关文件
+    if (content.media && Array.isArray(content.media)) {
+      console.log(`删除内容的 ${content.media.length} 个媒体文件`);
+      const filePaths = content.media.map(m => m.url || m);
+      deleteFiles(filePaths);
+    }
+
+    // 从数组中移除内容
+    portfolio.contents.splice(contentIndex, 1);
+    await portfolio.save();
+
+    console.log('作品集内容删除成功');
+    res.json({ message: '内容删除成功', portfolio });
+  } catch (error) {
+    console.error('删除作品集内容失败:', error);
+    res.status(500).json({ error: '删除内容失败' });
   }
 });
 
