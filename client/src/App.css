@@ -74,8 +74,7 @@ body {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding: 15px 0;
-  position: sticky;
-  top: 0;
+  position: relative; /* 桌面端也改为相对定位，避免遮挡 */
   z-index: 100;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
@@ -397,15 +396,43 @@ body {
   }
 }
 
-/* 响应式设计 */
+/* 响应式设计 - 移动端优化 */
 @media (max-width: 768px) {
-  .main-nav {
+  /* 头部区域优化 */
+  .main-header {
+    padding: 10px 0;
+  }
+  
+  .header-top {
+    margin-bottom: 10px;
+    padding: 0 10px;
     flex-direction: column;
-    align-items: center;
+    gap: 10px;
+  }
+  
+  /* 导航栏横向滚动，避免占用太多空间 */
+  .main-nav {
+    flex-direction: row;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 0 10px 10px 10px;
+    gap: 8px;
+    -webkit-overflow-scrolling: touch;
+    /* 隐藏滚动条 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .main-nav::-webkit-scrollbar {
+    display: none;
   }
   
   .main-nav button {
-    width: 200px;
+    padding: 8px 16px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
     /* 确保在移动端Safari中可见 */
     -webkit-appearance: none;
     -webkit-tap-highlight-color: transparent;
@@ -417,8 +444,17 @@ body {
     z-index: 5;
   }
   
+  /* 搜索栏垂直排列 */
   .search-bar {
     flex-direction: column;
+    width: 100%;
+  }
+  
+  .search-bar select,
+  .search-bar input,
+  .search-bar button {
+    width: 100%;
+    font-size: 14px;
   }
   
   .search-result-meta {
@@ -427,7 +463,18 @@ body {
   }
   
   .site-title {
-    font-size: 24px;
+    font-size: 18px;
+    text-align: center;
+  }
+  
+  .site-title-en {
+    font-size: 11px;
+    text-align: center;
+  }
+  
+  /* 确保内容不被遮挡 */
+  .main-content {
+    padding: 10px;
   }
   
   /* 确保内容在移动端可见 */
