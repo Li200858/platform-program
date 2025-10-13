@@ -643,7 +643,6 @@ function MainApp() {
                       班级: {user.class}
                     </div>
                     <div className="search-result-meta">
-                      <span>用户ID: {user.userID || '未知'}</span>
                       <span>角色: {user.role || '用户'}</span>
                       {user.isAdmin && <span>管理员</span>}
                     </div>
