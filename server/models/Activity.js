@@ -1,15 +1,5 @@
 const mongoose = require('mongoose');
 
-const StageSchema = new mongoose.Schema({
-  key: { type: String, required: true },
-  name: { type: String, required: true },
-  description: { type: String, default: '' },
-  startAt: { type: Date, required: true },
-  endAt: { type: Date },
-  isSystemDefault: { type: Boolean, default: false },
-  allowEdit: { type: Boolean, default: true },
-}, { _id: false });
-
 const ActivitySchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, default: '' },
@@ -17,7 +7,6 @@ const ActivitySchema = new mongoose.Schema({
   endDate: { type: Date, default: Date.now },
   image: { type: String, default: '' },
   media: [{ type: String }],
-  stages: { type: [StageSchema], default: [] },
   author: { type: String, required: true },
   authorName: { type: String, required: true },
   authorClass: { type: String, required: true },

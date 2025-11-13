@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // 添加通知动画样式
 const notificationStyles = `
@@ -60,60 +60,10 @@ function MainApp() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
   const [notificationCount, setNotificationCount] = useState(0);
-  const [timeOffset, setTimeOffset] = useState(0);
-  const [nowTick, setNowTick] = useState(() => Date.now());
   const { userID } = useUserID();
   
   //  启用WebSocket实时通知（无需轮询，服务器主动推送）
   const { notificationCount: realtimeCount, setNotificationCount: setRealtimeCount } = useRealtimeNotifications(userInfo);
-  const serverNow = useMemo(() => new Date(nowTick - timeOffset), [nowTick, timeOffset]);
-  const clockDisplay = useMemo(() => {
-    const safeDate = Number.isNaN(serverNow.getTime()) ? new Date() : serverNow;
-    const timeString = safeDate.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-    const dateString = safeDate.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      weekday: 'short'
-    });
-    return {
-      time: timeString,
-      date: dateString
-    };
-  }, [serverNow]);
-  
-  useEffect(() => {
-    let isMounted = true;
-    const synchronizeTime = async () => {
-      try {
-        const data = await api.time();
-        if (!isMounted) return;
-        const serverTimeValue = data?.serverTime;
-        if (serverTimeValue) {
-          const serverMs = new Date(serverTimeValue).getTime();
-          if (!Number.isNaN(serverMs)) {
-            setTimeOffset(Date.now() - serverMs);
-          }
-        }
-      } catch (error) {
-        console.log('获取服务器时间失败:', error.message);
-      }
-    };
-
-    synchronizeTime();
-    const tickInterval = setInterval(() => setNowTick(Date.now()), 1000);
-    const resyncInterval = setInterval(synchronizeTime, 60 * 60 * 1000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(tickInterval);
-      clearInterval(resyncInterval);
-    };
-  }, []);
   
   // 同步实时通知数量
   useEffect(() => {
@@ -459,11 +409,7 @@ function MainApp() {
             <div className="site-title">海淀外国语国际部艺术平台</div>
             <div className="site-title-en">HFLS International Art Platform</div>
           </div>
-          <div className="header-clock" style={{ flex: '0 0 auto', textAlign: 'center', color: '#2c3e50', minWidth: '180px' }}>
-            <div style={{ fontSize: '18px', fontWeight: 600 }}>{clockDisplay.time}</div>
-            <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: 2 }}>{clockDisplay.date}</div>
-          </div>
-          <div className="header-right" style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="header-right">
             <div className="search-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <select
                 value={searchType}

@@ -8,173 +8,6 @@ const path = require('path');
 const fs = require('fs');
 const FileBackup = require('./backup');
 
-const SYSTEM_STAGE_DEFINITIONS = [
-  { key: 'preparation', name: '活动准备', allowEdit: false, order: 0 },
-  { key: 'kickoff', name: '活动开始', allowEdit: false, order: 1 },
-  { key: 'closing', name: '活动结束', allowEdit: false, order: 9999 }
-];
-
-const SYSTEM_STAGE_KEYS = SYSTEM_STAGE_DEFINITIONS.map(def => def.key);
-
-const generateCustomStageKey = (prefix = 'stage') => {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-};
-
-const parseDate = (value, fallback) => {
-  if (value) {
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  }
-  if (fallback) {
-    const fallbackDate = fallback instanceof Date ? fallback : new Date(fallback);
-    if (!Number.isNaN(fallbackDate.getTime())) {
-      return fallbackDate;
-    }
-  }
-  throw new Error('阶段时间格式无效，请检查后重试');
-};
-
-const normalizeStages = (stagesInput, {
-  defaultPreparationStart = new Date(),
-  defaultKickoffStart = defaultPreparationStart,
-  defaultClosingStart = defaultKickoffStart
-} = {}) => {
-  const normalized = [];
-  const seenKeys = new Set();
-  const inputArray = Array.isArray(stagesInput) ? stagesInput : [];
-
-  inputArray.forEach((stage, index) => {
-    if (!stage) {
-      return;
-    }
-
-    const requestedKey = stage.key || stage.stageKey || stage.id;
-    const systemDefinition = SYSTEM_STAGE_DEFINITIONS.find(def => def.key === requestedKey);
-    let finalKey = requestedKey;
-
-    if (!finalKey) {
-      finalKey = systemDefinition ? systemDefinition.key : generateCustomStageKey(`custom${index}`);
-    }
-
-    if (seenKeys.has(finalKey)) {
-      finalKey = generateCustomStageKey(`custom${index}`);
-    }
-
-    const isSystemStage = SYSTEM_STAGE_KEYS.includes(finalKey);
-    const fallbackStart = isSystemStage
-      ? (finalKey === 'kickoff'
-        ? defaultKickoffStart
-        : finalKey === 'closing'
-          ? defaultClosingStart
-          : defaultPreparationStart)
-      : defaultKickoffStart;
-
-    const normalizedStage = {
-      key: finalKey,
-      name: stage.name || (systemDefinition ? systemDefinition.name : `阶段${index + 1}`),
-      description: stage.description || '',
-      startAt: parseDate(stage.startAt || stage.time || stage.startDate, fallbackStart),
-      isSystemDefault: isSystemStage || !!stage.isSystemDefault,
-      allowEdit: isSystemStage ? false : (stage.allowEdit === false ? false : true)
-    };
-
-    normalized.push(normalizedStage);
-    seenKeys.add(finalKey);
-  });
-
-  SYSTEM_STAGE_DEFINITIONS.forEach(definition => {
-    if (!seenKeys.has(definition.key)) {
-      const fallbackStart = definition.key === 'kickoff'
-        ? defaultKickoffStart
-        : definition.key === 'closing'
-          ? defaultClosingStart
-          : defaultPreparationStart;
-
-      normalized.push({
-        key: definition.key,
-        name: definition.name,
-        description: '',
-        startAt: parseDate(null, fallbackStart),
-        isSystemDefault: true,
-        allowEdit: false
-      });
-      seenKeys.add(definition.key);
-    }
-  });
-
-  normalized.sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
-
-  normalized.forEach((stage, index) => {
-    stage.order = index;
-    stage.endAt = index < normalized.length - 1 ? new Date(normalized[index + 1].startAt) : null;
-    if (SYSTEM_STAGE_KEYS.includes(stage.key)) {
-      stage.isSystemDefault = true;
-      stage.allowEdit = false;
-      stage.name = stage.name || SYSTEM_STAGE_DEFINITIONS.find(def => def.key === stage.key).name;
-    }
-  });
-
-  const kickoffStage = normalized.find(stage => stage.key === 'kickoff');
-  const closingStage = normalized.find(stage => stage.key === 'closing');
-  const normalizedStartDate = kickoffStage ? new Date(kickoffStage.startAt) : new Date(normalized[0].startAt);
-  const normalizedEndDate = closingStage ? new Date(closingStage.startAt) : new Date(normalized[normalized.length - 1].startAt);
-
-  return {
-    stages: normalized,
-    startDate: normalizedStartDate,
-    endDate: normalizedEndDate
-  };
-};
-
-const computeCurrentStage = (stages, now = new Date()) => {
-  if (!Array.isArray(stages) || stages.length === 0) {
-    return null;
-  }
-
-  const sortedStages = stages.slice().sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
-  const currentTime = now.getTime();
-  let currentStage = sortedStages[0];
-
-  for (const stage of sortedStages) {
-    const stageStart = new Date(stage.startAt).getTime();
-    if (Number.isNaN(stageStart)) {
-      continue;
-    }
-    if (currentTime >= stageStart) {
-      currentStage = stage;
-    } else {
-      break;
-    }
-  }
-
-  return currentStage;
-};
-
-const formatActivityForResponse = (activity, { serverNow = new Date() } = {}) => {
-  if (!activity) {
-    return activity;
-  }
-
-  const activityObject = activity.toObject ? activity.toObject() : { ...activity };
-  if (Array.isArray(activityObject.stages)) {
-    activityObject.stages = activityObject.stages
-      .map(stage => ({
-        ...stage,
-        startAt: stage.startAt ? new Date(stage.startAt) : null,
-        endAt: stage.endAt ? new Date(stage.endAt) : null
-      }))
-      .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
-    activityObject.currentStage = computeCurrentStage(activityObject.stages, serverNow);
-  } else {
-    activityObject.stages = [];
-    activityObject.currentStage = null;
-  }
-  activityObject.serverTime = serverNow.toISOString();
-  return activityObject;
-};
-
 // 数据模型
 const Art = require('./models/Art');
 const Activity = require('./models/Activity');
@@ -339,9 +172,9 @@ const cleanupOrphanedFiles = async () => {
           
           // 只删除创建超过1小时的孤立文件
           if (fileAge < oneHourAgo) {
-          fs.unlinkSync(filePath);
+            fs.unlinkSync(filePath);
             console.log('删除孤立文件:', fileName, `(创建于 ${new Date(fileAge).toLocaleString()})`);
-          deletedCount++;
+            deletedCount++;
           } else {
             console.log('跳过最近上传的文件:', fileName, '(可能正在处理中)');
           }
@@ -511,11 +344,6 @@ app.post('/api/upload', upload.array('files', 10), async (req, res) => {
       success: false 
     });
   }
-});
-
-// 获取服务器当前时间
-app.get('/api/time', (req, res) => {
-  res.json({ serverTime: new Date().toISOString() });
 });
 
 // 艺术作品API
@@ -877,12 +705,7 @@ app.delete('/api/art/:id', async (req, res) => {
 app.get('/api/activities', async (req, res) => {
   try {
     const activities = await Activity.find().sort({ createdAt: -1 });
-    const serverNow = new Date();
-    const formatted = activities.map(activity => formatActivityForResponse(activity, { serverNow }));
-    res.json({
-      serverTime: serverNow.toISOString(),
-      items: formatted
-    });
+    res.json(activities);
   } catch (error) {
     console.error('获取活动失败:', error);
     res.status(500).json({ error: '获取活动失败' });
@@ -890,47 +713,30 @@ app.get('/api/activities', async (req, res) => {
 });
 
 app.post('/api/activities', async (req, res) => {
-  const {
-    title,
-    description,
-    startDate,
-    endDate,
-    image,
-    authorName,
-    authorClass,
-    media,
-    stages: stagesInput
-  } = req.body;
+  const { title, description, startDate, endDate, image, authorName, authorClass, media } = req.body;
   
-  if (!title || !description || !authorName || !authorClass) {
+  if (!title || !description || !startDate || !endDate || !authorName || !authorClass) {
     return res.status(400).json({ error: '请填写所有必要信息' });
   }
   
   try {
-    const normalized = normalizeStages(stagesInput, {
-      defaultPreparationStart: new Date(),
-      defaultKickoffStart: startDate ? new Date(startDate) : new Date(),
-      defaultClosingStart: endDate ? new Date(endDate) : (startDate ? new Date(startDate) : new Date())
-    });
-
     const activity = await Activity.create({
       title,
       description,
-      startDate: normalized.startDate,
-      endDate: normalized.endDate,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
       image,
       media: media || [],
-      stages: normalized.stages,
       author: authorName,
       authorName,
       authorClass,
       createdAt: new Date()
     });
     
-    res.json(formatActivityForResponse(activity));
+    res.json(activity);
   } catch (error) {
     console.error('创建活动失败:', error);
-    res.status(500).json({ error: '创建活动失败: ' + error.message });
+    res.status(500).json({ error: '创建活动失败' });
   }
 });
 
@@ -956,7 +762,7 @@ app.post('/api/activities/:id/like', async (req, res) => {
     }
 
     await activity.save();
-    res.json(formatActivityForResponse(activity));
+    res.json(activity);
   } catch (error) {
     console.error('点赞失败:', error);
     res.status(500).json({ error: '点赞失败' });
@@ -983,7 +789,7 @@ app.post('/api/activities/:id/favorite', async (req, res) => {
     }
 
     await activity.save();
-    res.json(formatActivityForResponse(activity));
+    res.json(activity);
   } catch (error) {
     console.error('收藏失败:', error);
     res.status(500).json({ error: '收藏失败' });
@@ -1015,78 +821,10 @@ app.post('/api/activities/:id/comment', async (req, res) => {
 
     activity.comments.push(comment);
     await activity.save();
-    res.json(formatActivityForResponse(activity));
+    res.json(activity);
   } catch (error) {
     console.error('评论失败:', error);
     res.status(500).json({ error: '评论失败' });
-  }
-});
-
-// 更新活动（阶段、信息等）
-app.put('/api/activities/:id', async (req, res) => {
-  const { id } = req.params;
-  const {
-    title,
-    description,
-    image,
-    media,
-    stages: stagesInput,
-    startDate,
-    endDate,
-    authorName,
-    isAdmin
-  } = req.body;
-
-  try {
-    const activity = await Activity.findById(id);
-    if (!activity) {
-      return res.status(404).json({ error: '活动不存在' });
-    }
-
-    const isAuthor = authorName && activity.authorName === authorName;
-    if (!isAuthor && !isAdmin) {
-      return res.status(403).json({ error: '无权编辑此活动' });
-    }
-
-    if (typeof title === 'string' && title.trim()) {
-      activity.title = title.trim();
-    }
-    if (typeof description === 'string' && description.trim()) {
-      activity.description = description.trim();
-    }
-    if (typeof image === 'string') {
-      activity.image = image;
-    }
-    if (Array.isArray(media)) {
-      activity.media = media;
-    }
-
-    if (stagesInput) {
-      const normalized = normalizeStages(stagesInput, {
-        defaultPreparationStart: activity.stages?.[0]?.startAt || activity.startDate || new Date(),
-        defaultKickoffStart: startDate || activity.startDate || new Date(),
-        defaultClosingStart: endDate || activity.endDate || new Date()
-      });
-      activity.stages = normalized.stages;
-      activity.startDate = normalized.startDate;
-      activity.endDate = normalized.endDate;
-    } else if (startDate || endDate) {
-      const normalized = normalizeStages(activity.stages, {
-        defaultPreparationStart: activity.stages?.[0]?.startAt || activity.startDate || new Date(),
-        defaultKickoffStart: startDate || activity.startDate || new Date(),
-        defaultClosingStart: endDate || activity.endDate || new Date()
-      });
-      activity.stages = normalized.stages;
-      activity.startDate = startDate ? parseDate(startDate, normalized.startDate) : normalized.startDate;
-      activity.endDate = endDate ? parseDate(endDate, normalized.endDate) : normalized.endDate;
-    }
-
-    activity.updatedAt = new Date();
-    await activity.save();
-    res.json(formatActivityForResponse(activity));
-  } catch (error) {
-    console.error('更新活动失败:', error);
-    res.status(500).json({ error: '更新活动失败: ' + error.message });
   }
 });
 

@@ -115,30 +115,10 @@ export const api = {
 
   // 活动相关API
   activity: {
-    getAll: async () => {
-      const data = await api.request('/api/activities');
-      if (Array.isArray(data)) {
-        return {
-          items: data,
-          serverTime: new Date().toISOString()
-        };
-      }
-      if (data && Array.isArray(data.items)) {
-        return {
-          items: data.items,
-          serverTime: data.serverTime || new Date().toISOString()
-        };
-      }
-      return { items: [], serverTime: new Date().toISOString() };
-    },
+    getAll: () => api.request('/api/activities'),
     
     create: (data) => api.request('/api/activities', {
       method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-    update: (id, data) => api.request(`/api/activities/${id}`, {
-      method: 'PUT',
       body: JSON.stringify(data),
     }),
     
@@ -161,8 +141,6 @@ export const api = {
       method: 'DELETE',
     }),
   },
-
-  time: () => api.request('/api/time'),
 
   // 反馈相关API
   feedback: {
