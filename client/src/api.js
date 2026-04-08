@@ -132,6 +132,46 @@ export const api = {
     }),
   },
 
+  // 活动相关API
+  activity: {
+    getAll: () => api.request('/api/activities'),
+    
+    getById: (id) => api.request(`/api/activities/${id}`),
+    
+    create: (data) => api.request('/api/activities/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    register: (data) => api.request('/api/activities/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    getUserApplications: (userID) => api.request(`/api/activities/my-applications?userID=${encodeURIComponent(userID)}`),
+    
+    getUserRegistrations: (userID) => api.request(`/api/activities/my-registrations?userID=${encodeURIComponent(userID)}`),
+    
+    like: (id, userId) => api.request(`/api/activities/${id}/like`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+    
+    favorite: (id, userId) => api.request(`/api/activities/${id}/favorite`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+    
+    comment: (id, data) => api.request(`/api/activities/${id}/comment`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    delete: (id, authorName, isAdmin) => api.request(`/api/activities/${id}?authorName=${encodeURIComponent(authorName)}&isAdmin=${isAdmin}`, {
+      method: 'DELETE',
+    }),
+  },
+
   // 反馈相关API
   feedback: {
     create: (data) => api.request('/api/feedback', {
@@ -167,12 +207,14 @@ export const api = {
   search: (query) => api.request(`/api/search?q=${encodeURIComponent(query)}`),
 
   // 文件上传API
-  upload: (formData) => {
-    const url = `${API_BASE_URL}/api/upload`;
-    return fetch(url, {
-      method: 'POST',
-      body: formData,
-    }).then(response => response.json());
+  upload: {
+    file: (formData) => {
+      const url = `${API_BASE_URL}/api/upload`;
+      return fetch(url, {
+        method: 'POST',
+        body: formData,
+      }).then(response => response.json());
+    },
   },
 
   // 用户相关API
@@ -199,7 +241,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    
+
     getByID: (userID) => api.request(`/api/user/${userID}`),
     
     checkName: (data) => api.request('/api/user/check-name', {
@@ -237,6 +279,28 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+    // 审核相关API
+    getClubApplications: () => api.request('/api/admin/club-applications'),
+    reviewClubApplication: (id, action, reason) => api.request(`/api/admin/club-applications/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+    
+    getActivityApplications: () => api.request('/api/admin/activity-applications'),
+    reviewActivityApplication: (id, action, reason) => api.request(`/api/admin/activity-applications/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+    
+    getActivityRegistrations: () => api.request('/api/admin/activity-registrations'),
+    reviewActivityRegistration: (id, action, reason) => api.request(`/api/admin/activity-registrations/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+    
+    // 在线文档导出
+    exportClubDocument: () => api.request('/api/admin/export-club-document'),
   },
 
   // 维护模式相关API
@@ -329,6 +393,30 @@ export const api = {
       return api.request(`/api/search?${params.toString()}`);
     },
     users: (query) => api.request(`/api/users/search?q=${encodeURIComponent(query)}`),
+  },
+
+  // 社团相关API
+  club: {
+    getAll: () => api.request('/api/clubs'),
+    
+    getById: (id) => api.request(`/api/clubs/${id}`),
+    
+    getUserClub: (userID) => api.request(`/api/clubs/user/${userID}`),
+    
+    register: (data) => api.request('/api/clubs/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    switch: (data) => api.request('/api/clubs/switch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    create: (data) => api.request('/api/clubs/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 };
 

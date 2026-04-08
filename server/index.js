@@ -3,6 +3,8 @@ const http = require('http');
 const socketIO = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
+mongoose.set('bufferCommands', false);
+const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -17,6 +19,12 @@ const Maintenance = require('./models/Maintenance');
 const Notification = require('./models/Notification');
 const Portfolio = require('./models/Portfolio');
 const Resource = require('./models/Resource');
+const Club = require('./models/Club');
+const ClubApplication = require('./models/ClubApplication');
+const ClubMember = require('./models/ClubMember');
+const ActivityApplication = require('./models/ActivityApplication');
+const ActivityRegistration = require('./models/ActivityRegistration');
+const ActivityStage = require('./models/ActivityStage');
 
 // 文件删除工具函数
 const deleteFile = (filePath) => {
@@ -287,10 +295,7 @@ const upload = multer({
   }
 });
 
-// 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-program')
-  .then(() => console.log('MongoDB连接成功'))
-  .catch(err => console.error('MongoDB连接失败:', err));
+// MongoDB 在 server.listen 之前通过 connectMongo() 连接，见文件末尾
 
 // 文件上传API（增强版）
 app.post('/api/upload', upload.array('files', 10), async (req, res) => {
@@ -329,6 +334,15 @@ app.post('/api/upload', upload.array('files', 10), async (req, res) => {
   }
 });
 
+// 服务器时间API（用于同步客户端时间）
+app.get('/api/time', (req, res) => {
+  res.json({
+    serverTime: new Date().toISOString(),
+    timestamp: Date.now(),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  });
+});
+
 // 艺术作品API
 app.post('/api/art', async (req, res) => {
   const { tab, title, content, media, authorName, authorClass, allowDownload } = req.body;
@@ -362,16 +376,30 @@ app.post('/api/art', async (req, res) => {
 app.get('/api/art', async (req, res) => {
   const { tab, sort } = req.query;
   const filter = tab ? { tab } : {};
-  let query = Art.find(filter);
-  
-  if (sort === 'hot') {
-    query = query.sort({ likes: -1, createdAt: -1 });
-  } else {
-    query = query.sort({ createdAt: -1 });
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: '数据库尚未连接，请几秒后重试（若持续出现请检查 MONGODB_URI 与 Atlas 网络访问）',
+      code: 'DB_UNAVAILABLE',
+    });
   }
-  
-  const posts = await query;
-  res.json(posts);
+  try {
+    let query = Art.find(filter).maxTimeMS(20000);
+
+    if (sort === 'hot') {
+      query = query.sort({ likes: -1, createdAt: -1 });
+    } else {
+      query = query.sort({ createdAt: -1 });
+    }
+
+    const posts = await query.lean();
+    res.json(posts);
+  } catch (error) {
+    console.error('获取作品列表失败:', error);
+    if (error.name === 'MongooseError' && /timeout/i.test(String(error.message))) {
+      return res.status(504).json({ error: '数据库查询超时，请稍后重试' });
+    }
+    res.status(500).json({ error: '获取作品列表失败' });
+  }
 });
 
 // 点赞功能
@@ -1123,7 +1151,7 @@ async function allocateShortUserID() {
   throw new Error('无法生成唯一用户ID');
 }
 
-// 与活动报名站一致：注册、登录、PIN（8 位 ID + SHA256(userID:pin)）
+// 与活动报名网站一致：8 位 ID、SHA256(userID:pin)、PIN/ID 登录、注册与 set-pin
 app.post('/api/user/register', async (req, res) => {
   try {
     const { name, class: userClass, pin } = req.body;
@@ -1276,7 +1304,7 @@ app.put('/api/user/set-pin', async (req, res) => {
   }
 });
 
-// 用户ID同步API
+// 用户ID同步API（兼容旧版客户端本地长数字 ID）
 app.post('/api/user/sync', async (req, res) => {
   const { userID, name, class: userClass, avatar } = req.body;
   
@@ -1403,15 +1431,25 @@ app.get('/api/user/:userID', async (req, res) => {
   }
 });
 
-// 健康检查
+// 健康检查（含 Mongo 连接状态，便于 Render / 运维排查）
 app.get('/health', (req, res) => {
-  console.log('健康检查请求');
-  res.status(200).json({ 
-    status: 'OK', 
+  const ready = mongoose.connection.readyState;
+  const stateNames = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+  };
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     port: PORT,
-    nodeEnv: process.env.NODE_ENV
+    nodeEnv: process.env.NODE_ENV,
+    mongo: {
+      readyState: ready,
+      state: stateNames[ready] || String(ready),
+    },
   });
 });
 
@@ -1521,8 +1559,15 @@ async function initializeAdmin() {
 // 维护模式相关API
 // 获取维护模式状态
 app.get('/api/maintenance/status', async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: '数据库尚未连接，请稍后重试',
+      code: 'DB_UNAVAILABLE',
+      isEnabled: false,
+    });
+  }
   try {
-    let maintenance = await Maintenance.findOne();
+    let maintenance = await Maintenance.findOne().maxTimeMS(15000);
     if (!maintenance) {
       // 如果没有维护记录，创建一个默认的
       maintenance = await Maintenance.create({
@@ -2007,35 +2052,58 @@ global.sendRealtimeNotification = sendRealtimeNotification;
 console.log('✅ WebSocket实时通知系统已启用');
 
 // ==================== 启动服务器 ====================
+// 先监听 HTTP，再在后台连接 MongoDB。避免 Atlas/网络慢时整站长时间无响应（浏览器一直转圈）。
+// bufferCommands 已关闭，未连接时查库会失败而不会无限排队；/api/art 等对未就绪返回 503。
 
-server.listen(PORT, async () => {
-  console.log('艺术平台服务器运行在端口', PORT);
-  console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
-  console.log('HTTP 已监听；MongoDB 状态请看上方 mongoose.connect 的成功/失败日志');
-  console.log(`健康检查: http://localhost:${PORT}/health`);
-  console.log(`根路径: http://localhost:${PORT}/`);
-  console.log(`WebSocket: ws://localhost:${PORT}`);
-  
-  // 初始化管理员
-  await initializeAdmin();
+async function connectMongoAndStartupTasks() {
+  const uri =
+    process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-program';
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('MongoDB连接成功');
+  } catch (err) {
+    console.error('MongoDB连接失败（服务仍会运行，接口将返回数据库不可用）:', err);
+    return;
+  }
 
-  // 孤立文件清理已改为仅管理员手动触发：POST /api/admin/cleanup-files（启动时不再自动删盘）
+  try {
+    await initializeAdmin();
+  } catch (e) {
+    console.error('初始化管理员失败:', e);
+  }
 
-  // 初始化文件备份系统（已禁用自动恢复，防止覆盖新上传的文件）
+  try {
+    console.log('启动时清理孤立文件...');
+    await cleanupOrphanedFiles();
+  } catch (e) {
+    console.error('启动清理孤立文件失败:', e);
+  }
+
   const backup = new FileBackup();
   try {
-    // ⚠️ 已禁用自动恢复备份，防止覆盖新文件
-    // 如需手动恢复，请使用管理员面板
-    
-    // 清理旧备份（保留最近7天）
     backup.cleanupOldBackups();
-    
-    // 创建新的备份
     await backup.createBackup();
     console.log('✅ 文件备份系统初始化完成（自动恢复已禁用）');
   } catch (error) {
-    console.log('⚠️ 文件备份系统初始化失败，但不影响服务运行:', error.message);
+    console.log(
+      '⚠️ 文件备份系统初始化失败，但不影响服务运行:',
+      error.message
+    );
   }
+}
+
+server.listen(PORT, () => {
+  console.log('艺术平台服务器运行在端口', PORT);
+  console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`健康检查: http://localhost:${PORT}/health`);
+  console.log(`根路径: http://localhost:${PORT}/`);
+  console.log(`WebSocket: ws://localhost:${PORT}`);
+
+  connectMongoAndStartupTasks();
 });
 
 // ==================== 用户互动功能 API ====================
@@ -2675,3 +2743,13 @@ app.get('/api/debug/files', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// 引入新路由模块（这些模块导出的是router）
+const clubRoutes = require('./routes/clubRoutes');
+const activityRoutes = require('./routes/activityRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+// 使用新路由（router会自动处理路径）
+app.use(clubRoutes);
+app.use(activityRoutes);
+app.use(adminRoutes);

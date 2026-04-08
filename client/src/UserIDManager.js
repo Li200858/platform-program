@@ -127,6 +127,26 @@ export const UserIDProvider = ({ children }) => {
   };
 
   // 重置用户ID
+  /** 使用服务端注册/登录返回的用户对象写入本地会话（与活动报名站 ID+P 逻辑一致） */
+  const setSessionFromServerUser = (userObj) => {
+    if (!userObj || !userObj.userID) {
+      throw new Error('无效的用户数据');
+    }
+    localStorage.setItem('user_unique_id', userObj.userID);
+    localStorage.setItem(
+      'user_profile',
+      JSON.stringify({
+        name: userObj.name || '',
+        class: userObj.class || '',
+      })
+    );
+    localStorage.setItem('name_edited', 'true');
+    if (userObj.hasPin != null) {
+      localStorage.setItem('user_has_pin', userObj.hasPin ? '1' : '0');
+    }
+    setUserID(userObj.userID);
+  };
+
   const resetUserID = () => {
     try {
       // 清除所有用户相关数据
@@ -137,6 +157,7 @@ export const UserIDProvider = ({ children }) => {
       localStorage.removeItem('liked_activity_ids');
       localStorage.removeItem('favorite_art_ids');
       localStorage.removeItem('favorite_activity_ids');
+      localStorage.removeItem('user_has_pin');
       
       // 生成新的用户ID
       const newID = generateUserID();
