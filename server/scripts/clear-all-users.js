@@ -20,6 +20,15 @@ async function main() {
     connectTimeoutMS: 20000,
   });
 
+  const dbName = mongoose.connection.db.databaseName;
+  console.log('当前连接的数据库名:', dbName);
+  console.log(
+    '（须与 Render / 本机服务使用的 MONGODB_URI 中的库名一致，否则等于清错库）'
+  );
+
+  const before = await User.countDocuments({});
+  console.log('清空前 User 文档数:', before);
+
   const result = await User.deleteMany({});
   console.log('已删除用户数量:', result.deletedCount);
   await mongoose.disconnect();
