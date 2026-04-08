@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
+import { UserProfileContext } from './UserProfileContext';
 
 export default function MyWorks({ userInfo, onBack }) {
+  const { openUserProfile } = useContext(UserProfileContext);
   const [works, setWorks] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,9 +177,28 @@ export default function MyWorks({ userInfo, onBack }) {
               <Avatar 
                 name={item.authorName} 
                 size={50}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openUserProfile(item.authorName, item.authorClass);
+                }}
               />
               <div>
-                <div style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '16px' }}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openUserProfile(item.authorName, item.authorClass);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openUserProfile(item.authorName, item.authorClass);
+                    }
+                  }}
+                  style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '16px', cursor: 'pointer' }}
+                >
                   {item.authorName}
                 </div>
                 <div style={{ fontSize: '14px', color: '#7f8c8d' }}>
@@ -249,12 +270,30 @@ export default function MyWorks({ userInfo, onBack }) {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                         <Avatar 
-                          name={comment.authorName || '用户'} 
+                          name={comment.author || comment.authorName || '用户'} 
                           size={30}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openUserProfile(
+                              comment.author || comment.authorName,
+                              comment.authorClass
+                            );
+                          }}
                         />
                         <div>
-                          <div style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '14px' }}>
-                            {comment.authorName || '用户'}
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openUserProfile(
+                                comment.author || comment.authorName,
+                                comment.authorClass
+                              );
+                            }}
+                            style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '14px', cursor: 'pointer' }}
+                          >
+                            {comment.author || comment.authorName || '用户'}
                           </div>
                           <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
                             {comment.authorClass || ''} • {new Date(comment.createdAt).toLocaleString()}
@@ -424,9 +463,21 @@ export default function MyWorks({ userInfo, onBack }) {
                   <Avatar 
                     name={item.authorName} 
                     size={40}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openUserProfile(item.authorName, item.authorClass);
+                    }}
                   />
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openUserProfile(item.authorName, item.authorClass);
+                      }}
+                      style={{ fontWeight: 'bold', color: '#2c3e50', cursor: 'pointer' }}
+                    >
                       {item.authorName}
                     </div>
                     <div style={{ fontSize: '12px', color: '#7f8c8d' }}>

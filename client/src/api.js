@@ -248,6 +248,33 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+    publicInfo: (name) =>
+      api.request(`/api/user/public-info?name=${encodeURIComponent(name)}`),
+  },
+
+  follows: {
+    follow: (followerName, followingName) =>
+      api.request('/api/follows', {
+        method: 'POST',
+        body: JSON.stringify({ followerName, followingName }),
+      }),
+
+    unfollow: (followerName, followingName) =>
+      api.request('/api/follows', {
+        method: 'DELETE',
+        body: JSON.stringify({ followerName, followingName }),
+      }),
+
+    check: (followerName, followingName) =>
+      api.request(
+        `/api/follows/check?followerName=${encodeURIComponent(followerName)}&followingName=${encodeURIComponent(followingName)}`
+      ),
+
+    list: (followerName) =>
+      api.request(
+        `/api/follows/list?followerName=${encodeURIComponent(followerName)}`
+      ),
   },
 
   // 管理员相关API

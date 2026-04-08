@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Avatar({ name, size = 40, style = {} }) {
+export default function Avatar({ name, size = 40, style = {}, onClick }) {
   const getInitials = (name) => {
     if (!name) return '?';
     return name.charAt(0).toUpperCase();
@@ -29,11 +29,28 @@ export default function Avatar({ name, size = 40, style = {} }) {
     background: getColor(name),
     border: '2px solid #fff',
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    cursor: onClick ? 'pointer' : 'default',
+    flexShrink: 0,
     ...style
   };
 
   return (
-    <div style={avatarStyle}>
+    <div
+      style={avatarStyle}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick(e);
+              }
+            }
+          : undefined
+      }
+    >
       {getInitials(name)}
     </div>
   );

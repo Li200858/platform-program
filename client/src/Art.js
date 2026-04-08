@@ -1,10 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
+import { UserProfileContext } from './UserProfileContext';
 
 export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
+  const { openUserProfile } = useContext(UserProfileContext);
   const tabs = [
     { key: 'all', label: '全部', dbValue: '' },
     { key: 'music', label: '音乐', dbValue: '音乐' },
@@ -290,122 +291,6 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
       setMessage('移除失败：' + (error.message || '请重试'));
     }
   };
-
-
-
-  // 查看用户详情
-  const handleViewUserProfile = (username, name, userClass) => {
-    const targetUserInfo = {
-      username: username,
-      name: name,
-      class: userClass
-    };
-    
-    // 创建用户详情弹窗
-    const userDetailModal = document.createElement('div');
-    userDetailModal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    `;
-    
-    // 创建弹窗内容
-    const modalContent = document.createElement('div');
-    modalContent.style.cssText = `
-      background: #fff;
-      border-radius: 15px;
-      padding: 30px;
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    `;
-
-    // 创建头像
-    const avatar = document.createElement('div');
-    avatar.style.cssText = `
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 15px;
-      color: white;
-      font-size: 32px;
-      font-weight: bold;
-    `;
-    avatar.textContent = name.charAt(0).toUpperCase();
-
-    // 创建用户信息
-    const userInfoDiv = document.createElement('div');
-    userInfoDiv.style.marginBottom = '20px';
-    
-    const nameH3 = document.createElement('h3');
-    nameH3.style.cssText = 'margin: 0 0 10px 0; color: #2c3e50; font-size: 24px;';
-    nameH3.textContent = name;
-    
-    const classP = document.createElement('p');
-    classP.style.cssText = 'margin: 0 0 5px 0; color: #7f8c8d; font-size: 16px;';
-    classP.textContent = `班级: ${userClass}`;
-    
-    const usernameP = document.createElement('p');
-    usernameP.style.cssText = 'margin: 0; color: #7f8c8d; font-size: 14px;';
-    usernameP.textContent = `用户名: ${username}`;
-
-    userInfoDiv.appendChild(avatar);
-    userInfoDiv.appendChild(nameH3);
-    userInfoDiv.appendChild(classP);
-    userInfoDiv.appendChild(usernameP);
-
-    // 创建按钮容器
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: center;';
-
-    // 创建关闭按钮
-    const closeButton = document.createElement('button');
-    closeButton.style.cssText = `
-      padding: 10px 20px;
-      background: #6c757d;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: bold;
-    `;
-    closeButton.textContent = '关闭';
-    closeButton.onclick = () => {
-      document.body.removeChild(userDetailModal);
-    };
-
-    buttonContainer.appendChild(closeButton);
-
-
-    // 组装弹窗内容
-    modalContent.appendChild(userInfoDiv);
-    modalContent.appendChild(buttonContainer);
-    userDetailModal.appendChild(modalContent);
-    
-    document.body.appendChild(userDetailModal);
-    
-    // 点击背景关闭弹窗
-    userDetailModal.addEventListener('click', (e) => {
-      if (e.target === userDetailModal) {
-        document.body.removeChild(userDetailModal);
-      }
-    });
-  };
-
   if (showPublish) {
     return <PublishForm onBack={() => setShowPublish(false)} userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
   }
@@ -521,6 +406,12 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
               <Avatar 
                 name={item.authorName || item.author || '用户'} 
                 size={45}
+                onClick={() =>
+                  openUserProfile(
+                    item.authorName || item.author || '',
+                    item.authorClass || ''
+                  )
+                }
                 style={{ 
                   marginRight: 15,
                   border: '3px solid #fff',
@@ -528,7 +419,32 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
                 }}
               />
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: 4, color: '#2c3e50' }}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    openUserProfile(
+                      item.authorName || item.author || '',
+                      item.authorClass || ''
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openUserProfile(
+                        item.authorName || item.author || '',
+                        item.authorClass || ''
+                      );
+                    }
+                  }}
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '18px',
+                    marginBottom: 4,
+                    color: '#2c3e50',
+                    cursor: 'pointer',
+                  }}
+                >
                   {item.authorName || item.author}
                 </div>
                 <div style={{ fontSize: '14px', color: '#7f8c8d', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -543,7 +459,7 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
                       {item.collaborators.map((collab, index) => (
                         <div
                           key={index}
-                          onClick={() => handleViewUserProfile(collab.username, collab.name, collab.class)}
+                          onClick={() => openUserProfile(collab.username, collab.class)}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -795,7 +711,18 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
                         transition: 'all 0.2s ease'
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => openUserProfile(comment.author, comment.authorClass)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                openUserProfile(comment.author, comment.authorClass);
+                              }
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                          >
                             <strong style={{ fontSize: '13px', color: '#2c3e50' }}>{comment.author}</strong>
                             <span style={{ fontSize: '11px', color: '#7f8c8d', background: '#f8f9fa', padding: '2px 6px', borderRadius: '10px' }}>
                               {comment.authorClass}

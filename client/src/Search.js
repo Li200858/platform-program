@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
+import { UserProfileContext } from './UserProfileContext';
 
 export default function Search({ userInfo, onBack }) {
+  const { openUserProfile } = useContext(UserProfileContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('all'); // all, art, user
   const [searchResults, setSearchResults] = useState({ arts: [], activities: [], users: [] });
@@ -49,22 +51,20 @@ export default function Search({ userInfo, onBack }) {
     }
   };
 
-  const handleFollow = async (username) => {
+  const handleFollow = async (username, evt) => {
+    if (evt && evt.stopPropagation) evt.stopPropagation();
     if (!userInfo || !userInfo.name) {
       setMessage('请先完善个人信息');
       return;
     }
 
     try {
-      await api.follow.follow({
-        follower: userInfo.name,
-        following: username
-      });
+      await api.follows.follow(userInfo.name, username);
       setMessage(`已关注 ${username}`);
-      handleSearch(); // 刷新搜索结果
+      handleSearch();
     } catch (error) {
       console.error('关注失败:', error);
-      setMessage('关注失败，请重试');
+      setMessage(error.message || '关注失败，请重试');
     }
   };
 
@@ -176,9 +176,24 @@ export default function Search({ userInfo, onBack }) {
                   background: '#f8f9fa'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 15 }}>
-                    <Avatar name={item.authorName} size={40} />
+                    <Avatar
+                      name={item.authorName}
+                      size={40}
+                      onClick={() => openUserProfile(item.authorName, item.authorClass)}
+                    />
                     <div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openUserProfile(item.authorName, item.authorClass)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openUserProfile(item.authorName, item.authorClass);
+                          }
+                        }}
+                        style={{ fontWeight: 'bold', color: '#2c3e50', cursor: 'pointer' }}
+                      >
                         {item.authorName}
                       </div>
                       <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
@@ -232,7 +247,18 @@ export default function Search({ userInfo, onBack }) {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openUserProfile(user.name, user.class)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openUserProfile(user.name, user.class);
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 15, cursor: 'pointer', flex: 1 }}
+                  >
                     <Avatar name={user.name} size={50} />
                     <div>
                       <div style={{ fontWeight: 'bold', color: '#2c3e50', fontSize: '16px' }}>
@@ -251,7 +277,8 @@ export default function Search({ userInfo, onBack }) {
                   
                   {userInfo && userInfo.name !== user.name && (
                     <button
-                      onClick={() => handleFollow(user.name)}
+                      type="button"
+                      onClick={(e) => handleFollow(user.name, e)}
                       style={{
                         padding: '8px 16px',
                         background: '#3498db',

@@ -24,6 +24,7 @@ const ClubMember = require('./models/ClubMember');
 const ActivityApplication = require('./models/ActivityApplication');
 const ActivityRegistration = require('./models/ActivityRegistration');
 const ActivityStage = require('./models/ActivityStage');
+const Follow = require('./models/Follow');
 
 // 文件删除工具函数
 const deleteFile = (filePath) => {
@@ -694,11 +695,117 @@ app.get('/api/art/my-works', async (req, res) => {
   }
 
   try {
-    const works = await Art.find({ author: authorName }).sort({ createdAt: -1 });
+    const works = await Art.find({
+      $or: [{ author: authorName }, { authorName: authorName }],
+    }).sort({ createdAt: -1 });
     res.json(works);
   } catch (error) {
     console.error('获取我的作品失败:', error);
     res.status(500).json({ error: '获取作品失败' });
+  }
+});
+
+// 关注（不返回任何「粉丝数」类统计）
+app.post('/api/follows', async (req, res) => {
+  const { followerName, followingName } = req.body;
+  const f = (followerName || '').trim();
+  const g = (followingName || '').trim();
+  if (!f || !g) {
+    return res.status(400).json({ error: '缺少参数' });
+  }
+  if (f === g) {
+    return res.status(400).json({ error: '不能关注自己' });
+  }
+  try {
+    await Follow.create({ followerName: f, followingName: g });
+    await notifyUser({
+      recipient: g,
+      sender: f,
+      type: 'follow',
+      content: `${f} 关注了你`,
+      relatedType: 'user',
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === 11000) {
+      return res.status(400).json({ error: '已经关注过了' });
+    }
+    console.error('关注失败:', e);
+    res.status(500).json({ error: '关注失败' });
+  }
+});
+
+app.delete('/api/follows', async (req, res) => {
+  const { followerName, followingName } = req.body;
+  const f = (followerName || '').trim();
+  const g = (followingName || '').trim();
+  if (!f || !g) {
+    return res.status(400).json({ error: '缺少参数' });
+  }
+  try {
+    const r = await Follow.deleteOne({ followerName: f, followingName: g });
+    if (r.deletedCount === 0) {
+      return res.status(404).json({ error: '未关注该用户' });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('取消关注失败:', e);
+    res.status(500).json({ error: '取消关注失败' });
+  }
+});
+
+app.get('/api/follows/check', async (req, res) => {
+  const { followerName, followingName } = req.query;
+  const f = (followerName || '').trim();
+  const g = (followingName || '').trim();
+  if (!f || !g) {
+    return res.status(400).json({ error: '缺少参数' });
+  }
+  try {
+    const exists = await Follow.findOne({ followerName: f, followingName: g });
+    res.json({ following: !!exists });
+  } catch (e) {
+    res.status(500).json({ error: '检查失败' });
+  }
+});
+
+app.get('/api/follows/list', async (req, res) => {
+  const { followerName } = req.query;
+  const f = (followerName || '').trim();
+  if (!f) {
+    return res.status(400).json({ error: '缺少 followerName' });
+  }
+  try {
+    const rows = await Follow.find({ followerName: f }).sort({ createdAt: -1 });
+    const names = rows.map((row) => row.followingName);
+    const users = await User.find({ name: { $in: names } })
+      .select('name class')
+      .lean();
+    const byName = Object.fromEntries(users.map((u) => [u.name, u]));
+    const list = names.map((name) => ({
+      name,
+      class: (byName[name] && byName[name].class) || '',
+    }));
+    res.json(list);
+  } catch (e) {
+    console.error('关注列表失败:', e);
+    res.status(500).json({ error: '获取列表失败' });
+  }
+});
+
+app.get('/api/user/public-info', async (req, res) => {
+  const name = (req.query.name || '').trim();
+  if (!name) {
+    return res.status(400).json({ error: '缺少 name' });
+  }
+  try {
+    const u = await User.findOne({ name }).select('name class').lean();
+    if (u) {
+      return res.json({ name: u.name, class: u.class || '' });
+    }
+    res.json({ name, class: '' });
+  } catch (e) {
+    res.status(500).json({ error: '获取失败' });
   }
 });
 

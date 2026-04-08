@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // 添加通知动画样式
 const notificationStyles = `
@@ -45,6 +45,9 @@ import PublicPortfolio from './PublicPortfolio';
 import ResourceLibrary from './ResourceLibrary';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
+import { UserProfileContext } from './UserProfileContext';
+import UserPublicProfile from './UserPublicProfile';
+import MyFollows from './MyFollows';
 
 function readUserSession() {
   try {
@@ -66,6 +69,7 @@ import './App.css';
 
 function MainApp() {
   const [section, setSection] = useState('art');
+  const [profileUser, setProfileUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -85,6 +89,13 @@ function MainApp() {
       String(userInfo.class || '').trim() &&
       String(userInfo.userID || '').trim()
   );
+
+  const openUserProfile = useCallback((name, klass = '') => {
+    const n = String(name || '').trim();
+    if (!n) return;
+    setProfileUser({ name: n, class: String(klass || '').trim() });
+    setSection('userProfile');
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('user_profile');
@@ -437,6 +448,19 @@ function MainApp() {
           content = <PublicPortfolio userInfo={userInfo} onBack={() => setSection('art')} />;
         } else if (section === 'resources') {
           content = <ResourceLibrary userInfo={userInfo} isAdmin={isAdmin} onBack={() => setSection('art')} />;
+    } else if (section === 'userProfile' && profileUser) {
+      content = (
+        <UserPublicProfile
+          viewer={userInfo}
+          target={profileUser}
+          onBack={() => {
+            setProfileUser(null);
+            setSection('art');
+          }}
+        />
+      );
+    } else if (section === 'myFollows') {
+      content = <MyFollows userInfo={userInfo} onBack={() => setSection('art')} />;
     } else if (section === 'notifications') {
       content = <Notifications userInfo={userInfo} onBack={() => setSection('art')} />;
     }
@@ -479,6 +503,7 @@ function MainApp() {
   }
 
   return (
+    <UserProfileContext.Provider value={{ openUserProfile }}>
     <div className="app-root">
       {/* 维护模式提示 */}
       {maintenanceStatus.isEnabled && !isAdmin && (
@@ -596,6 +621,9 @@ function MainApp() {
           </button>
           <button className={section === 'collection' ? 'active' : ''} onClick={() => setSection('collection')}>
             我的收藏
+          </button>
+          <button className={section === 'myFollows' ? 'active' : ''} onClick={() => setSection('myFollows')}>
+            我的关注
           </button>
           <button className={section === 'resources' ? 'active' : ''} onClick={() => setSection('resources')}>
             资料库
@@ -836,6 +864,7 @@ function MainApp() {
         </div>
       )}
     </div>
+    </UserProfileContext.Provider>
   );
 }
 
