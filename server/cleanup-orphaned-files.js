@@ -5,7 +5,6 @@ require('dotenv').config();
 
 // 导入所有模型
 const Art = require('./models/Art');
-const Activity = require('./models/Activity');
 const Feedback = require('./models/Feedback');
 const Portfolio = require('./models/Portfolio');
 const Resource = require('./models/Resource');
@@ -53,23 +52,6 @@ async function cleanupOrphanedFiles() {
       }
     });
     console.log(`  艺术作品引用文件: ${referencedFiles.size} 个`);
-
-    // 从活动收集
-    console.log('检查活动中的文件引用...');
-    const activities = await Activity.find({});
-    activities.forEach(activity => {
-      if (activity.image) {
-        const filename = path.basename(activity.image);
-        referencedFiles.add(filename);
-      }
-      if (activity.media && Array.isArray(activity.media)) {
-        activity.media.forEach(filePath => {
-          const filename = path.basename(filePath);
-          referencedFiles.add(filename);
-        });
-      }
-    });
-    console.log(`  活动引用文件: ${referencedFiles.size} 个（累计）`);
 
     // 从反馈收集
     console.log('检查反馈中的文件引用...');

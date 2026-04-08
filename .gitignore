@@ -3,3 +3,8 @@ uploads/
 .DS_Store
 *.log
 .vercel
+*.env
+.env
+.env.*
+# 本地 uploads 备份包体积大，勿提交到 GitHub
+server/backups/

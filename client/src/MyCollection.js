@@ -5,10 +5,8 @@ import api from './api';
 
 export default function MyCollection({ userInfo, onBack }) {
   const [artCollections, setArtCollections] = useState([]);
-  const [activityCollections, setActivityCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState('art');
   const [selectedItem, setSelectedItem] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
@@ -20,12 +18,6 @@ export default function MyCollection({ userInfo, onBack }) {
     }
   }, [userInfo?.name]);
 
-  useEffect(() => {
-    if (userInfo && userInfo.name) {
-      loadTabCollections();
-    }
-  }, [activeTab, userInfo?.name]);
-
   const loadAllCollections = async () => {
     if (!userInfo || !userInfo.name) {
       setLoading(false);
@@ -34,61 +26,25 @@ export default function MyCollection({ userInfo, onBack }) {
 
     try {
       setLoading(true);
-      const [artData, activityData] = await Promise.all([
-        api.art.getFavorites(userInfo.name),
-        api.activity.getAll()
-      ]);
-      
+      const artData = await api.art.getFavorites(userInfo.name);
       setArtCollections(Array.isArray(artData) ? artData : []);
-      setActivityCollections(Array.isArray(activityData) ? activityData.filter(activity => 
-        activity.favorites && activity.favorites.includes(userInfo.name)
-      ) : []);
     } catch (error) {
       console.error('加载收藏失败:', error);
       setArtCollections([]);
-      setActivityCollections([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadTabCollections = async () => {
-    if (!userInfo || !userInfo.name) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      if (activeTab === 'art') {
-        const data = await api.art.getFavorites(userInfo.name);
-        setArtCollections(Array.isArray(data) ? data : []);
-      } else if (activeTab === 'activity') {
-        const data = await api.activity.getAll();
-        setActivityCollections(Array.isArray(data) ? data.filter(activity => 
-          activity.favorites && activity.favorites.includes(userInfo.name)
-        ) : []);
-      }
-    } catch (error) {
-      console.error('加载收藏失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUnfavorite = async (id, type) => {
+  const handleUnfavorite = async (id) => {
     if (!userInfo || !userInfo.name) {
       setMessage('请先完善个人信息');
       return;
     }
     
     try {
-      if (type === 'art') {
-        await api.art.favorite(id, userInfo.name);
-        setArtCollections(prev => prev.filter(item => item._id !== id));
-      } else if (type === 'activity') {
-        await api.activity.favorite(id, userInfo.name);
-        setActivityCollections(prev => prev.filter(item => item._id !== id));
-      }
+      await api.art.favorite(id, userInfo.name);
+      setArtCollections(prev => prev.filter(item => item._id !== id));
       setMessage('已取消收藏');
     } catch (error) {
       console.error('取消收藏失败:', error);
@@ -96,8 +52,8 @@ export default function MyCollection({ userInfo, onBack }) {
     }
   };
 
-  const handleItemClick = (item, type) => {
-    setSelectedItem({ ...item, type });
+  const handleItemClick = (item) => {
+    setSelectedItem({ ...item, type: 'art' });
     setShowDetail(true);
   };
 
@@ -344,47 +300,11 @@ export default function MyCollection({ userInfo, onBack }) {
         </div>
       )}
 
-      {/* 分区标签 */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 30, borderBottom: '1px solid #ecf0f1' }}>
-        <button
-          onClick={() => setActiveTab('art')}
-          style={{
-            padding: '12px 20px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'art' ? '2px solid #3498db' : '2px solid transparent',
-            color: activeTab === 'art' ? '#3498db' : '#7f8c8d',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}
-        >
-          艺术作品 ({artCollections.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('activity')}
-          style={{
-            padding: '12px 20px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'activity' ? '2px solid #3498db' : '2px solid transparent',
-            color: activeTab === 'activity' ? '#3498db' : '#7f8c8d',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}
-        >
-          活动设计 ({activityCollections.length})
-        </button>
-      </div>
-
-      {/* 艺术作品收藏 */}
-      {activeTab === 'art' && (
-        <div>
+      <div>
           {artCollections.map(item => (
             <div 
               key={item._id} 
-              onClick={() => handleItemClick(item, 'art')}
+              onClick={() => handleItemClick(item)}
               style={{ 
                 border: '1px solid #ecf0f1', 
                 borderRadius: 12, 
@@ -421,7 +341,7 @@ export default function MyCollection({ userInfo, onBack }) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleUnfavorite(item._id, 'art');
+                    handleUnfavorite(item._id);
                   }}
                   style={{
                     padding: '6px 12px',
@@ -475,101 +395,7 @@ export default function MyCollection({ userInfo, onBack }) {
               <div style={{ fontSize: '14px' }}>去艺术作品页面收藏一些喜欢的作品吧！</div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* 活动设计收藏 */}
-      {activeTab === 'activity' && (
-        <div>
-          {activityCollections.map(item => (
-            <div 
-              key={item._id} 
-              onClick={() => handleItemClick(item, 'activity')}
-              style={{ 
-                border: '1px solid #ecf0f1', 
-                borderRadius: 12, 
-                padding: 20, 
-                marginBottom: 20,
-                background: '#f8f9fa',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                  <Avatar 
-                    name={item.authorName} 
-                    size={40}
-                  />
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                      {item.authorName}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                      {item.authorClass} • {new Date(item.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUnfavorite(item._id, 'activity');
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                >
-                  取消收藏
-                </button>
-              </div>
-              
-              <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>{item.title}</h3>
-              <p style={{ margin: '0 0 15px 0', color: '#34495e', lineHeight: 1.6 }}>
-                {(item.description || item.content || '').length > 100 
-                  ? `${(item.description || item.content || '').substring(0, 100)}...` 
-                  : (item.description || item.content || '')}
-              </p>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {item.likes || 0} 喜欢
-                </span>
-                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {item.favorites?.length || 0} 收藏
-                </span>
-                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {item.comments?.length || 0} 评论
-                </span>
-                <span style={{ fontSize: '12px', color: '#3498db', marginLeft: 'auto' }}>
-                  点击查看详情 →
-                </span>
-              </div>
-            </div>
-          ))}
-          
-          {activityCollections.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
-              <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无收藏</div>
-              <div style={{ fontSize: '14px' }}>去活动展示页面收藏一些喜欢的活动吧！</div>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
 
       {/* 详情查看弹窗 */}
       {showDetail && selectedItem && (

@@ -937,7 +937,7 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
           }}>
             <h5 style={{ margin: '0 0 10px 0', color: '#1976d2' }}>维护模式说明：</h5>
             <ul style={{ margin: 0, paddingLeft: 20, color: '#1976d2', fontSize: '14px' }}>
-              <li>开启维护模式后，普通用户将无法发布作品、活动或评论</li>
+              <li>开启维护模式后，普通用户将无法发布作品或评论</li>
               <li>用户将看到维护提示信息，但可以正常浏览内容</li>
               <li>管理员可以正常使用所有功能</li>
               <li>维护模式可以随时开启或关闭</li>

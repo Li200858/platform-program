@@ -5,7 +5,6 @@ import api from './api';
 
 export default function MyWorks({ userInfo, onBack }) {
   const [works, setWorks] = useState([]);
-  const [activities, setActivities] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -35,19 +34,16 @@ export default function MyWorks({ userInfo, onBack }) {
 
     try {
       setLoading(true);
-      const [worksData, activitiesData, feedbacksData] = await Promise.all([
+      const [worksData, feedbacksData] = await Promise.all([
         api.art.getMyWorks(userInfo.name),
-        api.activity.getAll(),
         api.feedback.getMy(userInfo.name)
       ]);
       
       setWorks(Array.isArray(worksData) ? worksData : []);
-      setActivities(Array.isArray(activitiesData) ? activitiesData.filter(activity => activity.authorName === userInfo.name) : []);
       setFeedbacks(Array.isArray(feedbacksData) ? feedbacksData : []);
     } catch (error) {
       console.error('加载数据失败:', error);
       setWorks([]);
-      setActivities([]);
       setFeedbacks([]);
     } finally {
       setLoading(false);
@@ -64,9 +60,6 @@ export default function MyWorks({ userInfo, onBack }) {
       if (activeTab === 'art') {
         const data = await api.art.getMyWorks(userInfo.name);
         setWorks(Array.isArray(data) ? data : []);
-      } else if (activeTab === 'activity') {
-        const data = await api.activity.getAll();
-        setActivities(Array.isArray(data) ? data.filter(activity => activity.authorName === userInfo.name) : []);
       } else if (activeTab === 'feedback') {
         const data = await api.feedback.getMy(userInfo.name);
         setFeedbacks(Array.isArray(data) ? data : []);
@@ -92,9 +85,6 @@ export default function MyWorks({ userInfo, onBack }) {
       if (type === 'art') {
         await api.art.delete(id, userInfo.name, userInfo.isAdmin || false);
         setWorks(prev => prev.filter(item => item._id !== id));
-      } else if (type === 'activity') {
-        // 这里需要添加删除活动的API
-        setActivities(prev => prev.filter(item => item._id !== id));
       }
       setMessage('内容已删除');
     } catch (error) {
@@ -388,21 +378,6 @@ export default function MyWorks({ userInfo, onBack }) {
           艺术作品 ({works.length})
         </button>
         <button
-          onClick={() => setActiveTab('activity')}
-          style={{
-            padding: '12px 20px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'activity' ? '2px solid #3498db' : '2px solid transparent',
-            color: activeTab === 'activity' ? '#3498db' : '#7f8c8d',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold'
-          }}
-        >
-          活动设计 ({activities.length})
-        </button>
-        <button
           onClick={() => setActiveTab('feedback')}
           style={{
             padding: '12px 20px',
@@ -514,99 +489,6 @@ export default function MyWorks({ userInfo, onBack }) {
               <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
               <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无作品</div>
               <div style={{ fontSize: '14px' }}>去艺术作品页面发布您的第一个作品吧！</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 活动设计 */}
-      {activeTab === 'activity' && (
-        <div>
-          {activities.map(item => (
-            <div 
-              key={item._id} 
-              onClick={() => handleItemClick(item, 'activity')}
-              style={{ 
-                border: '1px solid #ecf0f1', 
-                borderRadius: 12, 
-                padding: 20, 
-                marginBottom: 20,
-                background: '#f8f9fa',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 15 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                  <Avatar 
-                    name={item.authorName} 
-                    size={40}
-                  />
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                      {item.authorName}
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                      {item.authorClass} • {new Date(item.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item._id, 'activity');
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    background: '#e74c3c',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                >
-                  删除
-                </button>
-              </div>
-              
-              <h3 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>{item.title}</h3>
-              <p style={{ margin: '0 0 15px 0', color: '#34495e', lineHeight: 1.6 }}>
-                {(item.description || item.content || '').length > 100 
-                  ? `${(item.description || item.content || '').substring(0, 100)}...` 
-                  : (item.description || item.content || '')}
-              </p>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {item.likes || 0} 喜欢
-                </span>
-                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {item.favorites?.length || 0} 收藏
-                </span>
-                <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                  {item.comments?.length || 0} 评论
-                </span>
-                <span style={{ fontSize: '12px', color: '#3498db', marginLeft: 'auto' }}>
-                  点击查看详情 →
-                </span>
-              </div>
-            </div>
-          ))}
-          
-          {activities.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#7f8c8d' }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}></div>
-              <div style={{ fontSize: '18px', marginBottom: '10px' }}>暂无活动设计</div>
-              <div style={{ fontSize: '14px' }}>去活动展示页面发布您的第一个活动吧！</div>
             </div>
           )}
         </div>

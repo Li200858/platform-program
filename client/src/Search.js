@@ -5,7 +5,7 @@ import api from './api';
 
 export default function Search({ userInfo, onBack }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('all'); // all, art, activity, user
+  const [searchType, setSearchType] = useState('all'); // all, art, user
   const [searchResults, setSearchResults] = useState({ arts: [], activities: [], users: [] });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -13,7 +13,6 @@ export default function Search({ userInfo, onBack }) {
   const searchTypes = [
     { key: 'all', label: '全部' },
     { key: 'art', label: '艺术作品' },
-    { key: 'activity', label: '活动设计' },
     { key: 'user', label: '用户' }
   ];
 
@@ -29,7 +28,7 @@ export default function Search({ userInfo, onBack }) {
       const results = await api.search.global(searchQuery, searchType);
       setSearchResults(results);
       
-      const totalResults = results.arts.length + results.activities.length + results.users.length;
+      const totalResults = results.arts.length + results.users.length;
       if (totalResults === 0) {
         setMessage('未找到匹配的结果');
       } else {
@@ -111,7 +110,7 @@ export default function Search({ userInfo, onBack }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="搜索作品、活动或用户..."
+            placeholder="搜索作品或用户..."
             style={{
               flex: 1,
               padding: '12px',
@@ -202,75 +201,6 @@ export default function Search({ userInfo, onBack }) {
                     </div>
                   )}
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      {item.likes || 0} 喜欢
-                    </span>
-                    <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      {item.favorites?.length || 0} 收藏
-                    </span>
-                    <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
-                      {item.comments?.length || 0} 评论
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 活动结果 */}
-          {(searchType === 'all' || searchType === 'activity') && searchResults.activities.length > 0 && (
-            <div style={{ marginBottom: 30 }}>
-              <h3 style={{ marginBottom: 20, color: '#2c3e50' }}>活动设计 ({searchResults.activities.length})</h3>
-              {searchResults.activities.map(item => (
-                <div key={item._id} style={{ 
-                  border: '1px solid #ecf0f1', 
-                  borderRadius: 12, 
-                  padding: 20, 
-                  marginBottom: 20,
-                  background: '#f8f9fa'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 15 }}>
-                    <Avatar name={item.authorName} size={40} />
-                    <div>
-                      <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>
-                        {item.authorName}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#7f8c8d' }}>
-                        {item.authorClass} • {new Date(item.createdAt).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <h4 style={{ margin: '0 0 10px 0', color: '#2c3e50' }}>{item.title}</h4>
-                  <p style={{ margin: '0 0 15px 0', color: '#34495e', lineHeight: 1.6 }}>
-                    {item.description.length > 200 ? `${item.description.substring(0, 200)}...` : item.description}
-                  </p>
-                  
-                  {item.media && item.media.length > 0 && (
-                    <div style={{ marginBottom: 15 }}>
-                      <FilePreview 
-                        urls={item.media} 
-                        apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
-                      />
-                    </div>
-                  )}
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '15px',
-                    padding: '10px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '8px'
-                  }}>
-                    <div style={{ fontSize: '14px', color: '#2c3e50' }}>
-                      <strong>活动时间：</strong>
-                      {new Date(item.startDate).toLocaleDateString()} - {new Date(item.endDate).toLocaleDateString()}
-                    </div>
-                  </div>
-
                   <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
                     <span style={{ fontSize: '14px', color: '#7f8c8d' }}>
                       {item.likes || 0} 喜欢
