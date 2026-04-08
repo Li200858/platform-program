@@ -318,8 +318,7 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
         >
           意见反馈
         </button>
-        {/* 只有超级管理员可以看到用户管理 */}
-        {isSuperAdmin && (
+        {isAdmin && (
           <button
             onClick={() => setActiveTab('users')}
             style={{
@@ -579,25 +578,27 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
         </div>
       )}
 
-      {activeTab === 'users' && isSuperAdmin && (
+      {activeTab === 'users' && isAdmin && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ margin: 0, color: '#2c3e50' }}>用户管理</h3>
-            <button
-              onClick={() => setShowSuperAdminModal(true)}
-              style={{
-                padding: '8px 16px',
-                background: '#e74c3c',
-                color: 'white',
-                border: 'none',
-                borderRadius: 6,
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold'
-              }}
-            >
-              设置超级管理员
-            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => setShowSuperAdminModal(true)}
+                style={{
+                  padding: '8px 16px',
+                  background: '#e74c3c',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                设置超级管理员
+              </button>
+            )}
           </div>
           
           {/* 搜索用户 */}
@@ -757,7 +758,9 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      {user.role === 'super_admin' && user.name !== userInfo.name && (
+                      {isSuperAdmin &&
+                        user.role === 'super_admin' &&
+                        user.name !== userInfo.name && (
                         <button
                           onClick={() => handleRemoveSuperAdmin(user.name)}
                           style={{
@@ -773,20 +776,23 @@ export default function AdminPanel({ userInfo, isAdmin, onBack }) {
                           移除超级权限
                         </button>
                       )}
-                      <button
-                        onClick={() => handleRemoveAdmin(user.name)}
-                        style={{
-                          padding: '6px 12px',
-                          background: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          fontSize: '12px'
-                        }}
-                      >
-                        移除管理员
-                      </button>
+                      {user.role !== 'super_admin' &&
+                        user.name !== userInfo.name && (
+                        <button
+                          onClick={() => handleRemoveAdmin(user.name)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          移除管理员
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

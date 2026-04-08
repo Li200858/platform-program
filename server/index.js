@@ -1077,8 +1077,11 @@ app.post('/api/admin/add-admin', async (req, res) => {
 
   try {
     const adder = await User.findOne({ name: addedBy });
-    if (!adder || adder.role !== 'super_admin') {
-      return res.status(403).json({ error: '只有超级管理员可以添加普通管理员' });
+    if (
+      !adder ||
+      (adder.role !== 'super_admin' && adder.role !== 'admin')
+    ) {
+      return res.status(403).json({ error: '无权限添加管理员' });
     }
 
     let user = await User.findOne({ name: userName });
@@ -1117,8 +1120,11 @@ app.post('/api/admin/remove-admin', async (req, res) => {
 
   try {
     const remover = await User.findOne({ name: removedBy });
-    if (!remover || remover.role !== 'super_admin') {
-      return res.status(403).json({ error: '只有超级管理员可以移除普通管理员' });
+    if (
+      !remover ||
+      (remover.role !== 'super_admin' && remover.role !== 'admin')
+    ) {
+      return res.status(403).json({ error: '无权限移除管理员' });
     }
 
     if (userName === removedBy) {
