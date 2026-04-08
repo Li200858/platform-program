@@ -745,14 +745,17 @@ app.get('/api/admin/check', async (req, res) => {
   }
 
   try {
-    // 检查是否是固定管理员
-    if (userName === '测试员' || userName === '李昌轩') {
+    const user = await User.findOne({ name: userName });
+    if (!user) {
+      return res.json({ isAdmin: false, isInitial: false });
+    }
+    if (user.role === 'super_admin') {
       return res.json({ isAdmin: true, isInitial: true });
     }
-
-    // 检查数据库中是否有该用户的管理员记录
-    const user = await User.findOne({ name: userName, role: 'admin' });
-    res.json({ isAdmin: !!user, isInitial: false });
+    if (user.role === 'admin') {
+      return res.json({ isAdmin: true, isInitial: false });
+    }
+    res.json({ isAdmin: false, isInitial: false });
   } catch (error) {
     console.error('检查管理员状态失败:', error);
     res.status(500).json({ error: '检查失败' });
@@ -795,8 +798,8 @@ app.post('/api/admin/set-super-admin', async (req, res) => {
     targetUser.isAdmin = true;
     await targetUser.save();
 
-    // 将操作者降级为普通管理员
     operator.role = 'admin';
+    operator.isAdmin = true;
     await operator.save();
 
     res.json({ 
@@ -836,8 +839,8 @@ app.post('/api/admin/remove-super-admin', async (req, res) => {
       return res.status(400).json({ error: '不能移除自己的超级管理员权限' });
     }
 
-    // 将目标用户降级为普通管理员
     targetUser.role = 'admin';
+    targetUser.isAdmin = true;
     await targetUser.save();
 
     res.json({ 
@@ -1009,7 +1012,9 @@ app.delete('/api/feedback/:id', async (req, res) => {
 // 获取所有管理员用户
 app.get('/api/admin/users', async (req, res) => {
   try {
-    const admins = await User.find({ role: 'admin' }).sort({ createdAt: -1 });
+    const admins = await User.find({
+      role: { $in: ['admin', 'super_admin'] },
+    }).sort({ createdAt: -1 });
     res.json(admins);
   } catch (error) {
     console.error('获取管理员失败:', error);
@@ -1071,24 +1076,25 @@ app.post('/api/admin/add-admin', async (req, res) => {
   }
 
   try {
-    // 检查添加者是否有权限
-    if (addedBy !== '测试员' && addedBy !== '李昌轩') {
-      const adder = await User.findOne({ name: addedBy, role: 'admin' });
-      if (!adder) {
-        return res.status(403).json({ error: '无权限添加管理员' });
-      }
+    const adder = await User.findOne({ name: addedBy });
+    if (!adder || adder.role !== 'super_admin') {
+      return res.status(403).json({ error: '只有超级管理员可以添加普通管理员' });
     }
 
-    // 查找或创建用户
     let user = await User.findOne({ name: userName });
     if (!user) {
+      const userID = await allocateShortUserID();
       user = await User.create({
+        userID,
         name: userName,
-        class: '测试班级',
+        class: '未分班',
         role: 'admin',
-        isAdmin: true
+        isAdmin: true,
       });
     } else {
+      if (user.role === 'super_admin') {
+        return res.status(400).json({ error: '该用户已是超级管理员' });
+      }
       user.role = 'admin';
       user.isAdmin = true;
       await user.save();
@@ -1110,25 +1116,28 @@ app.post('/api/admin/remove-admin', async (req, res) => {
   }
 
   try {
-    // 检查移除者是否有权限
-    if (removedBy !== '测试员' && removedBy !== '李昌轩') {
-      const remover = await User.findOne({ name: removedBy, role: 'admin' });
-      if (!remover) {
-        return res.status(403).json({ error: '无权限移除管理员' });
-      }
+    const remover = await User.findOne({ name: removedBy });
+    if (!remover || remover.role !== 'super_admin') {
+      return res.status(403).json({ error: '只有超级管理员可以移除普通管理员' });
     }
 
-    // 不能移除自己
     if (userName === removedBy) {
       return res.status(400).json({ error: '不能移除自己的管理员权限' });
     }
 
     const user = await User.findOne({ name: userName });
-    if (user) {
-      user.role = 'user';
-      user.isAdmin = false;
-      await user.save();
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
     }
+    if (user.role === 'super_admin') {
+      return res
+        .status(400)
+        .json({ error: '请使用「移除超级权限」功能操作超级管理员' });
+    }
+
+    user.role = 'user';
+    user.isAdmin = false;
+    await user.save();
 
     res.json({ message: '管理员移除成功' });
   } catch (error) {
@@ -1164,8 +1173,7 @@ app.post('/api/user/register', async (req, res) => {
     if (existing) return res.status(400).json({ error: '该姓名已被注册' });
 
     const userID = await allocateShortUserID();
-    const isSuper =
-      n === '管理员' || (n === '李昌轩' && c === 'NEE4');
+    const isSuper = n === '李昌轩' && c === 'NEE4';
     const role = isSuper ? 'super_admin' : 'user';
     const pinHash =
       pin && /^\d{4,6}$/.test(String(pin)) ? hashPin(userID, String(pin)) : null;
@@ -1192,7 +1200,7 @@ app.post('/api/user/register', async (req, res) => {
 
 app.post('/api/user/login', async (req, res) => {
   try {
-    const { userID, name, class: userClass, password, pin, loginMode } = req.body;
+    const { userID, name, class: userClass, pin, loginMode } = req.body;
     const n = (name || '').trim();
     const c = (userClass || '').trim();
 
@@ -1226,24 +1234,6 @@ app.post('/api/user/login', async (req, res) => {
           error: '您设置了 PIN，请用 PIN 登录',
           requirePinLogin: true,
         });
-      }
-    }
-
-    if (user.role === 'super_admin') {
-      const expectedPassword = process.env.SUPER_ADMIN_PASSWORD;
-      if (!expectedPassword) {
-        return res.status(500).json({
-          error:
-            '超级管理员密码未配置，请联系管理员设置 SUPER_ADMIN_PASSWORD 环境变量',
-        });
-      }
-      if (!password) {
-        return res
-          .status(401)
-          .json({ error: '超级管理员需要输入密码', requirePassword: true });
-      }
-      if (password !== expectedPassword) {
-        return res.status(401).json({ error: '密码错误' });
       }
     }
 
@@ -1530,30 +1520,6 @@ app.get('/', (req, res) => {
   });
 });
 
-
-// 初始化默认管理员
-async function initializeAdmin() {
-  try {
-    const adminUser = await User.findOne({ name: '测试员' });
-    if (!adminUser) {
-      await User.create({
-        name: '测试员',
-        class: '测试班级',
-        role: 'admin',
-        isAdmin: true,
-        createdAt: new Date()
-      });
-      console.log('默认管理员已创建：测试员');
-    } else if (!adminUser.isAdmin || adminUser.role !== 'admin') {
-      adminUser.isAdmin = true;
-      adminUser.role = 'admin';
-      await adminUser.save();
-      console.log('用户测试员已设置为管理员');
-    }
-  } catch (error) {
-    console.error('初始化管理员失败:', error);
-  }
-}
 
 // 维护模式相关API
 // 获取维护模式状态
@@ -2067,12 +2033,6 @@ async function connectMongoAndStartupTasks() {
   } catch (err) {
     console.error('MongoDB连接失败（服务仍会运行，接口将返回数据库不可用）:', err);
     return;
-  }
-
-  try {
-    await initializeAdmin();
-  } catch (e) {
-    console.error('初始化管理员失败:', e);
   }
 
   try {

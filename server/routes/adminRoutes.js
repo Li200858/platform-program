@@ -16,18 +16,15 @@ const checkAdmin = async (req, res, next) => {
       return res.status(400).json({ error: '缺少用户名参数' });
     }
     
-    // 检查是否是固定管理员
-    if (userName === '测试员' || userName === '李昌轩') {
+    const user = await User.findOne({ name: userName });
+    if (
+      user &&
+      (user.role === 'admin' || user.role === 'super_admin')
+    ) {
       return next();
     }
-    
-    // 检查数据库中是否有该用户的管理员记录
-    const user = await User.findOne({ name: userName, role: 'admin' });
-    if (!user) {
-      return res.status(403).json({ error: '无管理员权限' });
-    }
-    
-    next();
+
+    return res.status(403).json({ error: '无管理员权限' });
   } catch (error) {
     console.error('检查管理员权限失败:', error);
     res.status(500).json({ error: '检查管理员权限失败' });
@@ -213,7 +210,10 @@ router.post('/api/admin/activity-registrations/:id/review', async (req, res) => 
     if (activity.organizer.name !== reviewerName) {
       // 如果不是组织者，检查是否是管理员
       const user = await User.findOne({ name: reviewerName });
-      if (!user || user.role !== 'admin') {
+      if (
+        !user ||
+        (user.role !== 'admin' && user.role !== 'super_admin')
+      ) {
         return res.status(403).json({ error: '只有活动组织者可以审核报名' });
       }
     }

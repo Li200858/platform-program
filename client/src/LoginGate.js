@@ -37,7 +37,6 @@ export default function LoginGate({ onLoginSuccess }) {
   const [logClass, setLogClass] = useState('');
   const [logPin, setLogPin] = useState('');
   const [logUserID, setLogUserID] = useState('');
-  const [logSuperPassword, setLogSuperPassword] = useState('');
 
   const applyServerUser = (u, msg) => {
     setSessionFromServerUser(u);
@@ -82,10 +81,6 @@ export default function LoginGate({ onLoginSuccess }) {
     setMessage('');
     const n = logName.trim();
     const c = logClass.trim();
-    const superPwd =
-      n === '管理员' || (n === '李昌轩' && c === 'NEE4')
-        ? logSuperPassword
-        : undefined;
     try {
       const base =
         loginMode === 'pin'
@@ -101,13 +96,9 @@ export default function LoginGate({ onLoginSuccess }) {
               name: n,
               class: c,
             };
-      const u = await api.user.login({
-        ...base,
-        ...(superPwd ? { password: superPwd } : {}),
-      });
+      const u = await api.user.login(base);
       applyServerUser(u, '登录成功');
       setLogPin('');
-      setLogSuperPassword('');
     } catch (e) {
       if (e.requirePinLogin) setLoginMode('pin');
       setMessage(e.message || '登录失败');
@@ -174,7 +165,7 @@ export default function LoginGate({ onLoginSuccess }) {
         </div>
 
         <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.55, margin: '0 0 18px' }}>
-          8 位大写用户 ID，可选 4–6 位 PIN。已设 PIN 的账号须用 PIN 登录。超级管理员请输入环境变量中的密码。
+          8 位大写用户 ID，可选 4–6 位 PIN。已设 PIN 的账号须用 PIN 登录。超级管理员在注册时使用姓名「李昌轩」、班级「NEE4」即可，无需额外密码。
         </p>
 
         {activeTab === 'register' && (
@@ -198,6 +189,9 @@ export default function LoginGate({ onLoginSuccess }) {
               value={regPin}
               onChange={(e) => setRegPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
             />
+            <p style={{ fontSize: '12px', color: '#5c6bc0', margin: 0 }}>
+              超级管理员：姓名「李昌轩」+ 班级「NEE4」（须完全一致，含大小写）。
+            </p>
             <button
               type="button"
               onClick={handleRegister}
@@ -280,16 +274,6 @@ export default function LoginGate({ onLoginSuccess }) {
                 placeholder="用户 ID"
                 value={logUserID}
                 onChange={(e) => setLogUserID(e.target.value.trim())}
-              />
-            )}
-            {(logName.trim() === '管理员' ||
-              (logName.trim() === '李昌轩' && logClass.trim() === 'NEE4')) && (
-              <input
-                style={inputStyle}
-                type="password"
-                placeholder="超级管理员密码"
-                value={logSuperPassword}
-                onChange={(e) => setLogSuperPassword(e.target.value)}
               />
             )}
             <button

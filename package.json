@@ -8,7 +8,8 @@
     "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
     "build": "cd client && npm run build",
     "install-all": "npm install && cd client && npm install && cd ../server && npm install",
-    "setup": "npm run install-all"
+    "setup": "npm run install-all",
+    "db:clear-users": "node server/scripts/clear-all-users.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
