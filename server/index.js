@@ -8,7 +8,6 @@ const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const FileBackup = require('./backup');
 
 // 数据模型
