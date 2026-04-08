@@ -101,7 +101,7 @@ export const UserIDProvider = ({ children }) => {
     return userID;
   };
 
-  /** 注册/登录成功后写入本地会话（与活动报名站一致：8 位 ID + profile） */
+  /** 注册/登录成功后写入本地会话（profile 含 userID，与 LoginGate / App 判定一致） */
   const setSessionFromServerUser = (userObj) => {
     if (!userObj || !userObj.userID) return;
     try {
@@ -113,6 +113,11 @@ export const UserIDProvider = ({ children }) => {
       };
       localStorage.setItem('user_profile', JSON.stringify(profile));
       localStorage.setItem('name_edited', 'true');
+      if (userObj.hasPin != null) {
+        localStorage.setItem('user_has_pin', userObj.hasPin ? '1' : '0');
+      } else {
+        localStorage.removeItem('user_has_pin');
+      }
       setUserID(userObj.userID);
       window.dispatchEvent(
         new StorageEvent('storage', {
@@ -127,26 +132,6 @@ export const UserIDProvider = ({ children }) => {
   };
 
   // 重置用户ID
-  /** 使用服务端注册/登录返回的用户对象写入本地会话（与活动报名站 ID+P 逻辑一致） */
-  const setSessionFromServerUser = (userObj) => {
-    if (!userObj || !userObj.userID) {
-      throw new Error('无效的用户数据');
-    }
-    localStorage.setItem('user_unique_id', userObj.userID);
-    localStorage.setItem(
-      'user_profile',
-      JSON.stringify({
-        name: userObj.name || '',
-        class: userObj.class || '',
-      })
-    );
-    localStorage.setItem('name_edited', 'true');
-    if (userObj.hasPin != null) {
-      localStorage.setItem('user_has_pin', userObj.hasPin ? '1' : '0');
-    }
-    setUserID(userObj.userID);
-  };
-
   const resetUserID = () => {
     try {
       // 清除所有用户相关数据
