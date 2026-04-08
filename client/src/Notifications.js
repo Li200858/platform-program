@@ -66,6 +66,7 @@ export default function Notifications({ userInfo, onBack }) {
       case 'comment': return '[评论]';
       case 'follow': return '[关注]';
       case 'mention': return '@';
+      case 'favorite': return '★';
       default: return '[通知]';
     }
   };
@@ -76,6 +77,7 @@ export default function Notifications({ userInfo, onBack }) {
       case 'comment': return '#3498db';
       case 'follow': return '#27ae60';
       case 'mention': return '#f39c12';
+      case 'favorite': return '#f39c12';
       default: return '#95a5a6';
     }
   };

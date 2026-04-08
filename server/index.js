@@ -401,6 +401,39 @@ app.get('/api/art', async (req, res) => {
   }
 });
 
+/** 写入通知并尝试 WebSocket 推送（姓名与客户端 register 一致） */
+async function notifyUser({
+  recipient,
+  sender,
+  type,
+  content,
+  relatedId,
+  relatedType,
+}) {
+  if (!recipient || !sender || recipient === sender) return null;
+  try {
+    const notification = await Notification.create({
+      recipient,
+      sender,
+      type,
+      content,
+      relatedId: relatedId != null ? String(relatedId) : undefined,
+      relatedType,
+    });
+    if (global.sendRealtimeNotification) {
+      global.sendRealtimeNotification(recipient, {
+        ...notification.toObject(),
+        message: content,
+        timestamp: new Date(),
+      });
+    }
+    return notification;
+  } catch (e) {
+    console.error('notifyUser 失败:', e);
+    return null;
+  }
+}
+
 // 点赞功能
 app.post('/api/art/:id/like', async (req, res) => {
   const { id } = req.params;
@@ -412,8 +445,9 @@ app.post('/api/art/:id/like', async (req, res) => {
     
     if (!art.likedUsers) art.likedUsers = [];
     const idx = art.likedUsers.indexOf(userId);
+    const wasLiked = idx !== -1;
     
-    if (idx !== -1) {
+    if (wasLiked) {
       art.likedUsers.splice(idx, 1);
       art.likes = Math.max((art.likes || 1) - 1, 0);
     } else {
@@ -422,6 +456,23 @@ app.post('/api/art/:id/like', async (req, res) => {
     }
     
     await art.save();
+
+    if (
+      !wasLiked &&
+      art.authorName &&
+      userId &&
+      userId !== art.authorName
+    ) {
+      await notifyUser({
+        recipient: art.authorName,
+        sender: userId,
+        type: 'like',
+        content: `${userId} 点赞了您的作品「${art.title || '无标题'}」`,
+        relatedId: art._id,
+        relatedType: 'art',
+      });
+    }
+
     res.json(art);
   } catch (error) {
     console.error('点赞失败:', error);
@@ -440,14 +491,32 @@ app.post('/api/art/:id/favorite', async (req, res) => {
     
     if (!art.favorites) art.favorites = [];
     const idx = art.favorites.indexOf(userId);
+    const wasFavorited = idx !== -1;
     
-    if (idx !== -1) {
+    if (wasFavorited) {
       art.favorites.splice(idx, 1);
     } else {
       art.favorites.push(userId);
     }
     
     await art.save();
+
+    if (
+      !wasFavorited &&
+      art.authorName &&
+      userId &&
+      userId !== art.authorName
+    ) {
+      await notifyUser({
+        recipient: art.authorName,
+        sender: userId,
+        type: 'favorite',
+        content: `${userId} 收藏了您的作品「${art.title || '无标题'}」`,
+        relatedId: art._id,
+        relatedType: 'art',
+      });
+    }
+
     res.json(art);
   } catch (error) {
     console.error('收藏失败:', error);
@@ -478,6 +547,19 @@ app.post('/api/art/:id/comment', async (req, res) => {
     
     art.comments.push(comment);
     await art.save();
+
+    if (art.authorName && author !== art.authorName) {
+      const preview =
+        content.length > 100 ? `${content.slice(0, 100)}…` : content;
+      await notifyUser({
+        recipient: art.authorName,
+        sender: author,
+        type: 'comment',
+        content: `${author} 评论了您的作品「${art.title || '无标题'}」：${preview}`,
+        relatedId: art._id,
+        relatedType: 'art',
+      });
+    }
     
     res.json(art);
   } catch (error) {
@@ -556,28 +638,14 @@ app.post('/api/art/:id/collaborate', async (req, res) => {
 
     await art.save();
 
-    // 创建通知并实时推送
-    const notification = await Notification.create({
+    await notifyUser({
       recipient: username,
       sender: invitedBy,
       type: 'mention',
       content: `${invitedBy} 邀请您参与作品 "${art.title}" 的创作`,
       relatedId: art._id,
-      relatedType: 'art'
+      relatedType: 'art',
     });
-
-    // 🔔 实时推送通知（如果用户在线，立即收到）
-    if (global.sendRealtimeNotification) {
-      const sent = global.sendRealtimeNotification(username, {
-        ...notification.toObject(),
-        message: `${invitedBy} 邀请您参与作品 "${art.title}" 的创作`,
-        timestamp: new Date()
-      });
-      
-      if (sent) {
-        console.log(`✅ 实时通知已推送给在线用户: ${username}`);
-      }
-    }
 
     res.json({ message: '邀请已发送', art });
   } catch (error) {
@@ -1954,23 +2022,29 @@ console.log('✅ 分块上传API已启用 (支持5GB超大文件，断点续传)
 // 创建HTTP服务器
 const server = http.createServer(app);
 
+const socketIoCorsOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://platform-program-frontend.onrender.com',
+  'https://platform-program.onrender.com',
+  'https://platform-mobile.onrender.com',
+  'https://platform-mobile-frontend.onrender.com',
+  'https://hwartplatform.org',
+  'https://www.hwartplatform.org',
+  'https://mobile.hwartplatform.org',
+  'https://ipad.hwartplatform.org',
+  ...(process.env.SOCKET_IO_CORS_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
+];
+
 // 创建Socket.IO服务器
 const io = socketIO(server, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://platform-program-frontend.onrender.com',
-      'https://platform-program.onrender.com',
-      'https://platform-mobile.onrender.com',
-      'https://platform-mobile-frontend.onrender.com',
-      'https://hwartplatform.org',
-      'https://www.hwartplatform.org',
-      'https://mobile.hwartplatform.org',
-      'https://ipad.hwartplatform.org'
-    ],
-    credentials: true
-  }
+    origin: socketIoCorsOrigins,
+    credentials: true,
+  },
 });
 
 // 存储在线用户的socket连接
@@ -2092,6 +2166,13 @@ app.post('/api/notifications', async (req, res) => {
     });
     
     await notification.save();
+    if (global.sendRealtimeNotification && recipient) {
+      global.sendRealtimeNotification(recipient, {
+        ...notification.toObject(),
+        message: content,
+        timestamp: new Date(),
+      });
+    }
     res.json(notification);
   } catch (error) {
     console.error('创建通知失败:', error);

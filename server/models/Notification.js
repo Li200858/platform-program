@@ -6,7 +6,7 @@ const NotificationSchema = new mongoose.Schema({
   type: { 
     type: String, 
     required: true,
-    enum: ['like', 'comment', 'follow', 'mention']
+    enum: ['like', 'comment', 'follow', 'mention', 'favorite']
   },
   content: { type: String, required: true }, // 通知内容
   relatedId: { type: String }, // 相关内容的ID（如作品ID、活动ID等）
