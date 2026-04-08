@@ -3,6 +3,8 @@ const http = require('http');
 const socketIO = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
+mongoose.set('bufferCommands', false);
+const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -17,6 +19,12 @@ const Maintenance = require('./models/Maintenance');
 const Notification = require('./models/Notification');
 const Portfolio = require('./models/Portfolio');
 const Resource = require('./models/Resource');
+const Club = require('./models/Club');
+const ClubApplication = require('./models/ClubApplication');
+const ClubMember = require('./models/ClubMember');
+const ActivityApplication = require('./models/ActivityApplication');
+const ActivityRegistration = require('./models/ActivityRegistration');
+const ActivityStage = require('./models/ActivityStage');
 
 // 文件删除工具函数
 const deleteFile = (filePath) => {
@@ -304,10 +312,7 @@ const upload = multer({
   }
 });
 
-// 连接MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-program')
-  .then(() => console.log('MongoDB连接成功'))
-  .catch(err => console.error('MongoDB连接失败:', err));
+// MongoDB 在 server.listen 之前通过 connectMongo() 连接，见文件末尾
 
 // 文件上传API（增强版）
 app.post('/api/upload', upload.array('files', 10), async (req, res) => {
@@ -346,6 +351,15 @@ app.post('/api/upload', upload.array('files', 10), async (req, res) => {
   }
 });
 
+// 服务器时间API（用于同步客户端时间）
+app.get('/api/time', (req, res) => {
+  res.json({
+    serverTime: new Date().toISOString(),
+    timestamp: Date.now(),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  });
+});
+
 // 艺术作品API
 app.post('/api/art', async (req, res) => {
   const { tab, title, content, media, authorName, authorClass, allowDownload } = req.body;
@@ -379,16 +393,30 @@ app.post('/api/art', async (req, res) => {
 app.get('/api/art', async (req, res) => {
   const { tab, sort } = req.query;
   const filter = tab ? { tab } : {};
-  let query = Art.find(filter);
-  
-  if (sort === 'hot') {
-    query = query.sort({ likes: -1, createdAt: -1 });
-  } else {
-    query = query.sort({ createdAt: -1 });
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: '数据库尚未连接，请几秒后重试（若持续出现请检查 MONGODB_URI 与 Atlas 网络访问）',
+      code: 'DB_UNAVAILABLE',
+    });
   }
-  
-  const posts = await query;
-  res.json(posts);
+  try {
+    let query = Art.find(filter).maxTimeMS(20000);
+
+    if (sort === 'hot') {
+      query = query.sort({ likes: -1, createdAt: -1 });
+    } else {
+      query = query.sort({ createdAt: -1 });
+    }
+
+    const posts = await query.lean();
+    res.json(posts);
+  } catch (error) {
+    console.error('获取作品列表失败:', error);
+    if (error.name === 'MongooseError' && /timeout/i.test(String(error.message))) {
+      return res.status(504).json({ error: '数据库查询超时，请稍后重试' });
+    }
+    res.status(500).json({ error: '获取作品列表失败' });
+  }
 });
 
 // 点赞功能
@@ -1289,7 +1317,173 @@ app.post('/api/admin/remove-admin', async (req, res) => {
   }
 });
 
-// 用户ID同步API
+function hashPin(userID, pin) {
+  return crypto.createHash('sha256').update(userID + ':' + pin).digest('hex');
+}
+
+async function allocateShortUserID() {
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+    const exists = await User.exists({ userID: uid });
+    if (!exists) return uid;
+  }
+  throw new Error('无法生成唯一用户ID');
+}
+
+// 与活动报名网站一致：服务端分配 8 位 ID、可选 PIN、PIN 登录与 ID 登录
+app.post('/api/user/register', async (req, res) => {
+  try {
+    const { name, class: userClass, pin } = req.body;
+    const n = (name || '').trim();
+    const c = (userClass || '').trim();
+    if (!n || !c) {
+      return res.status(400).json({ error: '请填写姓名和班级' });
+    }
+
+    const existing = await User.findOne({ name: n });
+    if (existing) return res.status(400).json({ error: '该姓名已被注册' });
+
+    const userID = await allocateShortUserID();
+    const isSuper =
+      n === '管理员' || (n === '李昌轩' && c === 'NEE4');
+    const role = isSuper ? 'super_admin' : 'user';
+    const pinHash =
+      pin && /^\d{4,6}$/.test(String(pin)) ? hashPin(userID, String(pin)) : null;
+
+    const user = await User.create({
+      userID,
+      name: n,
+      class: c,
+      role,
+      pinHash,
+      isAdmin: isSuper,
+    });
+
+    const userObj = user.toObject();
+    userObj.id = user._id.toString();
+    userObj.hasPin = !!pinHash;
+    delete userObj.pinHash;
+    res.json(userObj);
+  } catch (e) {
+    console.error('注册失败:', e);
+    res.status(500).json({ error: e.message || '注册失败' });
+  }
+});
+
+app.post('/api/user/login', async (req, res) => {
+  try {
+    const { userID, name, class: userClass, password, pin, loginMode } = req.body;
+    const n = (name || '').trim();
+    const c = (userClass || '').trim();
+
+    let user = null;
+    if (loginMode === 'pin') {
+      const pinTrimmed = pin != null ? String(pin).trim() : '';
+      if (!n || !c || !pinTrimmed || !/^\d{4,6}$/.test(pinTrimmed)) {
+        return res.status(401).json({ error: '请填写姓名、班级和 4-6 位 PIN' });
+      }
+      user = await User.findOne({ name: n, class: c });
+      if (!user) {
+        return res.status(401).json({ error: '未找到该用户，请检查姓名和班级' });
+      }
+      if (!user.pinHash) {
+        return res.status(401).json({ error: '该账号未设置 PIN，请使用 ID 登录' });
+      }
+      if (hashPin(user.userID, pinTrimmed) !== user.pinHash) {
+        return res.status(401).json({ error: 'PIN 错误' });
+      }
+    } else {
+      const uid = (userID || '').trim();
+      if (!uid || !n || !c) {
+        return res.status(401).json({ error: '请填写姓名、班级和 ID' });
+      }
+      user = await User.findOne({ userID: uid });
+      if (!user || user.name !== n || user.class !== c) {
+        return res.status(401).json({ error: '信息不匹配' });
+      }
+      if (user.pinHash) {
+        return res.status(401).json({
+          error: '您设置了 PIN，请用 PIN 登录',
+          requirePinLogin: true,
+        });
+      }
+    }
+
+    if (user.role === 'super_admin') {
+      const expectedPassword = process.env.SUPER_ADMIN_PASSWORD;
+      if (!expectedPassword) {
+        return res.status(500).json({
+          error:
+            '超级管理员密码未配置，请联系管理员设置 SUPER_ADMIN_PASSWORD 环境变量',
+        });
+      }
+      if (!password) {
+        return res
+          .status(401)
+          .json({ error: '超级管理员需要输入密码', requirePassword: true });
+      }
+      if (password !== expectedPassword) {
+        return res.status(401).json({ error: '密码错误' });
+      }
+    }
+
+    const prevLoginAt = user.lastLoginAt;
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    const userObj = user.toObject();
+    userObj.id = user._id.toString();
+    userObj.hasPin = !!(user.pinHash != null && user.pinHash !== '');
+    delete userObj.pinHash;
+    try {
+      userObj.lastLoginAt =
+        prevLoginAt && typeof prevLoginAt.toISOString === 'function'
+          ? prevLoginAt.toISOString()
+          : null;
+    } catch (_) {
+      userObj.lastLoginAt = null;
+    }
+    res.json(userObj);
+  } catch (e) {
+    console.error('登录失败:', e);
+    res.status(500).json({ error: e.message || '登录失败' });
+  }
+});
+
+app.put('/api/user/set-pin', async (req, res) => {
+  try {
+    const { userID, operatorID, pin } = req.body;
+    if (!userID || operatorID !== userID) {
+      return res.status(403).json({ error: '只能修改自己的 PIN' });
+    }
+    const user = await User.findOne({ userID });
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+    if (!pin) {
+      user.pinHash = null;
+      await user.save();
+      const obj = user.toObject();
+      obj.id = user._id.toString();
+      obj.hasPin = false;
+      delete obj.pinHash;
+      return res.json(obj);
+    }
+    if (!/^\d{4,6}$/.test(String(pin))) {
+      return res.status(400).json({ error: 'PIN 须为 4-6 位数字' });
+    }
+    user.pinHash = hashPin(userID, String(pin));
+    await user.save();
+    const obj = user.toObject();
+    obj.id = user._id.toString();
+    obj.hasPin = true;
+    delete obj.pinHash;
+    res.json(obj);
+  } catch (e) {
+    console.error('设置 PIN 失败:', e);
+    res.status(500).json({ error: e.message || '设置 PIN 失败' });
+  }
+});
+
+// 用户ID同步API（兼容旧版客户端本地长数字 ID）
 app.post('/api/user/sync', async (req, res) => {
   const { userID, name, class: userClass, avatar } = req.body;
   
@@ -1415,15 +1609,25 @@ app.get('/api/user/:userID', async (req, res) => {
   }
 });
 
-// 健康检查
+// 健康检查（含 Mongo 连接状态，便于 Render / 运维排查）
 app.get('/health', (req, res) => {
-  console.log('健康检查请求');
-  res.status(200).json({ 
-    status: 'OK', 
+  const ready = mongoose.connection.readyState;
+  const stateNames = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+  };
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     port: PORT,
-    nodeEnv: process.env.NODE_ENV
+    nodeEnv: process.env.NODE_ENV,
+    mongo: {
+      readyState: ready,
+      state: stateNames[ready] || String(ready),
+    },
   });
 });
 
@@ -1533,8 +1737,15 @@ async function initializeAdmin() {
 // 维护模式相关API
 // 获取维护模式状态
 app.get('/api/maintenance/status', async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: '数据库尚未连接，请稍后重试',
+      code: 'DB_UNAVAILABLE',
+      isEnabled: false,
+    });
+  }
   try {
-    let maintenance = await Maintenance.findOne();
+    let maintenance = await Maintenance.findOne().maxTimeMS(15000);
     if (!maintenance) {
       // 如果没有维护记录，创建一个默认的
       maintenance = await Maintenance.create({
@@ -2019,37 +2230,58 @@ global.sendRealtimeNotification = sendRealtimeNotification;
 console.log('✅ WebSocket实时通知系统已启用');
 
 // ==================== 启动服务器 ====================
+// 先监听 HTTP，再在后台连接 MongoDB。避免 Atlas/网络慢时整站长时间无响应（浏览器一直转圈）。
+// bufferCommands 已关闭，未连接时查库会失败而不会无限排队；/api/art 等对未就绪返回 503。
 
-server.listen(PORT, async () => {
-  console.log('艺术平台服务器运行在端口', PORT);
-  console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`MongoDB连接成功`);
-  console.log(`健康检查: http://localhost:${PORT}/health`);
-  console.log(`根路径: http://localhost:${PORT}/`);
-  console.log(`WebSocket: ws://localhost:${PORT}`);
-  
-  // 初始化管理员
-  await initializeAdmin();
-  
-  // 清理孤立文件（启动时执行一次）
-  console.log('启动时清理孤立文件...');
-  await cleanupOrphanedFiles();
-  
-  // 初始化文件备份系统（已禁用自动恢复，防止覆盖新上传的文件）
+async function connectMongoAndStartupTasks() {
+  const uri =
+    process.env.MONGODB_URI || 'mongodb://localhost:27017/platform-program';
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('MongoDB连接成功');
+  } catch (err) {
+    console.error('MongoDB连接失败（服务仍会运行，接口将返回数据库不可用）:', err);
+    return;
+  }
+
+  try {
+    await initializeAdmin();
+  } catch (e) {
+    console.error('初始化管理员失败:', e);
+  }
+
+  try {
+    console.log('启动时清理孤立文件...');
+    await cleanupOrphanedFiles();
+  } catch (e) {
+    console.error('启动清理孤立文件失败:', e);
+  }
+
   const backup = new FileBackup();
   try {
-    // ⚠️ 已禁用自动恢复备份，防止覆盖新文件
-    // 如需手动恢复，请使用管理员面板
-    
-    // 清理旧备份（保留最近7天）
     backup.cleanupOldBackups();
-    
-    // 创建新的备份
     await backup.createBackup();
     console.log('✅ 文件备份系统初始化完成（自动恢复已禁用）');
   } catch (error) {
-    console.log('⚠️ 文件备份系统初始化失败，但不影响服务运行:', error.message);
+    console.log(
+      '⚠️ 文件备份系统初始化失败，但不影响服务运行:',
+      error.message
+    );
   }
+}
+
+server.listen(PORT, () => {
+  console.log('艺术平台服务器运行在端口', PORT);
+  console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`健康检查: http://localhost:${PORT}/health`);
+  console.log(`根路径: http://localhost:${PORT}/`);
+  console.log(`WebSocket: ws://localhost:${PORT}`);
+
+  connectMongoAndStartupTasks();
 });
 
 // ==================== 用户互动功能 API ====================
@@ -2704,3 +2936,13 @@ app.get('/api/debug/files', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// 引入新路由模块（这些模块导出的是router）
+const clubRoutes = require('./routes/clubRoutes');
+const activityRoutes = require('./routes/activityRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+// 使用新路由（router会自动处理路径）
+app.use(clubRoutes);
+app.use(activityRoutes);
+app.use(adminRoutes);

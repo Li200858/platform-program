@@ -117,10 +117,21 @@ export const api = {
   activity: {
     getAll: () => api.request('/api/activities'),
     
-    create: (data) => api.request('/api/activities', {
+    getById: (id) => api.request(`/api/activities/${id}`),
+    
+    create: (data) => api.request('/api/activities/create', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+    register: (data) => api.request('/api/activities/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    getUserApplications: (userID) => api.request(`/api/activities/my-applications?userID=${encodeURIComponent(userID)}`),
+    
+    getUserRegistrations: (userID) => api.request(`/api/activities/my-registrations?userID=${encodeURIComponent(userID)}`),
     
     like: (id, userId) => api.request(`/api/activities/${id}/like`, {
       method: 'POST',
@@ -177,12 +188,14 @@ export const api = {
   search: (query) => api.request(`/api/search?q=${encodeURIComponent(query)}`),
 
   // 文件上传API
-  upload: (formData) => {
-    const url = `${API_BASE_URL}/api/upload`;
-    return fetch(url, {
-      method: 'POST',
-      body: formData,
-    }).then(response => response.json());
+  upload: {
+    file: (formData) => {
+      const url = `${API_BASE_URL}/api/upload`;
+      return fetch(url, {
+        method: 'POST',
+        body: formData,
+      }).then(response => response.json());
+    },
   },
 
   // 用户相关API
@@ -191,7 +204,49 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-    
+
+    /** 与活动报名站一致：服务端分配 8 位 ID，可选 PIN */
+    register: async (body) => {
+      const url = `${API_BASE_URL}/api/user/register`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const err = new Error(data.error || `HTTP ${r.status}`);
+        err.status = r.status;
+        throw err;
+      }
+      return data;
+    },
+
+    /** PIN 登录或 ID+姓名+班级登录；超级管理员可能返回 requirePassword */
+    login: async (body) => {
+      const url = `${API_BASE_URL}/api/user/login`;
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const err = new Error(data.error || `HTTP ${r.status}`);
+        err.status = r.status;
+        err.requirePassword = data.requirePassword;
+        err.requirePinLogin = data.requirePinLogin;
+        throw err;
+      }
+      return data;
+    },
+
+    setPin: (data) =>
+      api.request('/api/user/set-pin', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
     getByID: (userID) => api.request(`/api/user/${userID}`),
     
     checkName: (data) => api.request('/api/user/check-name', {
@@ -229,6 +284,28 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    
+    // 审核相关API
+    getClubApplications: () => api.request('/api/admin/club-applications'),
+    reviewClubApplication: (id, action, reason) => api.request(`/api/admin/club-applications/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+    
+    getActivityApplications: () => api.request('/api/admin/activity-applications'),
+    reviewActivityApplication: (id, action, reason) => api.request(`/api/admin/activity-applications/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+    
+    getActivityRegistrations: () => api.request('/api/admin/activity-registrations'),
+    reviewActivityRegistration: (id, action, reason) => api.request(`/api/admin/activity-registrations/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ action, reason }),
+    }),
+    
+    // 在线文档导出
+    exportClubDocument: () => api.request('/api/admin/export-club-document'),
   },
 
   // 维护模式相关API
@@ -321,6 +398,30 @@ export const api = {
       return api.request(`/api/search?${params.toString()}`);
     },
     users: (query) => api.request(`/api/users/search?q=${encodeURIComponent(query)}`),
+  },
+
+  // 社团相关API
+  club: {
+    getAll: () => api.request('/api/clubs'),
+    
+    getById: (id) => api.request(`/api/clubs/${id}`),
+    
+    getUserClub: (userID) => api.request(`/api/clubs/user/${userID}`),
+    
+    register: (data) => api.request('/api/clubs/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    switch: (data) => api.request('/api/clubs/switch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+    
+    create: (data) => api.request('/api/clubs/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
 };
 
