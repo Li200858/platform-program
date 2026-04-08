@@ -6,11 +6,11 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const FileBackup = require('./backup');
 
 // 数据模型
 const Art = require('./models/Art');
-const Activity = require('./models/Activity');
 const Feedback = require('./models/Feedback');
 const User = require('./models/User');
 const Maintenance = require('./models/Maintenance');
@@ -86,7 +86,7 @@ const deleteFiles = (filePaths) => {
   }
 };
 
-// 清理孤立文件 - 删除不在数据库中引用的文件
+// 清理孤立文件 - 删除不在数据库中引用的文件（仅由 POST /api/admin/cleanup-files 手动触发）
 const cleanupOrphanedFiles = async () => {
   try {
     console.log('开始清理孤立文件...');
@@ -110,23 +110,6 @@ const cleanupOrphanedFiles = async () => {
     arts.forEach(art => {
       if (art.media && Array.isArray(art.media)) {
         art.media.forEach(filePath => {
-          if (filePath) {
-            const fileName = path.basename(filePath);
-            referencedFiles.add(fileName);
-          }
-        });
-      }
-    });
-    
-    // 从活动表中获取文件路径
-    const activities = await Activity.find({}, 'image media');
-    activities.forEach(activity => {
-      if (activity.image) {
-        const fileName = path.basename(activity.image);
-        referencedFiles.add(fileName);
-      }
-      if (activity.media && Array.isArray(activity.media)) {
-        activity.media.forEach(filePath => {
           if (filePath) {
             const fileName = path.basename(filePath);
             referencedFiles.add(fileName);
@@ -701,133 +684,6 @@ app.delete('/api/art/:id', async (req, res) => {
   }
 });
 
-// 活动相关API
-app.get('/api/activities', async (req, res) => {
-  try {
-    const activities = await Activity.find().sort({ createdAt: -1 });
-    res.json(activities);
-  } catch (error) {
-    console.error('获取活动失败:', error);
-    res.status(500).json({ error: '获取活动失败' });
-  }
-});
-
-app.post('/api/activities', async (req, res) => {
-  const { title, description, startDate, endDate, image, authorName, authorClass, media } = req.body;
-  
-  if (!title || !description || !startDate || !endDate || !authorName || !authorClass) {
-    return res.status(400).json({ error: '请填写所有必要信息' });
-  }
-  
-  try {
-    const activity = await Activity.create({
-      title,
-      description,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      image,
-      media: media || [],
-      author: authorName,
-      authorName,
-      authorClass,
-      createdAt: new Date()
-    });
-    
-    res.json(activity);
-  } catch (error) {
-    console.error('创建活动失败:', error);
-    res.status(500).json({ error: '创建活动失败' });
-  }
-});
-
-// 活动点赞
-app.post('/api/activities/:id/like', async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.body;
-
-  try {
-    const activity = await Activity.findById(id);
-    if (!activity) {
-      return res.status(404).json({ error: '活动不存在' });
-    }
-
-    const isLiked = activity.likedUsers.includes(userId);
-    
-    if (isLiked) {
-      activity.likedUsers = activity.likedUsers.filter(user => user !== userId);
-      activity.likes = Math.max(0, activity.likes - 1);
-    } else {
-      activity.likedUsers.push(userId);
-      activity.likes += 1;
-    }
-
-    await activity.save();
-    res.json(activity);
-  } catch (error) {
-    console.error('点赞失败:', error);
-    res.status(500).json({ error: '点赞失败' });
-  }
-});
-
-// 活动收藏
-app.post('/api/activities/:id/favorite', async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.body;
-
-  try {
-    const activity = await Activity.findById(id);
-    if (!activity) {
-      return res.status(404).json({ error: '活动不存在' });
-    }
-
-    const isFavorited = activity.favorites.includes(userId);
-    
-    if (isFavorited) {
-      activity.favorites = activity.favorites.filter(user => user !== userId);
-    } else {
-      activity.favorites.push(userId);
-    }
-
-    await activity.save();
-    res.json(activity);
-  } catch (error) {
-    console.error('收藏失败:', error);
-    res.status(500).json({ error: '收藏失败' });
-  }
-});
-
-// 活动评论
-app.post('/api/activities/:id/comment', async (req, res) => {
-  const { id } = req.params;
-  const { content, author, authorClass } = req.body;
-
-  if (!content || !author || !authorClass) {
-    return res.status(400).json({ error: '请填写评论内容和作者信息' });
-  }
-
-  try {
-    const activity = await Activity.findById(id);
-    if (!activity) {
-      return res.status(404).json({ error: '活动不存在' });
-    }
-
-    const comment = {
-      id: Date.now().toString(),
-      author,
-      authorClass,
-      content: content.trim(),
-      createdAt: new Date()
-    };
-
-    activity.comments.push(comment);
-    await activity.save();
-    res.json(activity);
-  } catch (error) {
-    console.error('评论失败:', error);
-    res.status(500).json({ error: '评论失败' });
-  }
-});
-
 // 反馈功能
 app.post('/api/feedback', async (req, res) => {
   const { content, authorName, authorClass, media } = req.body;
@@ -1123,41 +979,6 @@ app.delete('/api/feedback/:id', async (req, res) => {
   }
 });
 
-// 删除活动
-app.delete('/api/activities/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { authorName, isAdmin } = req.query;
-
-    const activity = await Activity.findById(id);
-    if (!activity) {
-      return res.status(404).json({ error: '活动不存在' });
-    }
-
-    // 检查权限：只有作者本人或管理员可以删除
-    const isAuthor = activity.authorName === authorName;
-    const isAdminUser = isAdmin === 'true';
-    
-    if (!isAuthor && !isAdminUser) {
-      return res.status(403).json({ error: '没有权限删除此活动' });
-    }
-
-    // 删除相关文件
-    if (activity.image) {
-      deleteFile(activity.image);
-    }
-    if (activity.media && Array.isArray(activity.media)) {
-      deleteFiles(activity.media);
-    }
-
-    await Activity.findByIdAndDelete(id);
-    res.json({ message: '活动删除成功' });
-  } catch (error) {
-    console.error('删除活动失败:', error);
-    res.status(500).json({ error: '删除活动失败' });
-  }
-});
-
 // 获取所有管理员用户
 app.get('/api/admin/users', async (req, res) => {
   try {
@@ -1289,6 +1110,172 @@ app.post('/api/admin/remove-admin', async (req, res) => {
   }
 });
 
+function hashPin(userID, pin) {
+  return crypto.createHash('sha256').update(userID + ':' + pin).digest('hex');
+}
+
+async function allocateShortUserID() {
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
+    const exists = await User.exists({ userID: uid });
+    if (!exists) return uid;
+  }
+  throw new Error('无法生成唯一用户ID');
+}
+
+// 与活动报名站一致：注册、登录、PIN（8 位 ID + SHA256(userID:pin)）
+app.post('/api/user/register', async (req, res) => {
+  try {
+    const { name, class: userClass, pin } = req.body;
+    const n = (name || '').trim();
+    const c = (userClass || '').trim();
+    if (!n || !c) {
+      return res.status(400).json({ error: '请填写姓名和班级' });
+    }
+
+    const existing = await User.findOne({ name: n });
+    if (existing) return res.status(400).json({ error: '该姓名已被注册' });
+
+    const userID = await allocateShortUserID();
+    const isSuper =
+      n === '管理员' || (n === '李昌轩' && c === 'NEE4');
+    const role = isSuper ? 'super_admin' : 'user';
+    const pinHash =
+      pin && /^\d{4,6}$/.test(String(pin)) ? hashPin(userID, String(pin)) : null;
+
+    const user = await User.create({
+      userID,
+      name: n,
+      class: c,
+      role,
+      pinHash,
+      isAdmin: isSuper,
+    });
+
+    const userObj = user.toObject();
+    userObj.id = user._id.toString();
+    userObj.hasPin = !!pinHash;
+    delete userObj.pinHash;
+    res.json(userObj);
+  } catch (e) {
+    console.error('注册失败:', e);
+    res.status(500).json({ error: e.message || '注册失败' });
+  }
+});
+
+app.post('/api/user/login', async (req, res) => {
+  try {
+    const { userID, name, class: userClass, password, pin, loginMode } = req.body;
+    const n = (name || '').trim();
+    const c = (userClass || '').trim();
+
+    let user = null;
+    if (loginMode === 'pin') {
+      const pinTrimmed = pin != null ? String(pin).trim() : '';
+      if (!n || !c || !pinTrimmed || !/^\d{4,6}$/.test(pinTrimmed)) {
+        return res.status(401).json({ error: '请填写姓名、班级和 4-6 位 PIN' });
+      }
+      user = await User.findOne({ name: n, class: c });
+      if (!user) {
+        return res.status(401).json({ error: '未找到该用户，请检查姓名和班级' });
+      }
+      if (!user.pinHash) {
+        return res.status(401).json({ error: '该账号未设置 PIN，请使用 ID 登录' });
+      }
+      if (hashPin(user.userID, pinTrimmed) !== user.pinHash) {
+        return res.status(401).json({ error: 'PIN 错误' });
+      }
+    } else {
+      const uid = (userID || '').trim();
+      if (!uid || !n || !c) {
+        return res.status(401).json({ error: '请填写姓名、班级和 ID' });
+      }
+      user = await User.findOne({ userID: uid });
+      if (!user || user.name !== n || user.class !== c) {
+        return res.status(401).json({ error: '信息不匹配' });
+      }
+      if (user.pinHash) {
+        return res.status(401).json({
+          error: '您设置了 PIN，请用 PIN 登录',
+          requirePinLogin: true,
+        });
+      }
+    }
+
+    if (user.role === 'super_admin') {
+      const expectedPassword = process.env.SUPER_ADMIN_PASSWORD;
+      if (!expectedPassword) {
+        return res.status(500).json({
+          error:
+            '超级管理员密码未配置，请联系管理员设置 SUPER_ADMIN_PASSWORD 环境变量',
+        });
+      }
+      if (!password) {
+        return res
+          .status(401)
+          .json({ error: '超级管理员需要输入密码', requirePassword: true });
+      }
+      if (password !== expectedPassword) {
+        return res.status(401).json({ error: '密码错误' });
+      }
+    }
+
+    const prevLoginAt = user.lastLoginAt;
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    const userObj = user.toObject();
+    userObj.id = user._id.toString();
+    userObj.hasPin = !!(user.pinHash != null && user.pinHash !== '');
+    delete userObj.pinHash;
+    try {
+      userObj.lastLoginAt =
+        prevLoginAt && typeof prevLoginAt.toISOString === 'function'
+          ? prevLoginAt.toISOString()
+          : null;
+    } catch (_) {
+      userObj.lastLoginAt = null;
+    }
+    res.json(userObj);
+  } catch (e) {
+    console.error('登录失败:', e);
+    res.status(500).json({ error: e.message || '登录失败' });
+  }
+});
+
+app.put('/api/user/set-pin', async (req, res) => {
+  try {
+    const { userID, operatorID, pin } = req.body;
+    if (!userID || operatorID !== userID) {
+      return res.status(403).json({ error: '只能修改自己的 PIN' });
+    }
+    const user = await User.findOne({ userID });
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+    if (!pin) {
+      user.pinHash = null;
+      await user.save();
+      const obj = user.toObject();
+      obj.id = user._id.toString();
+      obj.hasPin = false;
+      delete obj.pinHash;
+      return res.json(obj);
+    }
+    if (!/^\d{4,6}$/.test(String(pin))) {
+      return res.status(400).json({ error: 'PIN 须为 4-6 位数字' });
+    }
+    user.pinHash = hashPin(userID, String(pin));
+    await user.save();
+    const obj = user.toObject();
+    obj.id = user._id.toString();
+    obj.hasPin = true;
+    delete obj.pinHash;
+    res.json(obj);
+  } catch (e) {
+    console.error('设置 PIN 失败:', e);
+    res.status(500).json({ error: e.message || '设置 PIN 失败' });
+  }
+});
+
 // 用户ID同步API
 app.post('/api/user/sync', async (req, res) => {
   const { userID, name, class: userClass, avatar } = req.body;
@@ -1407,7 +1394,8 @@ app.get('/api/user/:userID', async (req, res) => {
       avatar: user.avatar,
       role: user.role,
       isAdmin: user.isAdmin,
-      userID: user.userID
+      userID: user.userID,
+      hasPin: !!(user.pinHash != null && user.pinHash !== ''),
     });
   } catch (error) {
     console.error('获取用户信息失败:', error);
@@ -1427,7 +1415,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 清理孤立文件端点（管理员专用）
+// 清理孤立文件（仅手动调用；服务启动时不再自动执行）
 app.post('/api/admin/cleanup-files', async (req, res) => {
   try {
     await cleanupOrphanedFiles();
@@ -2023,18 +2011,16 @@ console.log('✅ WebSocket实时通知系统已启用');
 server.listen(PORT, async () => {
   console.log('艺术平台服务器运行在端口', PORT);
   console.log(`环境: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`MongoDB连接成功`);
+  console.log('HTTP 已监听；MongoDB 状态请看上方 mongoose.connect 的成功/失败日志');
   console.log(`健康检查: http://localhost:${PORT}/health`);
   console.log(`根路径: http://localhost:${PORT}/`);
   console.log(`WebSocket: ws://localhost:${PORT}`);
   
   // 初始化管理员
   await initializeAdmin();
-  
-  // 清理孤立文件（启动时执行一次）
-  console.log('启动时清理孤立文件...');
-  await cleanupOrphanedFiles();
-  
+
+  // 孤立文件清理已改为仅管理员手动触发：POST /api/admin/cleanup-files（启动时不再自动删盘）
+
   // 初始化文件备份系统（已禁用自动恢复，防止覆盖新上传的文件）
   const backup = new FileBackup();
   try {
@@ -2130,7 +2116,7 @@ app.put('/api/notifications/:username/read-all', async (req, res) => {
 // ==================== 改进搜索功能 API ====================
 
 
-// 全局搜索（支持艺术作品和活动）
+// 全局搜索（艺术作品与用户；活动展示已迁移至活动报名站）
 app.get('/api/search', async (req, res) => {
   const { q, type = 'all', limit = 20 } = req.query;
   
@@ -2155,21 +2141,6 @@ app.get('/api/search', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
       results.arts = arts;
-    }
-
-    // 搜索活动
-    if (type === 'all' || type === 'activity') {
-      const activities = await Activity.find({
-        $or: [
-          { title: searchQuery },
-          { description: searchQuery },
-          { authorName: searchQuery },
-          { authorClass: searchQuery }
-        ]
-      })
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit));
-      results.activities = activities;
     }
 
     // 搜索用户

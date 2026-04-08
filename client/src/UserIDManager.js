@@ -66,7 +66,8 @@ export const UserIDProvider = ({ children }) => {
         if (userData && userData.name && userData.class) {
           const userProfile = {
             name: userData.name,
-            class: userData.class
+            class: userData.class,
+            userID: importedID,
           };
           localStorage.setItem('user_profile', JSON.stringify(userProfile));
           localStorage.setItem('name_edited', 'true'); // 标记为已编辑，避免重复填写
@@ -98,6 +99,31 @@ export const UserIDProvider = ({ children }) => {
       throw new Error('没有可导出的用户ID');
     }
     return userID;
+  };
+
+  /** 注册/登录成功后写入本地会话（与活动报名站一致：8 位 ID + profile） */
+  const setSessionFromServerUser = (userObj) => {
+    if (!userObj || !userObj.userID) return;
+    try {
+      localStorage.setItem('user_unique_id', userObj.userID);
+      const profile = {
+        name: userObj.name || '',
+        class: userObj.class || '',
+        userID: userObj.userID,
+      };
+      localStorage.setItem('user_profile', JSON.stringify(profile));
+      localStorage.setItem('name_edited', 'true');
+      setUserID(userObj.userID);
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'user_profile',
+          newValue: JSON.stringify(profile),
+          oldValue: null,
+        })
+      );
+    } catch (e) {
+      console.error('写入登录会话失败:', e);
+    }
   };
 
   // 重置用户ID
@@ -142,7 +168,8 @@ export const UserIDProvider = ({ children }) => {
     isLoading,
     importUserID,
     exportUserID,
-    resetUserID
+    resetUserID,
+    setSessionFromServerUser,
   };
 
   return (

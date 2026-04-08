@@ -4,6 +4,25 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ||
     ? 'https://platform-program.onrender.com'  // 生产环境指向后端API服务
     : 'http://localhost:5000');
 
+/** 用户注册/登录/PIN：解析 JSON 错误体（requirePassword、requirePinLogin） */
+async function userAuthJson(path, options = {}) {
+  const url = `${API_BASE_URL}${path}`;
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'include',
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.requirePassword = data.requirePassword;
+    err.requirePinLogin = data.requirePinLogin;
+    throw err;
+  }
+  return data;
+}
+
 export const api = {
   // 通用fetch函数 - 简化版本，减少重试
   async request(endpoint, options = {}) {
@@ -113,35 +132,6 @@ export const api = {
     }),
   },
 
-  // 活动相关API
-  activity: {
-    getAll: () => api.request('/api/activities'),
-    
-    create: (data) => api.request('/api/activities', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    
-    like: (id, userId) => api.request(`/api/activities/${id}/like`, {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-    }),
-    
-    favorite: (id, userId) => api.request(`/api/activities/${id}/favorite`, {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-    }),
-    
-    comment: (id, data) => api.request(`/api/activities/${id}/comment`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    
-    delete: (id, authorName, isAdmin) => api.request(`/api/activities/${id}?authorName=${encodeURIComponent(authorName)}&isAdmin=${isAdmin}`, {
-      method: 'DELETE',
-    }),
-  },
-
   // 反馈相关API
   feedback: {
     create: (data) => api.request('/api/feedback', {
@@ -191,6 +181,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+    register: (data) =>
+      userAuthJson('/api/user/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    login: (data) =>
+      userAuthJson('/api/user/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    setPin: (data) =>
+      userAuthJson('/api/user/set-pin', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
     
     getByID: (userID) => api.request(`/api/user/${userID}`),
     

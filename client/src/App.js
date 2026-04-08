@@ -32,9 +32,8 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 import Art from './Art';
-import Activity from './Activity';
 import Feedback from './Feedback';
-import UserProfile from './UserProfile';
+import LoginGate from './LoginGate';
 import MyCollection from './MyCollection';
 import MyWorks from './MyWorks';
 import AdminPanel from './AdminPanel';
@@ -46,6 +45,21 @@ import PublicPortfolio from './PublicPortfolio';
 import ResourceLibrary from './ResourceLibrary';
 import ErrorBoundary from './ErrorBoundary';
 import { UserIDProvider, useUserID } from './UserIDManager';
+
+function readUserSession() {
+  try {
+    const raw = localStorage.getItem('user_profile');
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    const name = String(p.name || '').trim();
+    const uclass = String(p.class || '').trim();
+    const uid = String(p.userID || '').trim();
+    if (!name || !uclass || !uid) return null;
+    return { name, class: uclass, userID: uid };
+  } catch {
+    return null;
+  }
+}
 import { useRealtimeNotifications } from './useRealtimeNotifications';
 import api from './api';
 import './App.css';
@@ -56,11 +70,58 @@ function MainApp() {
   const [searchResults, setSearchResults] = useState(null);
   const [showSearch, setShowSearch] = useState(false);
   const [searchType, setSearchType] = useState('all');
-  const [userInfo, setUserInfo] = useState(null);
+  const [userInfo, setUserInfo] = useState(() => readUserSession());
   const [isAdmin, setIsAdmin] = useState(false);
   const [maintenanceStatus, setMaintenanceStatus] = useState({ isEnabled: false, message: '' });
   const [notificationCount, setNotificationCount] = useState(0);
-  const { userID } = useUserID();
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinNew, setPinNew] = useState('');
+  const [pinMessage, setPinMessage] = useState('');
+  const { userID, isLoading: userIdLoading, resetUserID } = useUserID();
+
+  const isLoggedIn = Boolean(
+    userInfo &&
+      String(userInfo.name || '').trim() &&
+      String(userInfo.class || '').trim() &&
+      String(userInfo.userID || '').trim()
+  );
+
+  const handleLogout = () => {
+    localStorage.removeItem('user_profile');
+    localStorage.removeItem('name_edited');
+    try {
+      resetUserID();
+    } catch (e) {
+      console.error(e);
+    }
+    sessionStorage.clear();
+    setUserInfo(null);
+    setIsAdmin(false);
+    setSection('art');
+    setShowPinModal(false);
+    setPinNew('');
+  };
+
+  const handlePinSubmit = async () => {
+    setPinMessage('');
+    if (!userID) return;
+    if (!pinNew && !window.confirm('留空将清除 PIN，确定吗？')) return;
+    if (pinNew && !/^\d{4,6}$/.test(pinNew)) {
+      setPinMessage('新 PIN 须为 4–6 位数字');
+      return;
+    }
+    try {
+      await api.user.setPin({
+        userID,
+        operatorID: userID,
+        ...(pinNew ? { pin: pinNew } : {}),
+      });
+      setPinNew('');
+      setPinMessage('__ok__');
+    } catch (e) {
+      setPinMessage(e.message || '设置失败');
+    }
+  };
   
   //  启用WebSocket实时通知（无需轮询，服务器主动推送）
   const { notificationCount: realtimeCount, setNotificationCount: setRealtimeCount } = useRealtimeNotifications(userInfo);
@@ -83,14 +144,26 @@ function MainApp() {
         const savedUserInfo = localStorage.getItem('user_profile');
         if (savedUserInfo) {
           const parsedInfo = JSON.parse(savedUserInfo);
+          const name = String(parsedInfo.name || '').trim();
+          const uclass = String(parsedInfo.class || '').trim();
+          const uid = String(parsedInfo.userID || '').trim();
           if (isMounted) {
-            setUserInfo(prevInfo => {
-              // 只有当用户信息真正改变时才更新
-              if (!prevInfo || prevInfo.name !== parsedInfo.name || prevInfo.class !== parsedInfo.class) {
-                return parsedInfo;
-              }
-              return prevInfo;
-            });
+            if (!name || !uclass || !uid) {
+              setUserInfo(null);
+            } else {
+              const normalized = { name, class: uclass, userID: uid };
+              setUserInfo((prevInfo) => {
+                if (
+                  !prevInfo ||
+                  prevInfo.name !== normalized.name ||
+                  prevInfo.class !== normalized.class ||
+                  prevInfo.userID !== normalized.userID
+                ) {
+                  return normalized;
+                }
+                return prevInfo;
+              });
+            }
           }
         } else {
           if (isMounted) {
@@ -346,12 +419,8 @@ function MainApp() {
   try {
     if (section === 'art') {
       content = <Art userInfo={userInfo} isAdmin={isAdmin} maintenanceStatus={maintenanceStatus} />;
-    } else if (section === 'activity') {
-      content = <Activity userInfo={userInfo} isAdmin={isAdmin} onBack={() => setSection('art')} maintenanceStatus={maintenanceStatus} />;
     } else if (section === 'feedback') {
       content = <Feedback userInfo={userInfo} maintenanceStatus={maintenanceStatus} />;
-    } else if (section === 'profile') {
-      content = <UserProfile onBack={() => setSection('art')} onUserInfoUpdate={setUserInfo} />;
     } else if (section === 'sync') {
       content = <UserSync onBack={() => setSection('art')} />;
     } else if (section === 'collection') {
@@ -379,6 +448,33 @@ function MainApp() {
         <p>错误信息: {error.message}</p>
         <button onClick={() => window.location.reload()}>刷新页面</button>
       </div>
+    );
+  }
+
+  if (userIdLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#5c6bc0',
+          fontSize: '16px',
+        }}
+      >
+        加载中…
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <LoginGate
+        onLoginSuccess={(profile) => {
+          setUserInfo(profile);
+        }}
+      />
     );
   }
 
@@ -410,6 +506,54 @@ function MainApp() {
             <div className="site-title-en">HFLS International Art Platform</div>
           </div>
           <div className="header-right">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flexWrap: 'wrap',
+                justifyContent: 'flex-end',
+                marginBottom: 8,
+              }}
+            >
+              <span style={{ fontSize: '13px', color: '#37474f' }}>
+                {userInfo.name} · {userInfo.class}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPinModal(true);
+                  setPinMessage('');
+                }}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  border: '1px solid #90a4ae',
+                  borderRadius: 6,
+                  background: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                修改 PIN
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('确定退出登录？')) handleLogout();
+                }}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  border: 'none',
+                  borderRadius: 6,
+                  background: '#78909c',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                退出登录
+              </button>
+            </div>
             <div className="search-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <select
                 value={searchType}
@@ -423,7 +567,6 @@ function MainApp() {
               >
                 <option value="all">全部</option>
                 <option value="art">艺术作品</option>
-                <option value="activity">活动设计</option>
                 <option value="user">用户</option>
               </select>
               <input
@@ -442,9 +585,6 @@ function MainApp() {
           <button className={section === 'art' ? 'active' : ''} onClick={() => setSection('art')}>
             艺术作品
           </button>
-          <button className={section === 'activity' ? 'active' : ''} onClick={() => setSection('activity')}>
-            活动展示
-          </button>
           <button className={section === 'public-portfolio' ? 'active' : ''} onClick={() => setSection('public-portfolio')}>
             公开作品集
           </button>
@@ -462,9 +602,6 @@ function MainApp() {
           </button>
           <button className={section === 'feedback' ? 'active' : ''} onClick={() => setSection('feedback')}>
             意见反馈
-          </button>
-          <button className={section === 'profile' ? 'active' : ''} onClick={() => setSection('profile')}>
-            个人信息
           </button>
           <button className={section === 'sync' ? 'active' : ''} onClick={() => setSection('sync')}>
             数据同步
@@ -514,7 +651,7 @@ function MainApp() {
               关闭
             </button>
           </div>
-          {(searchResults.arts && searchResults.arts.length > 0) || (searchResults.activities && searchResults.activities.length > 0) || (searchResults.users && searchResults.users.length > 0) ? (
+          {(searchResults.arts && searchResults.arts.length > 0) || (searchResults.users && searchResults.users.length > 0) ? (
             <div>
               {searchResults.arts && searchResults.arts.length > 0 && (
             <div style={{ marginBottom: 30 }}>
@@ -555,62 +692,6 @@ function MainApp() {
                     </div>
                     <div className="search-result-meta">
                       <span>作者: {item.authorName || item.author}</span>
-                      <span>班级: {item.authorClass}</span>
-                      <span>发布时间: {new Date(item.createdAt).toLocaleString()}</span>
-                      {item.tab && <span>分类: {item.tab}</span>}
-                    </div>
-                    <div style={{ 
-                      marginTop: '8px', 
-                      fontSize: '12px', 
-                      color: '#3498db',
-                      fontWeight: 'bold'
-                    }}>
-                      点击查看完整内容 →
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-              )}
-              {searchResults.activities && searchResults.activities.length > 0 && (
-            <div style={{ marginBottom: 30 }}>
-              <h4>活动展示 ({searchResults.activities.length}条结果)</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {searchResults.activities.map(item => (
-                  <div 
-                    key={item._id} 
-                    className="search-result-item"
-                    onClick={() => {
-                      // 关闭搜索面板
-                      setShowSearch(false);
-                      setSearchQuery('');
-                      setSearchResults(null);
-                      // 切换到活动页面
-                      setSection('activity');
-                      // 滚动到页面顶部
-                      window.scrollTo(0, 0);
-                      // 高亮显示搜索结果
-                      setTimeout(() => {
-                        const element = document.querySelector(`[data-activity-id="${item._id}"]`);
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          element.style.background = '#fff3cd';
-                          element.style.border = '2px solid #ffc107';
-                          setTimeout(() => {
-                            element.style.background = '';
-                            element.style.border = '';
-                          }, 3000);
-                        }
-                      }, 100);
-                    }}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#2c3e50' }}>{item.title}</div>
-                    <div style={{ color: '#7f8c8d', fontSize: '14px', marginBottom: '8px' }}>
-                      {(item.description || item.content || '').substring(0, 100)}...
-                    </div>
-                    <div className="search-result-meta">
-                      <span>组织者: {item.authorName || item.author}</span>
                       <span>班级: {item.authorClass}</span>
                       <span>发布时间: {new Date(item.createdAt).toLocaleString()}</span>
                       {item.tab && <span>分类: {item.tab}</span>}
@@ -672,6 +753,88 @@ function MainApp() {
       <footer className="main-footer">
         &copy; {new Date().getFullYear()} HFLS International Art Platform - 让艺术点亮校园
       </footer>
+
+      {showPinModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setShowPinModal(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              maxWidth: 380,
+              width: '100%',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px', color: '#263238' }}>修改 PIN</h3>
+            <p style={{ fontSize: '13px', color: '#666', margin: '0 0 12px' }}>
+              输入 4–6 位新 PIN；留空提交可清除 PIN（需确认）。
+            </p>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="新 PIN（可选）"
+              value={pinNew}
+              onChange={(e) => setPinNew(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: 8,
+                border: '1px solid #ccc',
+                marginBottom: 12,
+                boxSizing: 'border-box',
+              }}
+            />
+            {pinMessage && (
+              <div
+                style={{
+                  fontSize: '14px',
+                  marginBottom: 12,
+                  color: pinMessage === '__ok__' ? '#2e7d32' : '#c62828',
+                }}
+              >
+                {pinMessage === '__ok__' ? '已保存 PIN 设置' : pinMessage}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowPinModal(false)}
+                style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #bbb', background: '#fff' }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handlePinSubmit}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#3949ab',
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
