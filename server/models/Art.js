@@ -23,7 +23,10 @@ const ArtSchema = new mongoose.Schema({
     author: { type: String, required: true },
     authorClass: { type: String, required: true },
     content: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    replyToCommentId: { type: String },
+    replyToAuthor: { type: String },
+    replyToAuthorClass: { type: String }
   }],
   favorites: [String],
   createdAt: { type: Date, default: Date.now },

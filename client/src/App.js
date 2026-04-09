@@ -136,12 +136,19 @@ function MainApp() {
   
   //  启用WebSocket实时通知（无需轮询，服务器主动推送）
   const { notificationCount: realtimeCount, setNotificationCount: setRealtimeCount } = useRealtimeNotifications(userInfo);
-  
-  // 同步实时通知数量
-  useEffect(() => {
-    if (realtimeCount > 0) {
-      setNotificationCount(realtimeCount);
+
+  const openNotifications = useCallback(() => {
+    setNotificationCount(0);
+    setRealtimeCount(0);
+    if (userInfo?.name) {
+      api.notifications.markAllAsRead(userInfo.name).catch(() => {});
     }
+    setSection('notifications');
+  }, [userInfo?.name, setRealtimeCount]);
+
+  // 与 WebSocket 计数保持一致（含初始拉取与清零）
+  useEffect(() => {
+    setNotificationCount(realtimeCount);
   }, [realtimeCount]);
 
   // 加载用户信息 - 优化版本
@@ -244,13 +251,19 @@ function MainApp() {
     };
   }, [userInfo?.name, setRealtimeCount]);
 
-  // 暴露setSection函数给全局使用
+  // 暴露 setSection；进入通知页时立即清空角标并标记服务端已读（含从 toast 跳转）
   useEffect(() => {
-    window.setSection = setSection;
+    window.setSection = (s) => {
+      if (s === 'notifications') {
+        openNotifications();
+        return;
+      }
+      setSection(s);
+    };
     return () => {
       delete window.setSection;
     };
-  }, []);
+  }, [openNotifications]);
 
   // 移动端Safari兼容性修复
   useEffect(() => {
@@ -639,7 +652,7 @@ function MainApp() {
               管理面板
             </button>
           )}
-          <button className={section === 'notifications' ? 'active' : ''} onClick={() => setSection('notifications')} style={{ position: 'relative' }}>
+          <button className={section === 'notifications' ? 'active' : ''} onClick={openNotifications} style={{ position: 'relative' }}>
             通知
             {notificationCount > 0 && (
               <span style={{

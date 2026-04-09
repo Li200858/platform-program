@@ -528,7 +528,7 @@ app.post('/api/art/:id/favorite', async (req, res) => {
 // 评论功能
 app.post('/api/art/:id/comment', async (req, res) => {
   const { id } = req.params;
-  const { author, authorClass, content } = req.body;
+  const { author, authorClass, content, replyToCommentId: bodyReplyId } = req.body;
   
   if (!author || !authorClass || !content) {
     return res.status(400).json({ error: '请填写完整信息' });
@@ -537,26 +537,53 @@ app.post('/api/art/:id/comment', async (req, res) => {
   try {
     const art = await Art.findById(id);
     if (!art) return res.status(404).json({ error: '作品不存在' });
+
+    let replyToCommentId;
+    let replyToAuthor;
+    let replyToAuthorClass;
+    if (bodyReplyId) {
+      const parent = art.comments.find(c => c.id === String(bodyReplyId));
+      if (!parent) {
+        return res.status(400).json({ error: '回复的评论不存在' });
+      }
+      replyToCommentId = parent.id;
+      replyToAuthor = parent.author;
+      replyToAuthorClass = parent.authorClass;
+    }
     
     const comment = {
       id: Date.now().toString(),
       author,
       authorClass,
       content,
-      createdAt: new Date()
+      createdAt: new Date(),
+      ...(replyToCommentId
+        ? { replyToCommentId, replyToAuthor, replyToAuthorClass }
+        : {})
     };
     
     art.comments.push(comment);
     await art.save();
 
+    const preview =
+      content.length > 100 ? `${content.slice(0, 100)}…` : content;
+    const recipients = new Set();
     if (art.authorName && author !== art.authorName) {
-      const preview =
-        content.length > 100 ? `${content.slice(0, 100)}…` : content;
+      recipients.add(art.authorName);
+    }
+    if (replyToAuthor && replyToAuthor !== author) {
+      recipients.add(replyToAuthor);
+    }
+    for (const recipient of recipients) {
+      const isReplyTarget = replyToAuthor === recipient;
+      const text = isReplyTarget
+        ? `${author} 在「${art.title || '无标题'}」下回复了您：${preview}`
+        : `${author} 评论了您的作品「${art.title || '无标题'}」：${preview}`;
       await notifyUser({
-        recipient: art.authorName,
+        recipient,
         sender: author,
         type: 'comment',
-        content: `${author} 评论了您的作品「${art.title || '无标题'}」：${preview}`,
+        content: text,
         relatedId: art._id,
         relatedType: 'art',
       });

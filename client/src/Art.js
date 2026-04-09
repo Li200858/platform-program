@@ -36,7 +36,9 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
     return saved ? JSON.parse(saved) : [];
   });
   const [showComments, setShowComments] = useState({});
-  const [commentForm, setCommentForm] = useState({ author: '', authorClass: '', content: '' });
+  const emptyCommentDraft = () => ({ content: '', replyTo: null });
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const commentTextareaRefs = useRef({});
   const [message, setMessage] = useState('');
   const [showCollaboratorModal, setShowCollaboratorModal] = useState(false);
   const [selectedArt, setSelectedArt] = useState(null);
@@ -187,8 +189,35 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
     }
   };
 
+  const patchCommentDraft = (artId, partial) => {
+    setCommentDrafts(prev => {
+      const cur = prev[artId] || emptyCommentDraft();
+      return { ...prev, [artId]: { ...cur, ...partial } };
+    });
+  };
+
+  const startReplyToComment = (artId, comment) => {
+    if (!userInfo?.name || !userInfo?.class) {
+      setMessage('请先在个人信息页面填写姓名和班级信息');
+      return;
+    }
+    patchCommentDraft(artId, {
+      replyTo: {
+        commentId: comment.id,
+        author: comment.author,
+        authorClass: comment.authorClass
+      }
+    });
+    setShowComments(prev => ({ ...prev, [artId]: true }));
+    setTimeout(() => {
+      const el = commentTextareaRefs.current[artId];
+      if (el && typeof el.focus === 'function') el.focus();
+    }, 0);
+  };
+
   const handleComment = async (id) => {
-    if (!commentForm.content.trim()) {
+    const draft = commentDrafts[id] || emptyCommentDraft();
+    if (!draft.content.trim()) {
       setMessage('请输入评论内容');
       return;
     }
@@ -201,13 +230,14 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
     const commentData = {
       author: userInfo.name,
       authorClass: userInfo.class,
-      content: commentForm.content.trim()
+      content: draft.content.trim(),
+      ...(draft.replyTo ? { replyToCommentId: draft.replyTo.commentId } : {})
     };
 
     try {
       const data = await api.art.comment(id, commentData);
-      setList(Array.isArray(list) ? list.map(item => item._id === id ? data : item) : []);
-      setCommentForm({ author: '', authorClass: '', content: '' });
+      setList(prev => (Array.isArray(prev) ? prev.map(item => (item._id === id ? data : item)) : []));
+      setCommentDrafts(prev => ({ ...prev, [id]: emptyCommentDraft() }));
     } catch (error) {
       setMessage('评论失败：' + (error.message || '请重试'));
     }
@@ -661,10 +691,54 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
                       </div>
                     </div>
                   </div>
+                  {(commentDrafts[item._id] || emptyCommentDraft()).replyTo && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        marginBottom: 10,
+                        padding: '8px 12px',
+                        background: '#e7f1ff',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        color: '#2c3e50'
+                      }}
+                    >
+                      <span>
+                        回复{' '}
+                        <strong>{(commentDrafts[item._id] || emptyCommentDraft()).replyTo.author}</strong>
+                        {((commentDrafts[item._id] || emptyCommentDraft()).replyTo.authorClass
+                          ? `（${(commentDrafts[item._id] || emptyCommentDraft()).replyTo.authorClass}）`
+                          : '')}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => patchCommentDraft(item._id, { replyTo: null })}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#6c757d',
+                          cursor: 'pointer',
+                          fontSize: 12
+                        }}
+                      >
+                        取消
+                      </button>
+                    </div>
+                  )}
                   <textarea
-                    placeholder="写下您的评论..."
-                    value={commentForm.content}
-                    onChange={(e) => setCommentForm(prev => ({ ...prev, content: e.target.value }))}
+                    ref={el => {
+                      commentTextareaRefs.current[item._id] = el;
+                    }}
+                    placeholder={
+                      (commentDrafts[item._id] || emptyCommentDraft()).replyTo
+                        ? `回复 ${(commentDrafts[item._id] || emptyCommentDraft()).replyTo.author}…`
+                        : '写下您的评论…（点击一条评论可回复该用户）'
+                    }
+                    value={(commentDrafts[item._id] || emptyCommentDraft()).content}
+                    onChange={(e) => patchCommentDraft(item._id, { content: e.target.value })}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
@@ -735,7 +809,11 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
                             {/* 删除评论按钮 - 只有评论作者可以删除自己的评论 */}
                             {userInfo && userInfo.name && comment.author === userInfo.name && (
                               <button
-                                onClick={() => handleDeleteComment(item._id, comment.id)}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteComment(item._id, comment.id);
+                                }}
                                 style={{
                                   background: 'none',
                                   border: 'none',
@@ -758,7 +836,36 @@ export default function Art({ userInfo, isAdmin, maintenanceStatus }) {
                             )}
                           </div>
                         </div>
-                        <div style={{ fontSize: '13px', color: '#34495e', lineHeight: '1.4' }}>
+                        {comment.replyToAuthor && (
+                          <div style={{ fontSize: '12px', color: '#7f8c8d', marginBottom: 6, lineHeight: 1.4 }}>
+                            回复{' '}
+                            <strong style={{ color: '#495057' }}>{comment.replyToAuthor}</strong>
+                            {comment.replyToAuthorClass
+                              ? `（${comment.replyToAuthorClass}）`
+                              : ''}
+                          </div>
+                        )}
+                        <div
+                          role={userInfo?.name && userInfo?.class ? 'button' : undefined}
+                          tabIndex={userInfo?.name && userInfo?.class ? 0 : undefined}
+                          onClick={() => startReplyToComment(item._id, comment)}
+                          onKeyDown={(e) => {
+                            if (!userInfo?.name || !userInfo?.class) return;
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              startReplyToComment(item._id, comment);
+                            }
+                          }}
+                          style={{
+                            fontSize: '13px',
+                            color: '#34495e',
+                            lineHeight: '1.4',
+                            cursor: userInfo?.name && userInfo?.class ? 'pointer' : 'default',
+                            borderRadius: 4,
+                            padding: '2px 0'
+                          }}
+                          title={userInfo?.name && userInfo?.class ? '点击回复该评论' : undefined}
+                        >
                           {comment.content}
                         </div>
                       </div>
