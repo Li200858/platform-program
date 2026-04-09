@@ -1,7 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
+
+const apiBaseUrl =
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://platform-program.onrender.com'
+    : 'http://localhost:5000');
+
+function feedbackStatusMeta(status) {
+  switch (status) {
+    case 'received':
+      return { label: '已收到', bg: '#d4edda', color: '#155724' };
+    case 'processing':
+      return { label: '处理中', bg: '#fff3cd', color: '#856404' };
+    case 'resolved':
+      return { label: '已解决', bg: '#d1ecf1', color: '#0c5460' };
+    case 'pending':
+    default:
+      return { label: '待处理', bg: '#f8d7da', color: '#721c24' };
+  }
+}
 
 export default function Feedback({ userInfo }) {
   const [formData, setFormData] = useState({
@@ -65,6 +85,47 @@ export default function Feedback({ userInfo }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSpeed, setUploadSpeed] = useState(0);
 
+  const [myFeedbacks, setMyFeedbacks] = useState([]);
+  const [loadingMy, setLoadingMy] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState({});
+
+  const loadMyFeedbacks = useCallback(async () => {
+    if (!userInfo?.name) {
+      setMyFeedbacks([]);
+      return;
+    }
+    setLoadingMy(true);
+    try {
+      const data = await api.feedback.getMy(userInfo.name);
+      setMyFeedbacks(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('加载我的反馈失败:', e);
+      setMyFeedbacks([]);
+    } finally {
+      setLoadingMy(false);
+    }
+  }, [userInfo?.name]);
+
+  useEffect(() => {
+    loadMyFeedbacks();
+  }, [loadMyFeedbacks]);
+
+  const handleFeedbackReply = async (feedbackId, content) => {
+    const text = String(content || '').trim();
+    if (!text || !userInfo?.name || !userInfo?.class) return;
+    try {
+      await api.feedback.reply(feedbackId, {
+        content: text,
+        authorName: userInfo.name,
+        authorClass: userInfo.class
+      });
+      setReplyDrafts(prev => ({ ...prev, [feedbackId]: '' }));
+      await loadMyFeedbacks();
+    } catch (e) {
+      alert('回复失败：' + (e.message || '请重试'));
+    }
+  };
+
   const handleFileUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
@@ -98,8 +159,7 @@ export default function Feedback({ userInfo }) {
         xhr.onerror = () => reject(new Error('网络错误'));
       });
 
-      const baseUrl = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000');
-      xhr.open('POST', `${baseUrl}/api/upload`, true);
+      xhr.open('POST', `${apiBaseUrl}/api/upload`, true);
       xhr.timeout = 1800000;
       xhr.send(uploadFormData);
 
@@ -138,10 +198,10 @@ export default function Feedback({ userInfo }) {
         authorName: userInfo.name,
         authorClass: userInfo.class
       });
-      
+
       alert('反馈提交成功！感谢您的建议。');
-      // 提交成功后清除草稿
       clearDraft();
+      await loadMyFeedbacks();
     } catch (error) {
       alert('提交失败：' + (error.message || '请重试'));
     } finally {
@@ -150,7 +210,7 @@ export default function Feedback({ userInfo }) {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+    <div style={{ maxWidth: 720, margin: '40px auto', background: '#fff', borderRadius: 15, padding: 30, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
       <h2 style={{ marginBottom: 30, color: '#2c3e50', textAlign: 'center' }}>意见反馈</h2>
       
       <div style={{ 
@@ -260,10 +320,7 @@ export default function Feedback({ userInfo }) {
               background: '#f8f9fa',
               position: 'relative'
             }}>
-              <FilePreview 
-                urls={formData.media} 
-                apiBaseUrl={process.env.NODE_ENV === 'production' ? 'https://platform-program.onrender.com' : 'http://localhost:5000'} 
-              />
+              <FilePreview urls={formData.media} apiBaseUrl={apiBaseUrl} />
             </div>
           </div>
         )}
@@ -326,6 +383,196 @@ export default function Feedback({ userInfo }) {
           </button>
         </div>
       </form>
+
+      {/* 我的反馈 */}
+      <div style={{ marginTop: 36, paddingTop: 28, borderTop: '1px solid #e9ecef' }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#2c3e50', fontSize: '18px' }}>我的反馈</h3>
+        {!userInfo?.name || !userInfo?.class ? (
+          <div style={{ padding: 20, textAlign: 'center', color: '#7f8c8d', fontSize: 14 }}>
+            登录并完善个人信息后可查看您提交过的反馈及处理状态。
+          </div>
+        ) : loadingMy ? (
+          <div style={{ padding: 24, textAlign: 'center', color: '#7f8c8d' }}>加载中…</div>
+        ) : myFeedbacks.length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: '#7f8c8d', fontSize: 14 }}>
+            您还没有提交过反馈，填写上方表单即可提交。
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {myFeedbacks.map(item => {
+              const st = feedbackStatusMeta(item.status);
+              return (
+                <div
+                  key={item._id}
+                  style={{
+                    border: '1px solid #ecf0f1',
+                    borderRadius: 12,
+                    padding: 18,
+                    background: '#f8f9fa'
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 12,
+                      flexWrap: 'wrap',
+                      gap: 8
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: '#7f8c8d' }}>
+                      {new Date(item.createdAt).toLocaleString()}
+                    </div>
+                    <span
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        background: st.bg,
+                        color: st.color
+                      }}
+                    >
+                      状态：{st.label}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: '#34495e',
+                      lineHeight: 1.6,
+                      marginBottom: item.media?.length ? 12 : 0,
+                      whiteSpace: 'pre-wrap'
+                    }}
+                  >
+                    {item.content}
+                  </div>
+                  {item.media && item.media.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <FilePreview urls={item.media} apiBaseUrl={apiBaseUrl} />
+                    </div>
+                  )}
+                  {item.conversations && item.conversations.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 'bold',
+                          color: '#2c3e50',
+                          marginBottom: 8
+                        }}
+                      >
+                        沟通记录
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {[...item.conversations]
+                          .sort(
+                            (a, b) =>
+                              new Date(a.createdAt) - new Date(b.createdAt)
+                          )
+                          .map(conv => (
+                            <div
+                              key={conv.id}
+                              style={{
+                                padding: 10,
+                                borderRadius: 8,
+                                background: conv.isAdmin ? '#e3f2fd' : '#fff',
+                                borderLeft: `3px solid ${conv.isAdmin ? '#2196f3' : '#95a5a6'}`
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  marginBottom: 4,
+                                  flexWrap: 'wrap',
+                                  gap: 4
+                                }}
+                              >
+                                <span style={{ fontWeight: 'bold', fontSize: 12, color: '#2c3e50' }}>
+                                  {conv.authorName}
+                                  {conv.isAdmin ? '（管理员）' : ''}
+                                </span>
+                                <span style={{ fontSize: 11, color: '#7f8c8d' }}>
+                                  {new Date(conv.createdAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 13, color: '#34495e', whiteSpace: 'pre-wrap' }}>
+                                {conv.content}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      border: '1px solid #dee2e6',
+                      borderRadius: 8,
+                      padding: 12,
+                      background: '#fff'
+                    }}
+                  >
+                    <textarea
+                      placeholder="补充说明或回复管理员…"
+                      value={replyDrafts[item._id] ?? ''}
+                      onChange={e =>
+                        setReplyDrafts(prev => ({
+                          ...prev,
+                          [item._id]: e.target.value
+                        }))
+                      }
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && e.ctrlKey) {
+                          e.preventDefault();
+                          handleFeedbackReply(item._id, e.target.value);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        minHeight: 64,
+                        padding: 8,
+                        border: '1px solid #ddd',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        resize: 'vertical',
+                        marginBottom: 8,
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const t = replyDrafts[item._id] ?? '';
+                          handleFeedbackReply(item._id, t);
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#3498db',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 6,
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: '600'
+                        }}
+                      >
+                        发送回复
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#6c757d', marginTop: 6 }}>
+                      在输入框中按 Ctrl+Enter 可快速发送
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <div style={{ 
         marginTop: '30px',
