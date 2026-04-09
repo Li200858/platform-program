@@ -134,7 +134,7 @@ export default function Notifications({ userInfo, onBack }) {
 
       <div style={{ marginBottom: 20, padding: '15px', background: '#f8f9fa', borderRadius: 8 }}>
         <div style={{ fontSize: '14px', color: '#2c3e50' }}>
-          共 {notifications.length} 条通知（进入本页即视为已全部查看）
+          共 {notifications.length} 条通知
         </div>
       </div>
 
