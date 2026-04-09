@@ -213,10 +213,10 @@ export default function Feedback({ userInfo }) {
                 marginBottom: '8px'
               }}>
                 <span style={{ fontWeight: 'bold' }}>
-                  📊 {uploadProgress.toFixed(1)}%
+                  上传进度: {uploadProgress.toFixed(1)}%
                 </span>
                 <span style={{ color: '#3498db', fontWeight: '600' }}>
-                  {uploadSpeed > 0 ? `⚡ ${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算中...'}
+                  {uploadSpeed > 0 ? `${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算中...'}
                 </span>
               </div>
               

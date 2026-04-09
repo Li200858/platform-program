@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import Avatar from './Avatar';
 import FilePreview from './FilePreview';
 import api from './api';
@@ -965,6 +965,8 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSpeed, setUploadSpeed] = useState(0);
+  const [uploadTotalBytes, setUploadTotalBytes] = useState(0);
+  const uploadSpeedEmaRef = useRef(0);
 
   const handleFileUpload = async (e) => {
     const files = e.target.files;
@@ -977,16 +979,17 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
     setMessage('');
     setUploading(true);
     setUploadProgress(0);
-    
+    uploadSpeedEmaRef.current = 0;
+
     const uploadFormData = new FormData();
     let totalSize = 0;
     Array.from(files).forEach(file => {
       uploadFormData.append('files', file);
       totalSize += file.size;
     });
+    setUploadTotalBytes(totalSize);
 
     const startTime = Date.now();
-    let uploadedSize = 0;
 
     try {
       // 使用XMLHttpRequest来获取上传进度
@@ -997,13 +1000,19 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
         if (e.lengthComputable) {
           const percentComplete = (e.loaded / e.total) * 100;
           setUploadProgress(percentComplete);
-          
-          // 计算上传速度
-          const elapsedTime = (Date.now() - startTime) / 1000; // 秒
-          const speed = e.loaded / elapsedTime; // 字节/秒
-          setUploadSpeed(speed);
-          
-          console.log(`📊 上传进度: ${percentComplete.toFixed(1)}% (${(speed / 1024 / 1024).toFixed(2)} MB/s)`);
+
+          const elapsedSec = Math.max((Date.now() - startTime) / 1000, 0.001);
+          const instantSpeed = e.loaded / elapsedSec;
+          const alpha = 0.15;
+          const prev = uploadSpeedEmaRef.current;
+          const smoothed =
+            prev === 0 ? instantSpeed : prev * (1 - alpha) + instantSpeed * alpha;
+          uploadSpeedEmaRef.current = smoothed;
+          setUploadSpeed(smoothed);
+
+          console.log(
+            `上传进度: ${percentComplete.toFixed(1)}% (${(smoothed / 1024 / 1024).toFixed(2)} MB/s)`
+          );
         }
       });
 
@@ -1041,8 +1050,12 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
       setUploadProgress(0);
     } finally {
       setUploading(false);
-      // 3秒后清除进度条
-      setTimeout(() => setUploadProgress(0), 3000);
+      setTimeout(() => {
+        setUploadProgress(0);
+        setUploadTotalBytes(0);
+        setUploadSpeed(0);
+        uploadSpeedEmaRef.current = 0;
+      }, 3000);
     }
   };
 
@@ -1186,10 +1199,10 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
                 color: '#2c3e50'
               }}>
                 <span style={{ fontWeight: 'bold' }}>
-                  📊 上传进度: {uploadProgress.toFixed(1)}%
+                  上传进度: {uploadProgress.toFixed(1)}%
                 </span>
                 <span style={{ color: '#3498db', fontWeight: '600' }}>
-                  {uploadSpeed > 0 ? `⚡ ${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算速度...'}
+                  {uploadSpeed > 0 ? `${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算速度...'}
                 </span>
               </div>
               
@@ -1221,7 +1234,7 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
                     fontSize: '13px',
                     textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                   }}>
-                    {uploadProgress === 100 ? ' 完成' : `${uploadProgress.toFixed(0)}%`}
+                    {uploadProgress === 100 ? '完成' : `${uploadProgress.toFixed(0)}%`}
                   </span>
                 </div>
               </div>
@@ -1235,11 +1248,14 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
                   textAlign: 'center',
                   animation: 'fadeIn 0.5s'
                 }}>
-                  ✨ 上传完成！文件已添加到作品中
+                  上传完成！文件已添加到作品中
                 </div>
               )}
               
-              {uploadProgress < 100 && uploadSpeed > 0 && (
+              {uploadProgress < 100 &&
+                uploadProgress >= 0.5 &&
+                uploadSpeed > 0 &&
+                uploadTotalBytes > 0 && (
                 <div style={{ 
                   marginTop: '8px', 
                   color: '#7f8c8d', 
@@ -1247,9 +1263,9 @@ function PublishForm({ onBack, userInfo, maintenanceStatus }) {
                   textAlign: 'center'
                 }}>
                   预计剩余时间: {(() => {
-                    const totalSize = uploadSpeed > 0 ? (uploadProgress / 100) * 1000 : 0;
-                    const remainingSize = totalSize * (1 - uploadProgress / 100);
-                    const remainingTime = uploadSpeed > 0 ? remainingSize / uploadSpeed : 0;
+                    const remainingBytes =
+                      uploadTotalBytes * (1 - Math.min(100, uploadProgress) / 100);
+                    const remainingTime = remainingBytes / uploadSpeed;
                     if (remainingTime < 60) return `${Math.ceil(remainingTime)}秒`;
                     if (remainingTime < 3600) return `${Math.ceil(remainingTime / 60)}分钟`;
                     return `${Math.ceil(remainingTime / 3600)}小时`;

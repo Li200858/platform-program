@@ -169,7 +169,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
           setUploadProgress(percentComplete);
           const speed = e.loaded / ((Date.now() - startTime) / 1000);
           setUploadSpeed(speed);
-          console.log(`📊 资料上传进度: ${percentComplete.toFixed(1)}% (${(speed / 1024 / 1024).toFixed(2)} MB/s)`);
+          console.log(`资料上传进度: ${percentComplete.toFixed(1)}% (${(speed / 1024 / 1024).toFixed(2)} MB/s)`);
         }
       });
 
@@ -663,10 +663,10 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
                     marginBottom: '8px'
                   }}>
                     <span style={{ fontWeight: 'bold' }}>
-                      📊 上传进度: {uploadProgress.toFixed(1)}%
+                      上传进度: {uploadProgress.toFixed(1)}%
                     </span>
                     <span style={{ color: '#3498db', fontWeight: '600' }}>
-                      {uploadSpeed > 0 ? `⚡ ${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算中...'}
+                      {uploadSpeed > 0 ? `${(uploadSpeed / 1024 / 1024).toFixed(2)} MB/s` : '计算中...'}
                     </span>
                   </div>
                   
@@ -696,7 +696,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
                         fontSize: '13px',
                         textShadow: '0 1px 2px rgba(0,0,0,0.3)'
                       }}>
-                        {uploadProgress === 100 ? ' 完成' : `${uploadProgress.toFixed(0)}%`}
+                        {uploadProgress === 100 ? '完成' : `${uploadProgress.toFixed(0)}%`}
                       </span>
                     </div>
                   </div>
@@ -709,7 +709,7 @@ export default function ResourceLibrary({ userInfo, isAdmin, onBack }) {
                       fontWeight: 'bold',
                       textAlign: 'center'
                     }}>
-                      ✨ 资料上传成功！
+                      资料上传成功！
                     </div>
                   )}
                 </div>
